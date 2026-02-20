@@ -1,0 +1,65 @@
+export const MONTH_MAP = {
+  'January': 0, 'February': 1, 'March': 2, 'April': 3, 'May': 4, 'June': 5,
+  'July': 6, 'August': 7, 'September': 8, 'October': 9, 'November': 10, 'December': 11,
+  'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'Jun': 5, 'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+};
+
+export const COLORS = { 
+  emerald: '#10b981', 
+  rose: '#f43f5e', 
+  indigo: '#6366f1', 
+  amber: '#f59e0b', 
+  slate: '#475569', 
+  purple: '#a855f7', 
+  blue: '#3b82f6',
+  white: '#ffffff',
+  psychPalette: ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#3b82f6', '#06b6d4', '#8b5cf6'],
+  qualityPalette: ['#10b981', '#3b82f6', '#f43f5e', '#f59e0b', '#6366f1', '#a855f7']
+};
+
+export const cleanCurrency = (val) => {
+  if (!val) return 0;
+  let s = val.toString().replace(/[₹\s,"]/g, '');
+  const num = parseFloat(s);
+  return isNaN(num) ? 0 : num;
+};
+
+export const formatCurrency = (val) => {
+  const num = parseFloat(val);
+  if (isNaN(num) || !isFinite(num)) return "₹0";
+  return new Intl.NumberFormat('en-IN', { 
+    style: 'currency', 
+    currency: 'INR', 
+    maximumFractionDigits: 0 
+  }).format(num);
+};
+
+export const parseCSV = (text) => {
+  const result = [];
+  const rows = text.split(/\r?\n/);
+  rows.forEach(row => {
+    if (!row.trim()) return;
+    const cells = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < row.length; i++) {
+      const char = row[i];
+      if (char === '"') inQuotes = !inQuotes;
+      else if (char === ',' && !inQuotes) {
+        cells.push(current.trim().replace(/^"|"$/g, ''));
+        current = '';
+      } else current += char;
+    }
+    cells.push(current.trim().replace(/^"|"$/g, ''));
+    result.push(cells);
+  });
+  return result;
+};
+
+export const getMarketCategory = (market) => {
+  if (!market) return 'Other';
+  const m = String(market).toUpperCase();
+  if (['BTC', 'ETH', 'SOL', 'CRYPTO', 'DOGE', 'USDT'].some(c => m.includes(c))) return 'Crypto';
+  if (['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'RELIANCE', 'SBIN', 'INDIAN'].some(i => m.includes(i))) return 'Indian';
+  return 'Other';
+};
