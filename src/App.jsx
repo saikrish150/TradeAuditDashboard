@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, ReferenceLine, LabelList, ComposedChart, Scatter
@@ -24,6 +25,68 @@ import ScoreBar from './components/ScoreBar';
 import DonutCenter from './components/DonutCenter';
 import CustomTooltip from './components/CustomTooltip';
 import { MONTH_MAP, COLORS, cleanCurrency, formatCurrency, parseCSV, getMarketCategory } from './utils';
+
+const LightRaysAndParticles = () => {
+  const [particles, setParticles] = useState([]);
+
+  useEffect(() => {
+    setParticles(
+      Array.from({ length: 25 }).map(() => ({
+        x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+        y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
+        opacity: Math.random() * 0.5 + 0.1,
+        scale: Math.random() * 1.5 + 0.5,
+        destY: Math.random() * -500,
+        duration: Math.random() * 15 + 10,
+      }))
+    );
+  }, []);
+
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      {/* Light Rays / Glowing Orbs */}
+      <motion.div
+        className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#00f2fe]/10 rounded-full blur-[120px]"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#4facfe]/10 rounded-full blur-[150px]"
+        animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
+        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      />
+      <motion.div
+        className="absolute top-[40%] left-[20%] w-[30%] h-[30%] bg-[#e100ff]/5 rounded-full blur-[100px]"
+        animate={{ x: [0, 100, 0], y: [0, -50, 0] }}
+        transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* Floating Particles */}
+      {particles.map((p, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1 h-1 bg-white rounded-full shadow-[0_0_10px_2px_rgba(255,255,255,0.8)]"
+          initial={{
+            x: p.x,
+            y: p.y,
+            opacity: p.opacity,
+            scale: p.scale,
+          }}
+          animate={{
+            y: [null, p.destY],
+            opacity: [null, 0],
+          }}
+          transition={{
+            duration: p.duration,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('performance');
@@ -102,7 +165,6 @@ const App = () => {
           }
 
           const rawMarketVal = (row[idx.market] || '').trim().toUpperCase();
-          const isAllowedMarket = ['NIFTY', 'BANKNIFTY', 'SENSEX'].includes(rawMarketVal);
           const marketVal = rawMarketVal || 'Uncategorized'; // Keep the specific name for the Asset dropdown
 
           return {
@@ -442,6 +504,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 font-sans p-4 md:p-8 relative">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuOCIgbnVtT2N0YXZlcz0iMSIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNub2lzZSkiIG9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==')]"></div>
+      <LightRaysAndParticles />
       <div className="max-w-7xl mx-auto relative">
         <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
           <div className="flex items-center gap-4">
@@ -457,16 +520,29 @@ const App = () => {
           <div className="flex flex-col gap-3 w-full md:w-auto">
             {rawTrades.length > 0 && (
               <>
-                <nav className="flex bg-slate-900 border border-slate-800 p-1 rounded-2xl shadow-xl shadow-indigo-500/10 self-center md:self-end">
+                <nav className="flex super-glass p-1.5 rounded-2xl shadow-[0_0_30px_rgba(0,198,255,0.05)] self-center md:self-end relative">
                   {['performance', 'audit', 'strategies'].map((tab) => (
-                    <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === tab ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>
-                      {tab === 'performance' ? <LayoutDashboard size={14} /> : tab === 'audit' ? <ShieldCheck size={14} /> : <Zap size={14} />}
-                      {tab}
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`relative px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center gap-2 z-10 ${activeTab === tab ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-slate-500 hover:text-white'}`}
+                    >
+                      {activeTab === tab && (
+                        <motion.div
+                          layoutId="active-pill"
+                          className="absolute inset-0 bg-gradient-to-r from-[#00f2fe]/20 to-[#4facfe]/20 rounded-xl border border-[#00f2fe]/30 shadow-[0_0_15px_rgba(0,242,254,0.4)]"
+                          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        />
+                      )}
+
+                      <span className="relative z-20 flex items-center gap-2">
+                        {tab === 'performance' ? <LayoutDashboard size={14} /> : tab === 'audit' ? <ShieldCheck size={14} /> : <Zap size={14} />}
+                        {tab}
+                      </span>
                     </button>
                   ))}
                 </nav>
-
-                <div className="flex flex-wrap items-center justify-center md:justify-end gap-2">
+                <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 mt-4">
                   <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
                     <Clock size={12} className="text-slate-500 ml-2" />
                     <select value={datePreset} onChange={(e) => setDatePreset(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
@@ -536,353 +612,399 @@ const App = () => {
         ) : processedData?.isEmpty ? (
           <div className="h-[400px] flex flex-col items-center justify-center gap-4"><Search size={48} className="text-slate-800" /><p className="text-slate-500 uppercase font-black text-xs tracking-[0.2em]">No data found for this selection.</p><button onClick={() => { setSelectedYear('All'); setSelectedMonth('All'); setDatePreset('CurrentMonth'); }} className="text-[10px] font-black uppercase text-indigo-400 underline">Reset Filters</button></div>
         ) : (
-          <main className="animate-in fade-in duration-700">
+          <motion.main
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
             {activeTab === 'performance' && (
-              <div className="space-y-6">
+              <div className="space-y-6 md:space-y-12">
                 <SectionHeader icon={Briefcase} title="1. Financial Summary" />
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                   <MetricCard title="Total Trades" value={String(metrics.total || 0)} icon={Hash} />
                   <MetricCard title="Win Rate" value={`${String(metrics.winRate || 0)}%`} icon={TrendingUp} trend="up" />
                   <MetricCard title="Net P&L" value={formatCurrency(metrics.net || 0)} icon={IndianRupee} trend={(metrics.net || 0) >= 0 ? "up" : "down"} size="large" />
                   <MetricCard title="Profit Factor" value={String(metrics.pf || 0)} icon={BarChart2} />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                   <MetricCard title="Avg Win" value={formatCurrency(metrics.avgWin || 0)} icon={ArrowUpRight} trend="up" colorClass="text-emerald-400" />
                   <MetricCard title="Avg Loss" value={formatCurrency(metrics.avgLoss || 0)} icon={ArrowDownRight} trend="down" colorClass="text-rose-400" />
                   <MetricCard title="Highest Win" value={formatCurrency(metrics.maxProfit || 0)} icon={Flame} colorClass="text-emerald-500" />
                   <MetricCard title="Highest Loss" value={formatCurrency(metrics.maxLoss || 0)} icon={ZapOff} colorClass="text-rose-500" />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                   <MetricCard title="Realized Risk/Reward" value={`1:${String(metrics.overallRR)}`} icon={Scale} colorClass="text-indigo-400" />
                   <MetricCard title="Performance Expectancy" value={`₹${String(metrics.expectancy)}`} icon={Zap} colorClass={metrics.expectancy >= 0 ? "text-emerald-400" : "text-rose-400"} />
                 </div>
-
-                <SectionHeader icon={Calendar} title="2. Execution Timeline & Heatmap" sub="Hierarchical Performance Drilldown" color="text-amber-400" />
-                <div className="mb-10">
-                  {selectedYear === 'All' && datePreset === 'All' ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                      {Object.entries(hierarchical.yearData || {}).map(([year, data]) => (
-                        <Card key={year} className="p-6 cursor-pointer group hover:border-indigo-500" onClick={() => setSelectedYear(year)}>
-                          <div className="flex justify-between items-center mb-4"><h4 className="text-2xl font-black text-white">{String(year)}</h4><ArrowRight size={18} className="text-slate-600 group-hover:text-indigo-400 transition-colors" /></div>
-                          <p className={`text-xl font-mono font-bold ${data.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(data.pl)}</p>
-                          <p className="text-[10px] text-slate-500 font-black uppercase mt-1">{String(data.count)} Trades Taken</p>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (selectedMonth === 'All' && datePreset === 'All') ? (
-                    <div className="space-y-4">
-                      <button onClick={() => setSelectedYear('All')} className="flex items-center gap-2 text-[10px] font-black uppercase text-indigo-400 hover:text-white mb-2 transition-colors"><ChevronLeft size={14} /> Back to Yearly View</button>
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                  <SectionHeader icon={Calendar} title="2. Execution Timeline & Heatmap" sub="Hierarchical Performance Drilldown" color="text-amber-400" />
+                  <div className="mb-10">
+                    {selectedYear === 'All' && datePreset === 'All' ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        {Object.entries(hierarchical.monthData || {}).map(([monthYear, data]) => (
-                          <Card key={monthYear} className="p-6 cursor-pointer group hover:border-indigo-500" onClick={() => setSelectedMonth(monthYear.split(' ')[0])}>
-                            <div className="flex justify-between items-center mb-2"><h4 className="text-sm font-black text-slate-400 uppercase">{String(monthYear.split(' ')[0])}</h4><ArrowRight size={14} className="text-slate-600 group-hover:text-indigo-400 transition-colors" /></div>
-                            <p className={`text-lg font-mono font-bold ${data.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(data.pl)}</p>
-                            <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">{String(data.count)} Trades</p>
+                        {Object.entries(hierarchical.yearData || {}).map(([year, data]) => (
+                          <Card key={year} className="p-6 cursor-pointer group hover:border-indigo-500" onClick={() => setSelectedYear(year)}>
+                            <div className="flex justify-between items-center mb-4"><h4 className="text-2xl font-black text-white">{String(year)}</h4><ArrowRight size={18} className="text-slate-600 group-hover:text-indigo-400 transition-colors" /></div>
+                            <p className={`text-xl font-mono font-bold ${data.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(data.pl)}</p>
+                            <p className="text-[10px] text-slate-500 font-black uppercase mt-1">{String(data.count)} Trades Taken</p>
                           </Card>
                         ))}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        {datePreset === 'All' && <button onClick={() => setSelectedMonth('All')} className="flex items-center gap-2 text-[10px] font-black uppercase text-indigo-400 hover:text-white transition-colors"><ChevronLeft size={14} /> Back to Monthly</button>}
-                        <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
-                          <button onClick={() => setHeatmapMode('pnl')} className={`px-4 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all ${heatmapMode === 'pnl' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>P&L Mode</button>
-                          <button onClick={() => setHeatmapMode('frequency')} className={`px-4 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all ${heatmapMode === 'frequency' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>Volume Mode</button>
+                    ) : (selectedMonth === 'All' && datePreset === 'All') ? (
+                      <div className="space-y-4">
+                        <button onClick={() => setSelectedYear('All')} className="flex items-center gap-2 text-[10px] font-black uppercase text-indigo-400 hover:text-white mb-2 transition-colors"><ChevronLeft size={14} /> Back to Yearly View</button>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                          {Object.entries(hierarchical.monthData || {}).map(([monthYear, data]) => (
+                            <Card key={monthYear} className="p-6 cursor-pointer group hover:border-indigo-500" onClick={() => setSelectedMonth(monthYear.split(' ')[0])}>
+                              <div className="flex justify-between items-center mb-2"><h4 className="text-sm font-black text-slate-400 uppercase">{String(monthYear.split(' ')[0])}</h4><ArrowRight size={14} className="text-slate-600 group-hover:text-indigo-400 transition-colors" /></div>
+                              <p className={`text-lg font-mono font-bold ${data.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(data.pl)}</p>
+                              <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">{String(data.count)} Trades</p>
+                            </Card>
+                          ))}
                         </div>
                       </div>
-                      <div className="flex flex-col gap-8">
-                        {activeMonths.map(monthStr => {
-                          const [mName, yStr] = monthStr.split(' ');
-                          const mIdx = MONTH_MAP[mName];
-                          const yNum = parseInt(yStr);
-                          const firstDayOfMonth = new Date(Date.UTC(yNum, mIdx, 1)).getUTCDay();
-                          const daysInMonth = new Date(Date.UTC(yNum, mIdx + 1, 0)).getUTCDate();
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          {datePreset === 'All' && <button onClick={() => setSelectedMonth('All')} className="flex items-center gap-2 text-[10px] font-black uppercase text-indigo-400 hover:text-white transition-colors"><ChevronLeft size={14} /> Back to Monthly</button>}
+                          <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+                            <button onClick={() => setHeatmapMode('pnl')} className={`px-4 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all ${heatmapMode === 'pnl' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>P&L Mode</button>
+                            <button onClick={() => setHeatmapMode('frequency')} className={`px-4 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all ${heatmapMode === 'frequency' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>Volume Mode</button>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-8">
+                          {activeMonths.map(monthStr => {
+                            const [mName, yStr] = monthStr.split(' ');
+                            const mIdx = MONTH_MAP[mName];
+                            const yNum = parseInt(yStr);
+                            const firstDayOfMonth = new Date(Date.UTC(yNum, mIdx, 1)).getUTCDay();
+                            const daysInMonth = new Date(Date.UTC(yNum, mIdx + 1, 0)).getUTCDate();
 
-                          return (
-                            <div key={monthStr} className="animate-in fade-in duration-500">
-                              <h4 className="text-sm font-black text-slate-400 uppercase mb-4">{monthStr}</h4>
-                              <div className="grid grid-cols-7 gap-2">
-                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="text-center text-[10px] font-black text-slate-600 uppercase pb-2">{d}</div>)}
-                                {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} className="h-24 bg-transparent" />)}
-                                {Array.from({ length: daysInMonth }).map((_, i) => {
-                                  const dayNum = i + 1;
-                                  const dateKey = `${yNum}-${String(mIdx + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-                                  const dayVal = (hierarchical.dateData || {})[dateKey] || { pl: 0, count: 0 };
-                                  let bgColor, borderColor, textColor;
-                                  if (heatmapMode === 'pnl') {
-                                    const intensity = Math.max(0.1, (Math.abs(dayVal.pl) / (maxDayAbsVal || 1)));
-                                    bgColor = dayVal.pl > 0 ? `rgba(16, 185, 129, ${intensity})` : dayVal.pl < 0 ? `rgba(244, 63, 94, ${intensity})` : 'rgba(30, 41, 59, 0.3)';
-                                    borderColor = dayVal.pl !== 0 ? (dayVal.pl > 0 ? '#10b981' : '#f43f5e') : '#1e293b';
-                                    textColor = dayVal.pl !== 0 ? 'text-white' : 'text-slate-600';
-                                  } else {
-                                    const intensity = Math.min(1, dayVal.count / (metrics.maxTradesInDay || 1));
-                                    bgColor = dayVal.count > 0 ? `rgba(59, 130, 246, ${0.2 + intensity * 0.8})` : 'rgba(30, 41, 59, 0.3)';
-                                    borderColor = dayVal.count > 0 ? '#3b82f6' : '#1e293b';
-                                    textColor = dayVal.count > 0 ? 'text-white' : 'text-slate-600';
-                                  }
-                                  return (
-                                    <Card key={i} className="h-24 p-3 flex flex-col justify-between" style={{ backgroundColor: bgColor, borderColor: borderColor }}>
-                                      <span className={`text-xs font-black ${textColor === 'text-white' ? 'text-white/50' : 'text-slate-200'}`}>{dayNum}</span>
-                                      <div className={`flex-1 flex items-center justify-center`}>
-                                        {heatmapMode === 'frequency' && dayVal.count > 0 && <span className="text-2xl font-black text-white drop-shadow-lg animate-in zoom-in duration-300">{String(dayVal.count)}</span>}
-                                        {heatmapMode === 'pnl' && dayVal.pl !== 0 && <span className="text-[10px] font-black text-white text-center drop-shadow-md">{formatCurrency(dayVal.pl)}</span>}
-                                      </div>
-                                      <div className="text-right">{dayVal.count > 0 && <span className={`text-[8px] font-black block ${heatmapMode === 'frequency' ? 'text-blue-200' : 'text-slate-400'}`}>{String(dayVal.count)}T</span>}</div>
-                                    </Card>
-                                  );
-                                })}
+                            return (
+                              <div key={monthStr} className="animate-in fade-in duration-500">
+                                <h4 className="text-sm font-black text-slate-400 uppercase mb-4">{monthStr}</h4>
+                                <div className="grid grid-cols-7 gap-2">
+                                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="text-center text-[10px] font-black text-slate-600 uppercase pb-2">{d}</div>)}
+                                  {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} className="h-24 bg-transparent" />)}
+                                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                                    const dayNum = i + 1;
+                                    const dateKey = `${yNum}-${String(mIdx + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                                    const dayVal = (hierarchical.dateData || {})[dateKey] || { pl: 0, count: 0 };
+                                    let bgColor, borderColor, textColor;
+                                    if (heatmapMode === 'pnl') {
+                                      const intensity = Math.max(0.1, (Math.abs(dayVal.pl) / (maxDayAbsVal || 1)));
+                                      bgColor = dayVal.pl > 0 ? `rgba(16, 185, 129, ${intensity})` : dayVal.pl < 0 ? `rgba(244, 63, 94, ${intensity})` : 'rgba(30, 41, 59, 0.3)';
+                                      borderColor = dayVal.pl !== 0 ? (dayVal.pl > 0 ? '#10b981' : '#f43f5e') : '#1e293b';
+                                      textColor = dayVal.pl !== 0 ? 'text-white' : 'text-slate-600';
+                                    } else {
+                                      const intensity = Math.min(1, dayVal.count / (metrics.maxTradesInDay || 1));
+                                      bgColor = dayVal.count > 0 ? `rgba(59, 130, 246, ${0.2 + intensity * 0.8})` : 'rgba(30, 41, 59, 0.3)';
+                                      borderColor = dayVal.count > 0 ? '#3b82f6' : '#1e293b';
+                                      textColor = dayVal.count > 0 ? 'text-white' : 'text-slate-600';
+                                    }
+                                    return (
+                                      <Card key={i} className="h-24 p-3 flex flex-col justify-between" style={{ backgroundColor: bgColor, borderColor: borderColor }}>
+                                        <span className={`text-xs font-black ${textColor === 'text-white' ? 'text-white/50' : 'text-slate-200'}`}>{dayNum}</span>
+                                        <div className={`flex-1 flex items-center justify-center`}>
+                                          {heatmapMode === 'frequency' && dayVal.count > 0 && <span className="text-2xl font-black text-white drop-shadow-lg animate-in zoom-in duration-300">{String(dayVal.count)}</span>}
+                                          {heatmapMode === 'pnl' && dayVal.pl !== 0 && <span className="text-[10px] font-black text-white text-center drop-shadow-md">{formatCurrency(dayVal.pl)}</span>}
+                                        </div>
+                                        <div className="text-right">{dayVal.count > 0 && <span className={`text-[8px] font-black block ${heatmapMode === 'frequency' ? 'text-blue-200' : 'text-slate-400'}`}>{String(dayVal.count)}T</span>}</div>
+                                      </Card>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-
-                <SectionHeader icon={Layers} title="3. Periodic P&L Distribution" color="text-indigo-400" />
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <Card className="lg:col-span-2 p-6 h-[400px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                        <defs>
-                          <linearGradient id="pinGPlus" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.emerald} stopOpacity={1} /><stop offset="100%" stopColor={COLORS.emerald} stopOpacity={0.1} /></linearGradient>
-                          <linearGradient id="pinGMinus" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.rose} stopOpacity={1} /><stop offset="100%" stopColor={COLORS.rose} stopOpacity={0.1} /></linearGradient>
-                          <linearGradient id="momentumGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.indigo} stopOpacity={0.05} /><stop offset="100%" stopColor={COLORS.indigo} stopOpacity={0} /></linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                        <XAxis dataKey="name" stroke={COLORS.white} fontSize={10} axisLine={false} tickLine={false} />
-                        <YAxis stroke={COLORS.white} fontSize={10} axisLine={false} tickLine={false} />
-                        <Tooltip content={<CustomTooltip />} filter={(item) => item.dataKey === "pl"} />
-                        <Area type="monotone" dataKey="pl" stroke="none" fill="url(#momentumGrad)" baseLine={0} />
-                        <Bar dataKey="pl" barSize={4}>
-                          {barData.map((e, idx) => <Cell key={idx} fill={e.pl >= 0 ? "url(#pinGPlus)" : "url(#pinGMinus)"} />)}
-                        </Bar>
-                        <Scatter dataKey="pl">
-                          {barData.map((e, idx) => <Cell key={idx} fill={e.pl >= 0 ? COLORS.emerald : COLORS.rose} />)}
-                        </Scatter>
-                        <ReferenceLine y={0} stroke="#475569" strokeDasharray="3 3" />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </Card>
-                  <Card className="p-6 bg-indigo-500/5 text-white">
-                    <SectionHeader icon={SparklesIcon} title="Period Highlights" />
-                    <div className="space-y-4">
-                      <div><p className="text-[10px] text-slate-500 font-black uppercase">PEAK PERFORMANCE</p><p className="text-sm font-black text-emerald-400">{String(bestPeriod[0])}: {formatCurrency(bestPeriod[1]?.pl)}</p></div>
-                      <div><p className="text-[10px] text-slate-500 font-black uppercase">WORST PERFORMANCE</p><p className="text-sm font-black text-rose-400">{String(worstPeriod[0])}: {formatCurrency(worstPeriod[1]?.pl)}</p></div>
-                    </div>
-                  </Card>
-                </div>
-
-                <SectionHeader icon={Diamond} title="4. Quality Grade & Sizing Matrix" color="text-amber-400" />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card className="p-6 h-[420px] relative text-white">
-                    <SectionHeader icon={Layers} title="P&L Weight by Grade" />
-                    <DonutCenter value={qualityStats.reduce((acc, curr) => acc + curr.pl, 0)} />
-                    <ResponsiveContainer width="100%" height="80%">
-                      <PieChart>
-                        <Pie data={qualityStats} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`} labelLine={{ stroke: COLORS.white }}>
-                          {qualityStats.map((entry, index) => <Cell key={index} fill={COLORS.qualityPalette[index % COLORS.qualityPalette.length]} />)}
-                        </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none' }} formatter={(val, name, props) => [`${formatCurrency(props.payload.pl)}`, String(props.payload.name)]} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Card>
-                  <Card className="p-6 h-[420px]">
-                    <SectionHeader icon={BoxSelect} title="Average Lot Size by Symbol" />
-                    <ResponsiveContainer width="100%" height="80%">
-                      <BarChart data={sizingData} layout="vertical" margin={{ left: 40, right: 20 }}>
-                        <XAxis type="number" hide />
-                        <YAxis type="category" dataKey="name" stroke={COLORS.white} fontSize={9} width={80} axisLine={false} tickLine={false} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none' }} formatter={(v) => [`${String(v)} Lots`, 'Average Size']} />
-                        <Bar dataKey="avgLots" fill={COLORS.indigo} radius={[0, 4, 4, 0]}>{sizingData.map((e, i) => <Cell key={i} fillOpacity={1 - (i * 0.1)} />)}</Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Card>
-                </div>
-
-                <SectionHeader icon={Shield} title="5. Risk & Trajectory Metrics" color="text-amber-400" />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-4">
-                    <MetricCard title="Max Win Streak" value={String(metrics.maxWinningStreak || 0)} icon={Trophy} trend="up" />
-                    <MetricCard title="Max Loss Streak" value={String(metrics.maxLosingStreak || 0)} icon={XCircle} trend="down" />
-                    <MetricCard title="Peak Drawdown" value={formatCurrency(metrics.peakDD || 0)} icon={TrendingDown} colorClass="text-rose-400" />
-                    <MetricCard title="Profit/DD Ratio" value={String(metrics.profitDD || 0)} icon={Activity} colorClass="text-indigo-400" />
+                    )}
                   </div>
-                  <Card className="md:col-span-2 p-6 bg-indigo-500/5 relative text-white">
-                    <SectionHeader icon={Target} title="Trade Outcome Weights" />
-                    <DonutCenter value={statusStats.reduce((acc, curr) => acc + curr.pl, 0)} />
-                    <ResponsiveContainer width="100%" height="80%">
-                      <PieChart>
-                        <Pie data={statusStats} innerRadius={80} outerRadius={110} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
-                          {statusStats.map((e, idx) => <Cell key={idx} fill={COLORS.qualityPalette[idx % COLORS.qualityPalette.length]} />)}
-                        </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none' }} formatter={(val, name, props) => [`${formatCurrency(props.payload.pl)} (${String(props.payload.trades)} trades)`, String(props.payload.name)]} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Card>
-                </div>
+                </motion.div>
 
-                <SectionHeader icon={Activity} title="6. Growth & Probability Profile" color="text-indigo-400" />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                  <Card className="p-6 h-[400px]">
-                    <SectionHeader icon={TrendingUp} title="Cumulative Equity Path" />
-                    <ResponsiveContainer width="100%" height="85%">
-                      <AreaChart data={equity}>
-                        <Tooltip content={<CustomTooltip />} />
-                        <Area type="monotone" dataKey="Equity" stroke={COLORS.indigo} strokeWidth={4} fill={COLORS.indigo} fillOpacity={0.1} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </Card>
-                  <Card className="p-6 h-[400px] relative text-white">
-                    <SectionHeader icon={Target} title="Win/Loss Probability Profile" />
-                    <DonutCenter value={outcomeDist.reduce((acc, curr) => acc + (curr.pl || 0), 0)} />
-                    <ResponsiveContainer width="100%" height="85%">
-                      <PieChart>
-                        <Pie data={outcomeDist} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
-                          {outcomeDist.map((e, idx) => <Cell key={idx} fill={e.color} />)}
-                        </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none' }} formatter={(val, name, props) => [`${formatCurrency(props.payload.pl)}`, String(props.payload.name)]} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Card>
-                </div>
-
-                <SectionHeader icon={BarChart3} title="7. Weekday Edge Analysis" color="text-purple-400" />
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <Card className="lg:col-span-2 p-8">
-                    <div className="h-[350px]">
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                  <SectionHeader icon={Layers} title="3. Periodic P&L Distribution" color="text-[#00c6ff]" />
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className="lg:col-span-2 p-4 md:p-6 h-[300px] md:h-[400px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={weekdayEdge} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                        <ComposedChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                          <defs>
+                            <filter id="neonGlowPlus" x="-20%" y="-20%" width="140%" height="140%">
+                              <feGaussianBlur stdDeviation="3" result="blur" />
+                              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                            <filter id="neonGlowMinus" x="-20%" y="-20%" width="140%" height="140%">
+                              <feGaussianBlur stdDeviation="3" result="blur" />
+                              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                            <linearGradient id="pinGPlus" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.emerald} stopOpacity={1} /><stop offset="100%" stopColor={COLORS.emerald} stopOpacity={0.1} /></linearGradient>
+                            <linearGradient id="pinGMinus" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.rose} stopOpacity={1} /><stop offset="100%" stopColor={COLORS.rose} stopOpacity={0.1} /></linearGradient>
+                            <linearGradient id="momentumGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.indigo} stopOpacity={0.15} /><stop offset="100%" stopColor={COLORS.indigo} stopOpacity={0} /></linearGradient>
+                          </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                          <XAxis dataKey="name" stroke={COLORS.white} fontSize={11} axisLine={false} tickLine={false} />
+                          <XAxis dataKey="name" stroke={COLORS.white} fontSize={10} axisLine={false} tickLine={false} />
                           <YAxis stroke={COLORS.white} fontSize={10} axisLine={false} tickLine={false} />
-                          <Tooltip content={<CustomTooltip />} />
-                          <Bar dataKey="pl" radius={[6, 6, 0, 0]}>
-                            {weekdayEdge.map((entry, index) => <Cell key={index} fill={entry.pl >= 0 ? COLORS.emerald : COLORS.rose} />)}
-                            <LabelList dataKey="pl" position="top" formatter={(v) => formatCurrency(v)} fill={COLORS.white} style={{ fontSize: '10px', fontWeight: 'bold' }} />
+                          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} filter={(item) => item.dataKey === "pl"} />
+                          <Area type="monotone" dataKey="pl" stroke="none" fill="url(#momentumGrad)" baseLine={0} />
+                          <Bar dataKey="pl" barSize={4} activeBar={false}>
+                            {barData.map((e, idx) => <Cell key={idx} fill={e.pl >= 0 ? "url(#pinGPlus)" : "url(#pinGMinus)"} />)}
                           </Bar>
+                          <Scatter dataKey="pl">
+                            {barData.map((e, idx) => <Cell key={idx} fill={e.pl >= 0 ? COLORS.emerald : COLORS.rose} />)}
+                          </Scatter>
+                          <ReferenceLine y={0} stroke="#475569" strokeDasharray="3 3" />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </Card>
+                    <Card className="p-6 bg-indigo-500/5 text-white">
+                      <SectionHeader icon={SparklesIcon} title="Period Highlights" />
+                      <div className="space-y-4">
+                        <div><p className="text-[10px] text-slate-500 font-black uppercase">PEAK PERFORMANCE</p><p className="text-sm font-black text-emerald-400">{String(bestPeriod[0])}: {formatCurrency(bestPeriod[1]?.pl)}</p></div>
+                        <div><p className="text-[10px] text-slate-500 font-black uppercase">WORST PERFORMANCE</p><p className="text-sm font-black text-rose-400">{String(worstPeriod[0])}: {formatCurrency(worstPeriod[1]?.pl)}</p></div>
+                      </div>
+                    </Card>
+                  </div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                  <SectionHeader icon={Diamond} title="4. Quality Grade & Sizing Matrix" color="text-[#f5d020]" />
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card className="p-4 md:p-6 h-[340px] md:h-[420px] relative text-white">
+                      <SectionHeader icon={Layers} title="P&L Weight by Grade" />
+                      <div className="relative w-full h-[80%]">
+                        <DonutCenter value={qualityStats.reduce((acc, curr) => acc + curr.pl, 0)} />
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={qualityStats} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`} labelLine={{ stroke: COLORS.white }}>
+                              {qualityStats.map((entry, index) => <Cell key={index} fill={COLORS.qualityPalette[index % COLORS.qualityPalette.length]} />)}
+                            </Pie>
+                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }} itemStyle={{ color: '#ffffff' }} labelStyle={{ color: '#94a3b8', fontWeight: 'bold' }} formatter={(val, name, props) => [`${formatCurrency(props.payload.pl)}`, String(props.payload.name)]} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </Card>
+                    <Card className="p-4 md:p-6 h-[340px] md:h-[420px]">
+                      <SectionHeader icon={BoxSelect} title="Average Lot Size by Symbol" />
+                      <ResponsiveContainer width="100%" height="80%">
+                        <BarChart data={sizingData} layout="vertical" margin={{ left: 40, right: 20 }}>
+                          <XAxis type="number" hide />
+                          <YAxis type="category" dataKey="name" stroke={COLORS.white} fontSize={9} width={80} axisLine={false} tickLine={false} />
+                          <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none' }} cursor={{ fill: 'transparent' }} formatter={(v) => [`${String(v)} Lots`, 'Average Size']} />
+                          <Bar dataKey="avgLots" fill={COLORS.indigo} radius={[0, 4, 4, 0]} activeBar={false}>{sizingData.map((e, i) => <Cell key={i} fillOpacity={1 - (i * 0.1)} />)}</Bar>
                         </BarChart>
                       </ResponsiveContainer>
-                    </div>
-                  </Card>
-                  <Card className="p-8 bg-purple-500/5 text-white">
-                    <SectionHeader icon={Brain} title="Weekday Impact" color="text-purple-400" />
+                    </Card>
+                  </div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                  <SectionHeader icon={Shield} title="5. Risk & Trajectory Metrics" color="text-[#f5d020]" />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-4">
-                      {bestDay && <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl"><p className="text-[10px] font-black text-emerald-400 mb-1 uppercase tracking-widest leading-none">Best Weekday Winrate</p><p className="text-lg font-black">{String(bestDay.fullName)}</p><p className="text-2xl font-mono font-bold text-emerald-400">{String(bestDay.winRate)}% Success</p></div>}
-                      {worstDay && <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl"><p className="text-[10px] font-black text-rose-400 mb-1 uppercase tracking-widest leading-none">Worst Weekday Winrate</p><p className="text-lg font-black">{String(worstDay.fullName)}</p><p className="text-2xl font-mono font-bold text-rose-400">{String(worstDay.winRate)}% Success</p></div>}
-                      <div className="space-y-2 mt-6 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
-                        {weekdayEdge.map((day, idx) => (
-                          <div key={idx} className="flex justify-between items-center p-3 bg-slate-900/60 rounded-2xl border border-slate-800">
-                            <div><p className="text-[10px] text-slate-500 font-bold uppercase leading-none mb-1">{String(day.fullName)}</p><p className="text-xs font-black">{String(day.trades)}T</p></div>
-                            <div className="text-right"><p className={`text-sm font-mono font-bold ${day.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(day.pl)}</p></div>
-                          </div>
-                        ))}
-                      </div>
+                      <MetricCard title="Max Win Streak" value={String(metrics.maxWinningStreak || 0)} icon={Trophy} trend="up" />
+                      <MetricCard title="Max Loss Streak" value={String(metrics.maxLosingStreak || 0)} icon={XCircle} trend="down" />
+                      <MetricCard title="Peak Drawdown" value={formatCurrency(metrics.peakDD || 0)} icon={TrendingDown} colorClass="text-rose-400" />
+                      <MetricCard title="Profit/DD Ratio" value={String(metrics.profitDD || 0)} icon={Activity} colorClass="text-indigo-400" />
                     </div>
-                  </Card>
-                </div>
+                    <Card className="md:col-span-2 p-4 md:p-6 bg-indigo-500/5 relative text-white h-[360px] md:h-[420px]">
+                      <SectionHeader icon={Target} title="Trade Outcome Weights" />
+                      <div className="relative w-full h-[calc(100%-40px)]">
+                        <DonutCenter value={statusStats.reduce((acc, curr) => acc + curr.pl, 0)} />
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={statusStats} innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
+                              {statusStats.map((e, idx) => <Cell key={idx} fill={COLORS.qualityPalette[idx % COLORS.qualityPalette.length]} />)}
+                            </Pie>
+                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }} itemStyle={{ color: '#ffffff' }} labelStyle={{ color: '#94a3b8', fontWeight: 'bold' }} formatter={(val, name, props) => [`${formatCurrency(props.payload.pl)} (${String(props.payload.trades)} trades)`, String(props.payload.name)]} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </Card>
+                  </div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                  <SectionHeader icon={Activity} title="6. Growth & Probability Profile" color="text-[#00f2fe]" />
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                    <Card className="p-4 md:p-6 h-[300px] md:h-[400px]">
+                      <SectionHeader icon={TrendingUp} title="Cumulative Equity Path" />
+                      <ResponsiveContainer width="100%" height="85%">
+                        <AreaChart data={equity}>
+                          <Tooltip content={<CustomTooltip />} />
+                          <Area type="monotone" dataKey="Equity" stroke={COLORS.indigo} strokeWidth={4} fill={COLORS.indigo} fillOpacity={0.1} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </Card>
+                    <Card className="p-4 md:p-6 h-[300px] md:h-[400px] relative text-white">
+                      <SectionHeader icon={Target} title="Win/Loss Probability Profile" />
+                      <div className="relative w-full h-[85%]">
+                        <DonutCenter value={outcomeDist.reduce((acc, curr) => acc + (curr.pl || 0), 0)} />
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={outcomeDist} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
+                              {outcomeDist.map((e, idx) => <Cell key={idx} fill={e.color} />)}
+                            </Pie>
+                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }} itemStyle={{ color: '#ffffff' }} labelStyle={{ color: '#94a3b8', fontWeight: 'bold' }} formatter={(val, name, props) => [`${formatCurrency(props.payload.pl)}`, String(props.payload.name)]} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </Card>
+                  </div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                  <SectionHeader icon={BarChart3} title="7. Weekday Edge Analysis" color="text-[#e100ff]" />
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className="lg:col-span-2 p-8">
+                      <div className="h-[280px] md:h-[350px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={weekdayEdge} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <XAxis dataKey="name" stroke={COLORS.white} fontSize={11} axisLine={false} tickLine={false} />
+                            <YAxis stroke={COLORS.white} fontSize={10} axisLine={false} tickLine={false} />
+                            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                            <Bar dataKey="pl" radius={[6, 6, 0, 0]} activeBar={false}>
+                              {weekdayEdge.map((entry, index) => <Cell key={index} fill={entry.pl >= 0 ? COLORS.emerald : COLORS.rose} />)}
+                              <LabelList dataKey="pl" position="top" formatter={(v) => formatCurrency(v)} fill={COLORS.white} style={{ fontSize: '10px', fontWeight: 'bold' }} />
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </Card>
+                    <Card className="p-8 bg-purple-500/5 text-white">
+                      <SectionHeader icon={Brain} title="Weekday Impact" color="text-purple-400" />
+                      <div className="space-y-4">
+                        {bestDay && <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl"><p className="text-[10px] font-black text-emerald-400 mb-1 uppercase tracking-widest leading-none">Best Weekday Winrate</p><p className="text-lg font-black">{String(bestDay.fullName)}</p><p className="text-2xl font-mono font-bold text-emerald-400">{String(bestDay.winRate)}% Success</p></div>}
+                        {worstDay && <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl"><p className="text-[10px] font-black text-rose-400 mb-1 uppercase tracking-widest leading-none">Worst Weekday Winrate</p><p className="text-lg font-black">{String(worstDay.fullName)}</p><p className="text-2xl font-mono font-bold text-rose-400">{String(worstDay.winRate)}% Success</p></div>}
+                        <div className="space-y-2 mt-6 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                          {weekdayEdge.map((day, idx) => (
+                            <div key={idx} className="flex justify-between items-center p-3 bg-slate-900/60 rounded-2xl border border-slate-800">
+                              <div><p className="text-[10px] text-slate-500 font-bold uppercase leading-none mb-1">{String(day.fullName)}</p><p className="text-xs font-black">{String(day.trades)}T</p></div>
+                              <div className="text-right"><p className={`text-sm font-mono font-bold ${day.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(day.pl)}</p></div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+                </motion.div>
               </div>
             )}
 
             {activeTab === 'audit' && (
               <div className="space-y-6 text-white text-white">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <Card className="p-8 border-rose-500/30 bg-rose-500/5 col-span-2 relative text-white">
-                    <SectionHeader icon={Hammer} title="Behavioral Diagnosis" color="text-rose-400" />
-                    <div className="p-6 bg-slate-950/40 rounded-3xl border border-rose-500/20 mb-6">
-                      <div className="flex items-center gap-3 mb-2"><Terminal className="text-indigo-400" size={16} /><h4 className="text-xs font-black uppercase text-indigo-400 tracking-widest">AI Institutional Brief</h4></div>
-                      <p className="text-sm font-black text-white italic mb-2 uppercase tracking-tighter leading-none">Trader Profile: {String(aiBrief.profile)}</p>
-                      <p className="text-xs text-slate-300 leading-relaxed font-medium mt-2">{String(aiBrief.narrative)}</p>
-                      <p className="text-xs text-indigo-300 font-bold mt-2 uppercase tracking-tighter italic">Verdict: {String(aiBrief.reviewStatement)}</p>
-                    </div>
-                    <div className="space-y-3">
-                      <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><ListChecks size={14} /> Priority Action Steps</p>
-                      {(aiBrief?.prioritySteps || []).map((step, i) => (
-                        <div key={i} className="flex gap-3 p-3 bg-slate-800/40 rounded-2xl border border-slate-700/50 text-xs font-bold leading-none items-center shadow-lg"><CheckSquare size={14} className="text-indigo-500" /> {String(step)}</div>
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className="p-8 border-rose-500/30 bg-rose-500/5 col-span-2 relative text-white">
+                      <SectionHeader icon={Hammer} title="Behavioral Diagnosis" color="text-rose-400" />
+                      <div className="p-6 bg-slate-950/40 rounded-3xl border border-rose-500/20 mb-6">
+                        <div className="flex items-center gap-3 mb-2"><Terminal className="text-indigo-400" size={16} /><h4 className="text-xs font-black uppercase text-indigo-400 tracking-widest">AI Institutional Brief</h4></div>
+                        <p className="text-sm font-black text-white italic mb-2 uppercase tracking-tighter leading-none">Trader Profile: {String(aiBrief.profile)}</p>
+                        <p className="text-xs text-slate-300 leading-relaxed font-medium mt-2">{String(aiBrief.narrative)}</p>
+                        <p className="text-xs text-indigo-300 font-bold mt-2 uppercase tracking-tighter italic">Verdict: {String(aiBrief.reviewStatement)}</p>
+                      </div>
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><ListChecks size={14} /> Priority Action Steps</p>
+                        {(aiBrief?.prioritySteps || []).map((step, i) => (
+                          <div key={i} className="flex gap-3 p-3 bg-slate-800/40 rounded-2xl border border-slate-700/50 text-xs font-bold leading-none items-center shadow-lg"><CheckSquare size={14} className="text-indigo-500" /> {String(step)}</div>
+                        ))}
+                      </div>
+                    </Card>
+
+                    <Card className="p-8">
+                      <SectionHeader icon={BrainCircuit} title="AI Strategic Roadmap" color="text-amber-400" />
+                      <div className="space-y-4">
+                        {aiSuggestions ? (
+                          <div className="space-y-2">
+                            {aiSuggestions.map((s, i) => (
+                              <div key={i} className="flex gap-3 items-start p-2 animate-in slide-in-from-right duration-500">
+                                <ArrowRightCircle className="text-indigo-400 mt-0.5 shrink-0" size={14} />
+                                <p className="text-[11px] text-slate-300 leading-tight font-medium"> {String(s)} </p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-500 text-center py-10">Upload trade data to generate strategy.</p>
+                        )}
+                      </div>
+                    </Card>
+                  </div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                  <SectionHeader icon={BrainCircuit} title="Emotional P&L Impact" color="text-[#e100ff]" />
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className="lg:col-span-2 p-4 md:p-6 h-[300px] md:h-[400px] relative text-white">
+                      <div className="relative w-full h-[90%]">
+                        <DonutCenter value={emotionStats.reduce((acc, curr) => acc + curr.pl, 0)} />
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={emotionStats} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
+                              {emotionStats.map((e, idx) => <Cell key={idx} fill={COLORS.psychPalette[idx % COLORS.psychPalette.length]} />)}
+                            </Pie>
+                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }} itemStyle={{ color: '#ffffff' }} labelStyle={{ color: '#94a3b8', fontWeight: 'bold' }} formatter={(v, n, p) => [`${formatCurrency(p.payload.pl)}`, String(p.payload.name)]} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </Card>
+                    <Card className="p-4 md:p-6 bg-purple-500/5 h-[300px] md:h-[400px] relative text-white">
+                      <SectionHeader icon={AlertTriangle} title="Mistake Analysis" color="text-purple-400" />
+                      <ResponsiveContainer width="100%" height="80%"><BarChart data={errors} layout="vertical"><XAxis type="number" hide /><YAxis type="category" dataKey="cat" stroke={COLORS.white} fontSize={8} width={60} axisLine={false} tickLine={false} /><Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none' }} cursor={{ fill: 'transparent' }} formatter={(v) => formatCurrency(Number(v))} /><Bar dataKey="impact" fill={COLORS.rose} radius={[0, 4, 4, 0]} activeBar={false} /></BarChart></ResponsiveContainer>
+                    </Card>
+                  </div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-white text-white">
+                    <Card className="p-6 border-rose-500/20 bg-rose-500/5"><SectionHeader icon={XOctagon} title="Top Loss Drivers" color="text-rose-400" /><div className="space-y-4">{errors.slice(0, 5).map((f, i) => (<div key={i} className="flex gap-3"><XCircle size={14} className="text-rose-500 mt-1 shrink-0" /><div><p className="text-xs font-black uppercase leading-none">{String(f.cat)}</p><p className="text-[10px] text-rose-400 font-bold mt-1">{formatCurrency(f.impact)} Leaked</p></div></div>))}</div></Card>
+                    <Card className="p-6 border-amber-500/20 bg-amber-500/5 text-white text-white"><SectionHeader icon={ArrowUpCircle} title="Lessons (Losses)" color="text-amber-400" />{(dynamicAudit?.start || []).map((text, i) => <div key={i} className="flex gap-3 text-xs font-medium italic mb-3">"{String(text)}"</div>)}</Card>
+                    <Card className="p-6 border-emerald-500/20 bg-emerald-500/5 text-white text-white"><SectionHeader icon={CheckCircle} title="Patterns (Wins)" color="text-emerald-400" />{(dynamicAudit?.continue || []).map((text, i) => <div key={i} className="flex gap-3 text-xs font-medium italic mb-3">"{String(text)}"</div>)}</Card>
+                  </div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                  <Card className="p-6 border border-slate-800/60 bg-slate-900/50">
+                    <SectionHeader icon={BookOpen} title="Trade Journal Archive" />
+                    <div className="max-h-[350px] overflow-y-auto pr-4 space-y-3 custom-scrollbar text-white">
+                      {learnings.map((l, i) => (
+                        <div key={i} className="p-4 bg-slate-800/20 border border-slate-800/60 rounded-2xl flex justify-between items-start gap-4">
+                          <div className="flex-1 text-white"><span className="text-[10px] text-slate-500 font-bold uppercase">{String(l.date)}</span><p className="text-sm font-medium italic">"{String(l.text)}"</p></div>
+                          <div className={`font-mono font-bold ${l.pl < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{formatCurrency(l.pl)}</div>
+                        </div>
                       ))}
                     </div>
                   </Card>
+                </motion.div>
 
-                  <Card className="p-8">
-                    <SectionHeader icon={BrainCircuit} title="AI Strategic Roadmap" color="text-amber-400" />
-                    <div className="space-y-4">
-                      {aiSuggestions ? (
-                        <div className="space-y-2">
-                          {aiSuggestions.map((s, i) => (
-                            <div key={i} className="flex gap-3 items-start p-2 animate-in slide-in-from-right duration-500">
-                              <ArrowRightCircle className="text-indigo-400 mt-0.5 shrink-0" size={14} />
-                              <p className="text-[11px] text-slate-300 leading-tight font-medium"> {String(s)} </p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-slate-500 text-center py-10">Upload trade data to generate strategy.</p>
-                      )}
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                  <Card className="p-8 border-t border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
+                    <SectionHeader icon={Activity} title="Institutional Scorecard" sub="Behavioral Grade Summary" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-2">
+                      <ScoreBar label="Risk Management" score={scores.risk || 0} color="text-amber-400" />
+                      <ScoreBar label="Execution Discipline" score={scores.discipline || 0} color="text-indigo-400" />
+                      <ScoreBar label="Psychology & Mood" score={scores.psychology || 0} color="text-purple-400" />
+                      <ScoreBar label="Equity Consistency" score={scores.consistency || 0} color="text-rose-400" />
+                    </div>
+                    <div className="mt-8 p-4 bg-slate-800/30 rounded-2xl text-center">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">AGGREGATE PERFORMANCE SCORE</p>
+                      <p className="font-black text-4xl text-white">{String(Math.round(Object.values(scores || {}).reduce((a, b) => a + b, 0) / 4))}%</p>
                     </div>
                   </Card>
-                </div>
-
-                <SectionHeader icon={BrainCircuit} title="Emotional P&L Impact" color="text-purple-400" />
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <Card className="lg:col-span-2 p-6 h-[400px] relative text-white">
-                    <DonutCenter value={emotionStats.reduce((acc, curr) => acc + curr.pl, 0)} />
-                    <ResponsiveContainer width="100%" height="90%">
-                      <PieChart>
-                        <Pie data={emotionStats} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
-                          {emotionStats.map((e, idx) => <Cell key={idx} fill={COLORS.psychPalette[idx % COLORS.psychPalette.length]} />)}
-                        </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none' }} formatter={(v, n, p) => [`${formatCurrency(p.payload.pl)}`, String(p.payload.name)]} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Card>
-                  <Card className="p-6 bg-purple-500/5 h-[400px] relative text-white">
-                    <SectionHeader icon={AlertTriangle} title="Mistake Analysis" color="text-purple-400" />
-                    <ResponsiveContainer width="100%" height="80%"><BarChart data={errors} layout="vertical"><XAxis type="number" hide /><YAxis type="category" dataKey="cat" stroke={COLORS.white} fontSize={8} width={60} axisLine={false} tickLine={false} /><Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none' }} formatter={(v) => formatCurrency(Number(v))} /><Bar dataKey="impact" fill={COLORS.rose} radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer>
-                  </Card>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-white text-white">
-                  <Card className="p-6 border-rose-500/20 bg-rose-500/5"><SectionHeader icon={XOctagon} title="Top Loss Drivers" color="text-rose-400" /><div className="space-y-4">{errors.slice(0, 5).map((f, i) => (<div key={i} className="flex gap-3"><XCircle size={14} className="text-rose-500 mt-1 shrink-0" /><div><p className="text-xs font-black uppercase leading-none">{String(f.cat)}</p><p className="text-[10px] text-rose-400 font-bold mt-1">{formatCurrency(f.impact)} Leaked</p></div></div>))}</div></Card>
-                  <Card className="p-6 border-amber-500/20 bg-amber-500/5 text-white text-white"><SectionHeader icon={ArrowUpCircle} title="Lessons (Losses)" color="text-amber-400" />{(dynamicAudit?.start || []).map((text, i) => <div key={i} className="flex gap-3 text-xs font-medium italic mb-3">"{String(text)}"</div>)}</Card>
-                  <Card className="p-6 border-emerald-500/20 bg-emerald-500/5 text-white text-white"><SectionHeader icon={CheckCircle} title="Patterns (Wins)" color="text-emerald-400" />{(dynamicAudit?.continue || []).map((text, i) => <div key={i} className="flex gap-3 text-xs font-medium italic mb-3">"{String(text)}"</div>)}</Card>
-                </div>
-
-                <Card className="p-6">
-                  <SectionHeader icon={BookOpen} title="Trade Journal Archive" />
-                  <div className="max-h-[350px] overflow-y-auto pr-4 space-y-3 custom-scrollbar text-white">
-                    {learnings.map((l, i) => (
-                      <div key={i} className="p-4 bg-slate-800/20 border border-slate-800/60 rounded-2xl flex justify-between items-start gap-4">
-                        <div className="flex-1 text-white"><span className="text-[10px] text-slate-500 font-bold uppercase">{String(l.date)}</span><p className="text-sm font-medium italic">"{String(l.text)}"</p></div>
-                        <div className={`font-mono font-bold ${l.pl < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{formatCurrency(l.pl)}</div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                <Card className="p-8">
-                  <SectionHeader icon={Activity} title="Institutional Scorecard" sub="Behavioral Grade Summary" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-2">
-                    <ScoreBar label="Risk Management" score={scores.risk || 0} color="text-amber-400" />
-                    <ScoreBar label="Execution Discipline" score={scores.discipline || 0} color="text-indigo-400" />
-                    <ScoreBar label="Psychology & Mood" score={scores.psychology || 0} color="text-purple-400" />
-                    <ScoreBar label="Equity Consistency" score={scores.consistency || 0} color="text-rose-400" />
-                  </div>
-                  <div className="mt-8 p-4 bg-slate-800/30 rounded-2xl text-center">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">AGGREGATE PERFORMANCE SCORE</p>
-                    <p className="font-black text-4xl text-white">{String(Math.round(Object.values(scores || {}).reduce((a, b) => a + b, 0) / 4))}%</p>
-                  </div>
-                </Card>
+                </motion.div>
               </div>
             )}
 
             {activeTab === 'strategies' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="space-y-8"
+              >
                 <SectionHeader icon={Compass} title="Technical Edge Ranking Matrix" />
                 <Card className="p-8 border-dashed border-2 border-slate-800 text-center">
                   <SectionHeader icon={BarChartHorizontal} title="Strategy Performance Profile" sub="Cumulative P&L per Setup" color="text-indigo-400" />
-                  <div className="h-[400px]">
+                  <div className="h-[300px] md:h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         layout="vertical"
@@ -892,8 +1014,8 @@ const App = () => {
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
                         <XAxis type="number" stroke={COLORS.white} fontSize={10} axisLine={false} tickLine={false} />
                         <YAxis type="category" dataKey="name" stroke={COLORS.white} fontSize={10} width={100} axisLine={false} tickLine={false} />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="pl" radius={[0, 4, 4, 0]} barSize={24}>
+                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                        <Bar dataKey="pl" radius={[0, 4, 4, 0]} barSize={24} activeBar={false}>
                           {[...setupAnalysis].sort((a, b) => b.pl - a.pl).map((entry, index) => (
                             <Cell key={index} fill={entry.pl >= 0 ? COLORS.emerald : COLORS.rose} fillOpacity={0.8} />
                           ))}
@@ -914,13 +1036,13 @@ const App = () => {
                     </Card>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             )}
-          </main>
+          </motion.main>
         )}
-        <footer className="mt-20 py-8 border-t border-slate-900 text-center font-black uppercase text-[10px] tracking-widest text-slate-600 italic">TradeAudit Institutional v125.0</footer>
+        <footer className="mt-20 py-8 border-t border-[#00f2fe]/10 text-center font-bold uppercase text-[10px] tracking-[0.3em] text-slate-600 drop-shadow-[0_0_8px_rgba(0,198,255,0.2)]">TradeAudit Institutional v2.0</footer>
       </div>
-      <style>{`.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }`}</style>
+      <style>{`.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }`}</style>
     </div>
   );
 };
