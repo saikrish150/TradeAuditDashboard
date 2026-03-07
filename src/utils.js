@@ -4,13 +4,13 @@ export const MONTH_MAP = {
   'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'Jun': 5, 'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
 };
 
-export const COLORS = { 
-  emerald: '#10b981', 
-  rose: '#f43f5e', 
-  indigo: '#6366f1', 
-  amber: '#f59e0b', 
-  slate: '#475569', 
-  purple: '#a855f7', 
+export const COLORS = {
+  emerald: '#10b981',
+  rose: '#f43f5e',
+  indigo: '#6366f1',
+  amber: '#f59e0b',
+  slate: '#475569',
+  purple: '#a855f7',
   blue: '#3b82f6',
   white: '#ffffff',
   psychPalette: ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#3b82f6', '#06b6d4', '#8b5cf6'],
@@ -27,10 +27,10 @@ export const cleanCurrency = (val) => {
 export const formatCurrency = (val) => {
   const num = parseFloat(val);
   if (isNaN(num) || !isFinite(num)) return "₹0";
-  return new Intl.NumberFormat('en-IN', { 
-    style: 'currency', 
-    currency: 'INR', 
-    maximumFractionDigits: 0 
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0
   }).format(num);
 };
 
@@ -59,7 +59,6 @@ export const parseCSV = (text) => {
 export const getMarketCategory = (market) => {
   if (!market) return 'Other';
   const m = String(market).toUpperCase();
-  if (['BTC', 'ETH', 'SOL', 'CRYPTO', 'DOGE', 'USDT'].some(c => m.includes(c))) return 'Crypto';
-  if (['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'RELIANCE', 'SBIN', 'INDIAN'].some(i => m.includes(i))) return 'Indian';
+  if (['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'RELIANCE', 'SBIN', 'INDIAN'].some(i => m.includes(i))) return 'Indian';
   return 'Other';
 };
