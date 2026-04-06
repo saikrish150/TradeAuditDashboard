@@ -1,4 +1,7 @@
-import { collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
+import { 
+  collection, query, orderBy, onSnapshot, getDocs, 
+  doc, updateDoc, deleteDoc, writeBatch 
+} from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export const firebaseService = {
@@ -68,5 +71,45 @@ export const firebaseService = {
     const q = query(collection(db, 'trades'));
     const snapshot = await getDocs(q);
     return !snapshot.empty;
+  },
+
+  /**
+   * Update a single trade
+   */
+  async updateTrade(id, data) {
+    const tradeRef = doc(db, 'trades', id);
+    return await updateDoc(tradeRef, data);
+  },
+
+  /**
+   * Delete a single trade
+   */
+  async deleteTrade(id) {
+    const tradeRef = doc(db, 'trades', id);
+    return await deleteDoc(tradeRef);
+  },
+
+  /**
+   * Bulk update trades
+   */
+  async bulkUpdateTrades(ids, data) {
+    const batch = writeBatch(db);
+    ids.forEach(id => {
+      const ref = doc(db, 'trades', id);
+      batch.update(ref, data);
+    });
+    return await batch.commit();
+  },
+
+  /**
+   * Bulk delete trades
+   */
+  async bulkDeleteTrades(ids) {
+    const batch = writeBatch(db);
+    ids.forEach(id => {
+      const ref = doc(db, 'trades', id);
+      batch.delete(ref);
+    });
+    return await batch.commit();
   }
 };

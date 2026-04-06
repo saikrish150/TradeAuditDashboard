@@ -1,4 +1,4 @@
-# TradeAudit Terminal: Master Operations Manual
+# Trader Dashboard Terminal: Master Operations Manual
 
 This document serves as your official guide for managing, deploying, and securing your institutional trading terminal.
 
@@ -55,18 +55,28 @@ Real-time alerts for BTC, ETH, and GOLD are managed via **Supabase**.
 
 As the owner, you have control over the application's "Shield" layers.
 
-### Terminal PIN (Access Shield)
--   **Current PIN**: `1234`
--   **How to Change**: Open your [`.env`](file:///d:/Downloads/Projects%20files/Trading%20journal%20website/.env) file and update the `VITE_TERMINAL_PIN` value. You must **re-deploy** after changing this.
--   **Security Level**: Low-Medium (UI-level protection). Ideal for privacy and casual sharing.
-
-### Database Security (Firestore Rules)
--   **Active Rule**: We are currently in "Test Phase" mode. I have implemented a **Time Lock** that expires on **May 15, 2026**.
--   **Future Upgrade**: For a permanent "Institutional Lock," you should transition to **Firebase Authentication** so that only your specific login UID can write to the database.
+### Terminal PIN (Obsolete)
+The PIN-based `AccessShield` has been upgraded to **Institutional Google Auth**. The `VITE_TERMINAL_PIN` is no longer required for main access, but is kept in your `.env` for legacy support.
 
 ---
 
-## 4. Owner Checklist (Before Launch)
+## 4. Troubleshooting & FAQ
+
+### "CONFIGURATION_NOT_FOUND" Error
+If you see an error about configuration not being found when connecting to Google:
+1.  Open your [Firebase Auth Provider Settings](https://console.firebase.google.com/project/tradingjournal-b17c4/authentication/providers).
+2.  Click **Add provider** → **Google**.
+3.  Ensure the toggle is **Enabled** and save.
+
+### "Popup Blocked" Message
+This occurs because your browser's security settings stopped the Google login window. 
+1.  Look at your browser's address bar for a "Popup Blocked" icon.
+2.  Select **"Always allow popups from this site."**
+3.  Refresh and try again.
+
+---
+
+## 5. Owner Checklist (Before Launch)
 
 > [!IMPORTANT]
 > **1. GitHub Warning**: Your [`.gitignore`](file:///d:/Downloads/Projects%20files/Trading%20journal%20website/.gitignore) is correctly set to exclude your `.env`. **Never remove `.env` from this list**, or your private keys will be leaked to the public.

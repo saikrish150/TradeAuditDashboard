@@ -1,4 +1,4 @@
-# TradeAuditDashboard - Trading Journal Website
+# Trader Dashboard - Institutional Trading Terminal
 
 ## Overview
 A comprehensive institutional-grade trading performance dashboard designed for professional traders to review and audit their trading history. The application provides deep insights into financial metrics, execution patterns, and behavioral leaks through a polished, data-rich interface.

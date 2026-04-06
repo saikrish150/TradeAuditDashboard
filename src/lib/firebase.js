@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -18,12 +19,15 @@ const app = initializeApp(firebaseConfig);
 // Initialize Services
 const db = getFirestore(app);
 const storage = getStorage(app);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
 // Debug Bridge: Allows you to run queries in the Browser Console
 if (typeof window !== 'undefined') {
   window._db = db;
   window._storage = storage;
+  window._auth = auth;
 }
 
-export { db, storage };
+export { db, storage, auth, googleProvider };
 export default app;

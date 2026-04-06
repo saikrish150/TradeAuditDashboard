@@ -28,7 +28,7 @@ import CustomTooltip from './components/CustomTooltip';
 import MigrationHub from './components/MigrationHub';
 import { AlertsView } from './components/AlertsView';
 import { firebaseService } from './services/firebaseService';
-import AccessShield from './components/AccessShield';
+import AuthShield from './components/AuthShield';
 import { MONTH_MAP, COLORS, cleanCurrency, formatCurrency, parseCSV, getMarketCategory } from './utils';
 
 const LightRaysAndParticles = () => {
@@ -548,7 +548,7 @@ const App = () => {
   }, [processedData, metrics.winRate, metrics.overallRR, errors, emotionStats, bestDay, worstDay]);
 
   return (
-    <AccessShield>
+    <AuthShield>
       <div className="min-h-screen bg-[#020617] text-slate-100 font-sans p-4 md:p-8 pb-24 md:pb-8 relative">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuOCIgbnVtT2N0YXZlcz0iMSIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNub2lzZSkiIG9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==')]"></div>
       <LightRaysAndParticles />
@@ -728,7 +728,7 @@ const App = () => {
           <div className="min-h-[400px] flex items-center justify-center p-6 text-center">
             <Card className="max-w-xl w-full p-12 border-dashed border-2 border-slate-800">
               <div className="w-20 h-20 bg-indigo-600/10 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse"><Signal className="text-indigo-500" size={40} /></div>
-              <h1 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase italic leading-none">Trade<span className="text-indigo-500">Audit</span> Cloud</h1>
+              <h1 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase italic leading-none">Trader<span className="text-indigo-500">Dashboard</span> Cloud</h1>
               <p className="text-slate-400 mb-10 text-xs font-bold uppercase tracking-[0.2em]">Institutional Performance Terminal (Connected)</p>
               <button 
                 onClick={() => setShowMigrationHub(true)}
@@ -1248,7 +1248,7 @@ const App = () => {
              )}
            </Motion.main>
          )}
-         <footer className="mt-20 py-8 border-t border-[#00f2fe]/10 text-center font-bold uppercase text-[10px] tracking-[0.3em] text-slate-600 drop-shadow-[0_0_8px_rgba(0,198,255,0.2)]">TradeAudit Institutional v2.0</footer>
+         <footer className="mt-20 py-8 border-t border-[#00f2fe]/10 text-center font-bold uppercase text-[10px] tracking-[0.3em] text-slate-600 drop-shadow-[0_0_8px_rgba(0,198,255,0.2)]">TraderDashboard Institutional v2.0</footer>
        </div>
        <style>{`.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }`}</style>
        <AnimatePresence>
@@ -1260,7 +1260,7 @@ const App = () => {
          )}
        </AnimatePresence>
       </div>
-    </AccessShield>
+    </AuthShield>
     );
   };
  

@@ -1,10 +1,12 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Initial Security Layer: Rule based on current date for test phase
-    // In full production, we will transition to Firebase Auth UID checks
+    // Institutional Security Rule: Owner-Only Access
+    // Replace 'YOUR_EMAIL@gmail.com' with your actual Google email
     match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2026, 5, 15);
+      allow read, write: if request.auth != null && 
+                          (request.auth.token.email == "YOUR_EMAIL@gmail.com" || 
+                           request.auth.token.email == "saikrish150@gmail.com"); 
     }
   }
 }
