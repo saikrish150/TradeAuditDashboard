@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, ReferenceLine, LabelList, ComposedChart, Scatter
@@ -15,7 +15,8 @@ import {
   CandlestickChart, LayoutDashboard, BrainCircuit, AlertTriangle, Diamond, BoxSelect, Trophy,
   Compass, BarChartHorizontal, CalendarRange, Signal, BarChart3, IndianRupee,
   Terminal, AlertCircle, Lightbulb, ListChecks, CheckSquare,
-  ArrowRightCircle, Sparkles as SparklesIcon
+  ArrowRightCircle, Sparkles as SparklesIcon, DatabaseZap,
+  Smile, Play, ShieldAlert
 } from 'lucide-react';
 
 import Card from './components/Card';
@@ -24,38 +25,36 @@ import MetricCard from './components/MetricCard';
 import ScoreBar from './components/ScoreBar';
 import DonutCenter from './components/DonutCenter';
 import CustomTooltip from './components/CustomTooltip';
+import MigrationHub from './components/MigrationHub';
+import { FirebaseService } from './services/FirebaseService';
 import { MONTH_MAP, COLORS, cleanCurrency, formatCurrency, parseCSV, getMarketCategory } from './utils';
 
 const LightRaysAndParticles = () => {
-  const [particles, setParticles] = useState([]);
-
-  useEffect(() => {
-    setParticles(
-      Array.from({ length: 25 }).map(() => ({
-        x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
-        y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
-        opacity: Math.random() * 0.5 + 0.1,
-        scale: Math.random() * 1.5 + 0.5,
-        destY: Math.random() * -500,
-        duration: Math.random() * 15 + 10,
-      }))
-    );
-  }, []);
+  const [particles] = useState(() => 
+    Array.from({ length: 25 }).map(() => ({
+      x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+      y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
+      opacity: Math.random() * 0.5 + 0.1,
+      scale: Math.random() * 1.5 + 0.5,
+      destY: Math.random() * -500,
+      duration: Math.random() * 15 + 10,
+    }))
+  );
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
       {/* Light Rays / Glowing Orbs */}
-      <motion.div
+      <Motion.div
         className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#00f2fe]/10 rounded-full blur-[120px]"
         animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
       />
-      <motion.div
+      <Motion.div
         className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#4facfe]/10 rounded-full blur-[150px]"
         animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
-      <motion.div
+      <Motion.div
         className="absolute top-[40%] left-[20%] w-[30%] h-[30%] bg-[#e100ff]/5 rounded-full blur-[100px]"
         animate={{ x: [0, 100, 0], y: [0, -50, 0] }}
         transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
@@ -63,7 +62,7 @@ const LightRaysAndParticles = () => {
 
       {/* Floating Particles */}
       {particles.map((p, i) => (
-        <motion.div
+        <Motion.div
           key={i}
           className="absolute w-1 h-1 bg-white rounded-full shadow-[0_0_10px_2px_rgba(255,255,255,0.8)]"
           initial={{
@@ -88,7 +87,63 @@ const LightRaysAndParticles = () => {
 };
 
 
+const TradeArchiveCarousel = ({ images }) => {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % images.length);
+    }, 4000); // Cycle every 4 seconds
+    return () => clearInterval(interval);
+  }, [images.length]);
+
+  if (!images || images.length === 0) return null;
+
+  return (
+    <div className="w-full h-48 sm:h-64 bg-slate-950 rounded-2xl overflow-hidden relative border border-slate-800">
+      <AnimatePresence mode="wait">
+        <Motion.img
+          key={index}
+          src={images[index]}
+          initial={{ opacity: 0, scale: 1.1 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+          className="w-full h-full object-cover"
+          alt={`Trade Chart ${index + 1}`}
+          loading="lazy"
+        />
+      </AnimatePresence>
+      
+      {/* Overlay Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent pointer-events-none"></div>
+
+      {/* Multi-Image Indicator */}
+      {images.length > 1 && (
+        <div className="absolute bottom-3 right-3 flex gap-1.5 items-center bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
+          {images.map((_, i) => (
+            <div 
+              key={i} 
+              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === index ? 'bg-indigo-400 w-4' : 'bg-white/20'}`}
+            />
+          ))}
+        </div>
+      )}
+      
+      {/* Count Badge */}
+      {images.length > 1 && (
+        <div className="absolute top-3 right-3 bg-indigo-600/90 backdrop-blur-sm text-[10px] font-black px-2 py-0.5 rounded-md border border-indigo-400/50 text-white uppercase tracking-tighter">
+          {images.length} Charts
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 const App = () => {
+  const [activeSection, setActiveSection] = useState('audit');
   const [activeTab, setActiveTab] = useState('performance');
   const [rawTrades, setRawTrades] = useState([]);
 
@@ -102,6 +157,8 @@ const App = () => {
   const [selectedDay, setSelectedDay] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedAsset, setSelectedAsset] = useState('All');
+  const [isMigrated, setIsMigrated] = useState(true); // Default to true to prevent flash
+  const [showMigrationHub, setShowMigrationHub] = useState(false);
 
   const [datePreset, setDatePreset] = useState('CurrentMonth');
   const [startDate, setStartDate] = useState('');
@@ -111,97 +168,27 @@ const App = () => {
   const [isParsing, setIsParsing] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState(null);
 
-  const processFile = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    setIsParsing(true);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target.result;
-        const rows = parseCSV(text);
-        if (rows.length < 2) throw new Error("Format Mismatch.");
-        const headers = rows[0].map(h => h.toLowerCase().trim());
-        const dataRows = rows.slice(1);
+  useEffect(() => {
+    // Check if user needs to migrate
+    FirebaseService.hasData().then(hasData => {
+      setIsMigrated(hasData);
+      if (!hasData) setShowMigrationHub(true);
+    });
 
-        const getIdx = (keywords) => {
-          const kwArr = Array.isArray(keywords) ? keywords : [keywords];
-          for (const kw of kwArr) {
-            const exact = headers.findIndex(h => h === kw.toLowerCase().trim());
-            if (exact !== -1) return exact;
-            const includes = headers.findIndex(h => h.includes(kw.toLowerCase().trim()));
-            if (includes !== -1) return includes;
-          }
-          return -1;
-        };
-
-        const idx = {
-          strategy: getIdx('strategy'), date: getIdx('date'), emotion: getIdx(['emotions', 'mindset', 'mood']),
-          lossReason: getIdx(['loss reason', 'error', 'mistake', 'why', 'fault']),
-          learning: getIdx(['learning', 'notes', 'lesson']), pl: getIdx(['p/l', 'profit', 'result', 'realized']),
-          quality: getIdx(['trade quality', 'grade', 'rating']), setup: getIdx(['setups align with trade', 'setup']),
-          direction: getIdx('direction'), market: getIdx(['market', 'symbol', 'asset']),
-          status: getIdx(['status', 'outcome']), lots: getIdx(['position size', 'lots', 'quantity'])
-        };
-
-        const parsed = dataRows.map((row, i) => {
-          const dateStr = (row[idx.date] || '').trim();
-          let cleanStr = dateStr.replace(/\s*\(GMT[+-]\d+:\d+\)/, '').trim();
-          let jsDateObj;
-
-          const components = cleanStr.match(/([a-zA-Z]+)\s+(\d+),\s+(\d+)\s+(\d+):(\d+)/) ||
-            cleanStr.match(/([a-zA-Z]+)\s+(\d+),\s+(\d+)/);
-
-          if (components) {
-            const mStr = components[1];
-            const dNum = parseInt(components[2]);
-            const yNum = parseInt(components[3]);
-            const hour = parseInt(components[4] || 12);
-            const min = parseInt(components[5] || 0);
-            jsDateObj = new Date(Date.UTC(yNum, MONTH_MAP[mStr], dNum, hour, min, 0));
-          } else {
-            jsDateObj = new Date(cleanStr);
-            jsDateObj = new Date(Date.UTC(jsDateObj.getUTCFullYear(), jsDateObj.getUTCMonth(), jsDateObj.getUTCDate(), 12, 0, 0));
-          }
-
-          const rawMarketVal = (row[idx.market] || '').trim().toUpperCase();
-          const marketVal = rawMarketVal || 'Uncategorized'; // Keep the specific name for the Asset dropdown
-
-          return {
-            id: i,
-            pl: cleanCurrency(row[idx.pl]),
-            strategy: (row[idx.strategy] || 'Misc').trim(),
-            setup: (row[idx.setup] || 'Uncategorized').trim(),
-            emotion: (row[idx.emotion] || 'Neutral').trim(),
-            reason: (row[idx.lossReason] || '').trim(),
-            learning: (row[idx.learning] || '').trim(),
-            quality: (row[idx.quality] || 'Unrated').trim(),
-            status: (row[idx.status] || row[idx.quality] || 'Open').trim(),
-            direction: (row[idx.direction] || 'N/A').toUpperCase().trim(),
-            lots: parseFloat(row[idx.lots]) || 0,
-            market: marketVal,
-            category: getMarketCategory(marketVal),
-            dayNum: jsDateObj.getUTCDate(),
-            fullDate: jsDateObj.toUTCString().slice(0, 16),
-            jsDate: jsDateObj,
-            month: jsDateObj.toLocaleString('default', { month: 'long', timeZone: 'UTC' }),
-            year: jsDateObj.getUTCFullYear().toString()
-          };
-        }).filter(t => t.year && t.month && !isNaN(t.jsDate.getTime()));
-
-        setRawTrades(parsed);
-        const yearsFound = Array.from(new Set(parsed.map(t => t.year))).sort();
+    // Subscribe to live data
+    const unsubscribe = FirebaseService.subscribeToTrades((trades) => {
+      setRawTrades(trades);
+      if (trades.length > 0) {
+        setIsMigrated(true);
+        setShowMigrationHub(false);
+        
+        const yearsFound = Array.from(new Set(trades.map(t => t.year))).sort();
         setAvailableYears(['All', ...yearsFound]);
-        setSelectedYear('All'); setSelectedMonth('All'); setSelectedDay('All');
-        setSelectedCategory('All'); setSelectedAsset('All'); setDatePreset('CurrentMonth');
-      } catch (err) {
-        console.error("Critical Parsing Error", err);
-      } finally {
-        setIsParsing(false);
       }
-    };
-    reader.readAsText(file);
-  };
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!rawTrades.length) return;
@@ -294,11 +281,21 @@ const App = () => {
       if (cumulativePL > peakEquity) peakEquity = cumulativePL;
       const dd = cumulativePL - peakEquity; if (dd < maxDDValue) maxDDValue = dd;
 
-      const setupKey = t.setup || 'Misc';
-      if (!setupAnalysisMap[setupKey]) setupAnalysisMap[setupKey] = { pl: 0, wins: 0, total: 0, winSum: 0, lossSum: 0 };
-      setupAnalysisMap[setupKey].pl += t.pl; setupAnalysisMap[setupKey].total += 1;
-      if (t.pl > 0) { setupAnalysisMap[setupKey].wins += 1; setupAnalysisMap[setupKey].winSum += t.pl; }
-      else { setupAnalysisMap[setupKey].lossSum += Math.abs(t.pl); }
+      // Smart Multi-Setup Analysis
+      const setupsToProcess = (t.setups && t.setups.length > 0) ? t.setups : [t.setup || 'Misc'];
+      
+      setupsToProcess.forEach(sName => {
+        const setupKey = String(sName).trim();
+        if (!setupAnalysisMap[setupKey]) setupAnalysisMap[setupKey] = { pl: 0, wins: 0, total: 0, winSum: 0, lossSum: 0 };
+        setupAnalysisMap[setupKey].pl += t.pl; 
+        setupAnalysisMap[setupKey].total += 1;
+        if (t.pl > 0) { 
+          setupAnalysisMap[setupKey].wins += 1; 
+          setupAnalysisMap[setupKey].winSum += t.pl; 
+        } else { 
+          setupAnalysisMap[setupKey].lossSum += Math.abs(t.pl); 
+        }
+      });
 
       const eKey = t.emotion || 'Neutral';
       if (!emotionalPnlMap[eKey]) emotionalPnlMap[eKey] = { pl: 0, count: 0 };
@@ -349,7 +346,14 @@ const App = () => {
       if (!dateData[dateKey]) dateData[dateKey] = { pl: 0, count: 0 };
       dateData[dateKey].pl += t.pl; dateData[dateKey].count += 1;
 
-      if (t.learning && t.learning.length > 3) learningVault.push({ date: t.fullDate, text: t.learning, pl: t.pl });
+      if (t.learning && t.learning.length > 3) {
+        learningVault.push({ 
+          date: t.fullDate, 
+          text: t.learning, 
+          pl: t.pl,
+          screenshots: t.screenshots || [t.screenshotUrl].filter(Boolean)
+        });
+      }
       if (t.quality.toLowerCase().includes('a') || t.quality.toLowerCase().includes('b')) ruleAlignedCount++;
     });
 
@@ -521,14 +525,18 @@ const App = () => {
             {rawTrades.length > 0 && (
               <>
                 <nav className="flex super-glass p-1.5 rounded-2xl shadow-[0_0_30px_rgba(0,198,255,0.05)] self-center md:self-end relative">
-                  {['performance', 'audit', 'strategies'].map((tab) => (
+                  {[
+                    { id: 'alerts', label: 'Alerts', icon: Signal },
+                    { id: 'journal', label: 'Trading Journal', icon: History },
+                    { id: 'audit', label: 'Trade Audit', icon: ShieldCheck }
+                  ].map((tab) => (
                     <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`relative px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center gap-2 z-10 ${activeTab === tab ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-slate-500 hover:text-white'}`}
+                      key={tab.id}
+                      onClick={() => setActiveSection(tab.id)}
+                      className={`relative px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center gap-2 z-10 ${activeSection === tab.id ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-slate-500 hover:text-white'}`}
                     >
-                      {activeTab === tab && (
-                        <motion.div
+                      {activeSection === tab.id && (
+                        <Motion.div
                           layoutId="active-pill"
                           className="absolute inset-0 bg-gradient-to-r from-[#00f2fe]/20 to-[#4facfe]/20 rounded-xl border border-[#00f2fe]/30 shadow-[0_0_15px_rgba(0,242,254,0.4)]"
                           transition={{ type: "spring", stiffness: 400, damping: 30 }}
@@ -536,8 +544,8 @@ const App = () => {
                       )}
 
                       <span className="relative z-20 flex items-center gap-2">
-                        {tab === 'performance' ? <LayoutDashboard size={14} /> : tab === 'audit' ? <ShieldCheck size={14} /> : <Zap size={14} />}
-                        {tab}
+                        <tab.icon size={14} />
+                        {tab.label}
                       </span>
                     </button>
                   ))}
@@ -597,29 +605,218 @@ const App = () => {
           </div>
         </header>
 
+
         {(!rawTrades || rawTrades.length === 0) && !isParsing ? (
           <div className="min-h-[400px] flex items-center justify-center p-6 text-center">
             <Card className="max-w-xl w-full p-12 border-dashed border-2 border-slate-800">
-              <div className="w-20 h-20 bg-indigo-600/10 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse"><FileSpreadsheet className="text-indigo-500" size={40} /></div>
-              <h1 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase italic leading-none">Trade<span className="text-indigo-500">Audit</span></h1>
-              <p className="text-slate-400 mb-10 text-xs font-bold uppercase tracking-[0.2em]">Institutional Performance Terminal</p>
-              <label className="inline-flex items-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-4 rounded-2xl cursor-pointer font-black text-xs uppercase tracking-[0.2em] transition-all shadow-2xl shadow-indigo-600/20">
-                <Upload size={18} /> Sync Journal
-                <input type="file" accept=".csv" onChange={processFile} className="hidden" />
-              </label>
+              <div className="w-20 h-20 bg-indigo-600/10 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse"><DatabaseZap className="text-indigo-500" size={40} /></div>
+              <h1 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase italic leading-none">Trade<span className="text-indigo-500">Audit</span> Cloud</h1>
+              <p className="text-slate-400 mb-10 text-xs font-bold uppercase tracking-[0.2em]">Institutional Performance Terminal (Connected)</p>
+              <button 
+                onClick={() => setShowMigrationHub(true)}
+                className="inline-flex items-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-4 rounded-2xl cursor-pointer font-black text-xs uppercase tracking-[0.2em] transition-all shadow-2xl shadow-indigo-600/20"
+              >
+                <Upload size={18} /> Initialize Cloud Sync
+              </button>
+              <div className="mt-8 p-4 bg-slate-900/50 rounded-2xl border border-slate-800 text-slate-500">
+                <p className="text-[10px] uppercase tracking-widest leading-relaxed">
+                  Historical Migration: Connect your Notion export to backfill <br/> 
+                  May 2024 - Present history into your private cloud.
+                </p>
+              </div>
             </Card>
           </div>
         ) : processedData?.isEmpty ? (
           <div className="h-[400px] flex flex-col items-center justify-center gap-4"><Search size={48} className="text-slate-800" /><p className="text-slate-500 uppercase font-black text-xs tracking-[0.2em]">No data found for this selection.</p><button onClick={() => { setSelectedYear('All'); setSelectedMonth('All'); setDatePreset('CurrentMonth'); }} className="text-[10px] font-black uppercase text-indigo-400 underline">Reset Filters</button></div>
         ) : (
-          <motion.main
+          <Motion.main
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            {activeTab === 'performance' && (
-              <div className="space-y-6 md:space-y-12">
-                <SectionHeader icon={Briefcase} title="1. Financial Summary" />
+            {activeSection === 'alerts' && (
+               <div className="min-h-[400px] flex items-center justify-center">
+                 <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Alert Intelligence Integration Pending</p>
+               </div>
+             )}
+ 
+             {activeSection === 'journal' && (
+               <div className="min-h-[400px] flex items-center justify-center">
+                 <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Manual Entry & Journaling Hub Pending</p>
+               </div>
+             )}
+ 
+             {activeSection === 'audit' && (
+               <div className="space-y-6 md:space-y-12">
+                 <nav className="flex justify-center md:justify-start gap-4 mb-10 border-b border-slate-800 pb-4 overflow-x-auto scrollbar-hide">
+                   {[
+                     { id: 'performance', label: 'Performance', icon: Activity },
+                     { id: 'strategies', label: 'Strategies', icon: Target },
+                     { id: 'audit', label: 'Audit', icon: ShieldCheck }
+                   ].map((t) => (
+                     <button
+                       key={t.id}
+                       onClick={() => setActiveTab(t.id)}
+                       className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 transition-all relative ${activeTab === t.id ? 'text-indigo-400' : 'text-slate-500 hover:text-white'}`}
+                     >
+                       <t.icon size={12} />
+                       {t.label}
+                       {activeTab === t.id && (
+                         <Motion.div layoutId="sub-pill" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+                       )}
+                     </button>
+                   ))}
+                 </nav>
+
+                 {activeTab === 'audit' && (
+                   <div className="space-y-6 md:space-y-12">
+                     <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                         <Card className="p-8 border-rose-500/30 bg-rose-500/5 col-span-2 relative text-white">
+                           <SectionHeader icon={Hammer} title="Behavioral Diagnosis" color="text-rose-400" />
+                           <div className="p-6 bg-slate-950/40 rounded-3xl border border-rose-500/20 mb-6">
+                             <div className="flex items-center gap-3 mb-2"><Terminal className="text-indigo-400" size= {16} /><h4 className="text-xs font-black uppercase text-indigo-400 tracking-widest">AI Institutional Brief</h4></div>
+                             <p className="text-sm font-black text-white italic mb-2 uppercase tracking-tighter leading-none">Trader Profile: {String(aiBrief.profile)}</p>
+                             <p className="text-xs text-slate-300 leading-relaxed font-medium mt-2">{String(aiBrief.narrative)}</p>
+                             <p className="text-xs text-indigo-300 font-bold mt-2 uppercase tracking-tighter italic">Verdict: {String(aiBrief.reviewStatement)}</p>
+                           </div>
+                           <div className="space-y-3">
+                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><ListChecks size={14} /> Priority Action Steps</p>
+                             {(aiBrief?.prioritySteps || []).map((step, i) => (
+                               <div key={i} className="flex gap-3 p-3 bg-slate-800/40 rounded-2xl border border-slate-700/50 text-xs font-bold leading-none items-center shadow-lg"><CheckSquare size={14} className="text-indigo-500" /> {String(step)}</div>
+                             ))}
+                           </div>
+                         </Card>
+
+                         <Card className="p-8">
+                           <SectionHeader icon={BrainCircuit} title="AI Strategic Roadmap" color="text-amber-400" />
+                           <div className="space-y-4">
+                             {aiSuggestions ? (
+                               <div className="space-y-2">
+                                 {aiSuggestions.map((s, i) => (
+                                   <div key={i} className="flex gap-3 items-start p-2 animate-in slide-in-from-right duration-500">
+                                     <ArrowRightCircle className="text-indigo-400 mt-0.5 shrink-0" size={14} />
+                                     <p className="text-[11px] text-slate-300 leading-tight font-medium"> {String(s)} </p>
+                                   </div>
+                                 ))}
+                               </div>
+                             ) : (
+                               <p className="text-xs text-slate-500 text-center py-10">Upload trade data to generate strategy.</p>
+                             )}
+                           </div>
+                         </Card>
+                       </div>
+                     </Motion.div>
+
+                     {/* Behavioral Edge: Emotions & Errors */}
+                     <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                         <Card className="p-8 bg-purple-500/5 relative text-white">
+                           <SectionHeader icon={Smile} title="Emotional Impact Distribution" color="text-purple-400" />
+                           <div className="relative w-full h-[300px]">
+                             <DonutCenter value={emotionStats.reduce((acc, curr) => acc + curr.pl, 0)} />
+                             <ResponsiveContainer width="100%" height="100%">
+                               <PieChart>
+                                 <Pie data={emotionStats} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
+                                   {emotionStats.map((e, idx) => <Cell key={idx} fill={COLORS.qualityPalette[idx % COLORS.qualityPalette.length]} />)}
+                                 </Pie>
+                                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }} itemStyle={{ color: '#ffffff' }} labelStyle={{ color: '#94a3b8', fontWeight: 'bold' }} formatter={(val, name, props) => [`${formatCurrency(props.payload.pl)}`, String(props.payload.name)]} />
+                               </PieChart>
+                             </ResponsiveContainer>
+                           </div>
+                         </Card>
+
+                         <Card className="p-8">
+                           <SectionHeader icon={ZapOff} title="Top Error Impact Chart" color="text-rose-400" />
+                           <div className="h-[300px]">
+                             <ResponsiveContainer width="100%" height="100%">
+                               <BarChart data={errors} layout="vertical" margin={{ left: 40, right: 20 }}>
+                                 <XAxis type="number" hide />
+                                 <YAxis type="category" dataKey="cat" stroke={COLORS.white} fontSize={10} width={100} axisLine={false} tickLine={false} />
+                                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none' }} cursor={{ fill: 'transparent' }} formatter={(v) => [`${formatCurrency(v)} Impact`, 'Total Loss']} />
+                                 <Bar dataKey="impact" fill={COLORS.rose} radius={[0, 4, 4, 0]} activeBar={false}>{errors.map((e, i) => <Cell key={i} fillOpacity={1 - (i * 0.1)} />)}</Bar>
+                               </BarChart>
+                             </ResponsiveContainer>
+                           </div>
+                         </Card>
+                       </div>
+                     </Motion.div>
+
+                     {/* Strategic Direction: Start / Continue */}
+                     <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <Card className="p-8 border-emerald-500/20 bg-emerald-500/5">
+                           <SectionHeader icon={Play} title="What to Continue Doing" color="text-emerald-400" />
+                           <div className="space-y-4">
+                             {dynamicAudit.continue.map((item, i) => (
+                               <div key={i} className="flex gap-4 p-4 bg-slate-900/60 rounded-2xl border border-emerald-500/10 text-xs font-bold leading-relaxed text-emerald-100 shadow-md">
+                                 <CheckCircle size={18} className="text-emerald-500 shrink-0" />
+                                 <p>{String(item)}</p>
+                               </div>
+                             ))}
+                             {dynamicAudit.continue.length === 0 && <p className="text-center text-slate-500 py-10">No recent positive trends detected.</p>}
+                           </div>
+                         </Card>
+                         <Card className="p-8 border-rose-500/20 bg-rose-500/5">
+                           <SectionHeader icon={ShieldAlert} title="What to Start Stopping" color="text-rose-400" />
+                           <div className="space-y-4">
+                             {dynamicAudit.start.map((item, i) => (
+                               <div key={i} className="flex gap-4 p-4 bg-slate-900/60 rounded-2xl border border-rose-500/10 text-xs font-bold leading-relaxed text-rose-100 shadow-md">
+                                 <XCircle size={18} className="text-rose-500 shrink-0" />
+                                 <p>{String(item)}</p>
+                               </div>
+                             ))}
+                             {dynamicAudit.start.length === 0 && <p className="text-center text-slate-500 py-10">No recent behavioral leaks detected.</p>}
+                           </div>
+                         </Card>
+                       </div>
+                     </Motion.div>
+
+                     <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                       <SectionHeader icon={BookOpen} title="Historical Trade Records" sub="Visual Technical Log" />
+                       <Card className="p-6 border border-slate-800/60 bg-slate-900/50">
+                         <div className="max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
+                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                             {learnings.map((l, i) => (
+                               <div key={i} className="p-4 bg-slate-800/20 border border-slate-800/60 rounded-3xl flex flex-col gap-4 hover:border-indigo-500/40 transition-all group">
+                                 <TradeArchiveCarousel images={l.screenshots} />
+                                 <div className="flex justify-between items-start gap-4 px-1">
+                                   <div className="flex-1">
+                                     <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{String(l.date)}</span>
+                                     <p className="text-sm font-medium italic mt-2 text-slate-200">"{String(l.text)}"</p>
+                                   </div>
+                                   <div className={`font-mono font-black text-sm px-3 py-1 rounded-lg bg-slate-900/50 border border-slate-800/50 ${l.pl < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                     {formatCurrency(l.pl)}
+                                   </div>
+                                 </div>
+                               </div>
+                             ))}
+                           </div>
+                         </div>
+                       </Card>
+                     </Motion.div>
+
+                     <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                       <Card className="p-8 border-t border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
+                         <SectionHeader icon={Activity} title="Institutional Scorecard" sub="Behavioral Grade Summary" />
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-2">
+                           <ScoreBar label="Risk Management" score={scores.risk || 0} color="text-amber-400" />
+                           <ScoreBar label="Execution Discipline" score={scores.discipline || 0} color="text-indigo-400" />
+                           <ScoreBar label="Psychology & Mood" score={scores.psychology || 0} color="text-purple-400" />
+                           <ScoreBar label="Equity Consistency" score={scores.consistency || 0} color="text-rose-400" />
+                         </div>
+                         <div className="mt-8 p-4 bg-slate-800/30 rounded-2xl text-center">
+                           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">AGGREGATE PERFORMANCE SCORE</p>
+                           <p className="font-black text-4xl text-white">{String(Math.round(Object.values(scores || {}).reduce((a, b) => a + b, 0) / 4))}%</p>
+                         </div>
+                       </Card>
+                     </Motion.div>
+                   </div>
+                 )}
+
+                 {activeTab === 'performance' && (
+                   <div className="space-y-6 md:space-y-12">
+                     <SectionHeader icon={Briefcase} title="1. Financial Summary" />
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                   <MetricCard title="Total Trades" value={String(metrics.total || 0)} icon={Hash} />
                   <MetricCard title="Win Rate" value={`${String(metrics.winRate || 0)}%`} icon={TrendingUp} trend="up" />
@@ -636,7 +833,7 @@ const App = () => {
                   <MetricCard title="Realized Risk/Reward" value={`1:${String(metrics.overallRR)}`} icon={Scale} colorClass="text-indigo-400" />
                   <MetricCard title="Performance Expectancy" value={`₹${String(metrics.expectancy)}`} icon={Zap} colorClass={metrics.expectancy >= 0 ? "text-emerald-400" : "text-rose-400"} />
                 </div>
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                   <SectionHeader icon={Calendar} title="2. Execution Timeline & Heatmap" sub="Hierarchical Performance Drilldown" color="text-amber-400" />
                   <div className="mb-10">
                     {selectedYear === 'All' && datePreset === 'All' ? (
@@ -720,9 +917,9 @@ const App = () => {
                       </div>
                     )}
                   </div>
-                </motion.div>
+                </Motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                   <SectionHeader icon={Layers} title="3. Periodic P&L Distribution" color="text-[#00c6ff]" />
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2 p-4 md:p-6 h-[300px] md:h-[400px]">
@@ -764,9 +961,9 @@ const App = () => {
                       </div>
                     </Card>
                   </div>
-                </motion.div>
+                </Motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                   <SectionHeader icon={Diamond} title="4. Quality Grade & Sizing Matrix" color="text-[#f5d020]" />
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <Card className="p-4 md:p-6 h-[340px] md:h-[420px] relative text-white">
@@ -795,9 +992,9 @@ const App = () => {
                       </ResponsiveContainer>
                     </Card>
                   </div>
-                </motion.div>
+                </Motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                   <SectionHeader icon={Shield} title="5. Risk & Trajectory Metrics" color="text-[#f5d020]" />
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-4">
@@ -821,9 +1018,9 @@ const App = () => {
                       </div>
                     </Card>
                   </div>
-                </motion.div>
+                </Motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                   <SectionHeader icon={Activity} title="6. Growth & Probability Profile" color="text-[#00f2fe]" />
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                     <Card className="p-4 md:p-6 h-[300px] md:h-[400px]">
@@ -850,9 +1047,9 @@ const App = () => {
                       </div>
                     </Card>
                   </div>
-                </motion.div>
+                </Motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                   <SectionHeader icon={BarChart3} title="7. Weekday Edge Analysis" color="text-[#e100ff]" />
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2 p-8">
@@ -887,164 +1084,67 @@ const App = () => {
                       </div>
                     </Card>
                   </div>
-                </motion.div>
-              </div>
-            )}
+                </Motion.div>
 
-            {activeTab === 'audit' && (
-              <div className="space-y-6 text-white text-white">
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <Card className="p-8 border-rose-500/30 bg-rose-500/5 col-span-2 relative text-white">
-                      <SectionHeader icon={Hammer} title="Behavioral Diagnosis" color="text-rose-400" />
-                      <div className="p-6 bg-slate-950/40 rounded-3xl border border-rose-500/20 mb-6">
-                        <div className="flex items-center gap-3 mb-2"><Terminal className="text-indigo-400" size={16} /><h4 className="text-xs font-black uppercase text-indigo-400 tracking-widest">AI Institutional Brief</h4></div>
-                        <p className="text-sm font-black text-white italic mb-2 uppercase tracking-tighter leading-none">Trader Profile: {String(aiBrief.profile)}</p>
-                        <p className="text-xs text-slate-300 leading-relaxed font-medium mt-2">{String(aiBrief.narrative)}</p>
-                        <p className="text-xs text-indigo-300 font-bold mt-2 uppercase tracking-tighter italic">Verdict: {String(aiBrief.reviewStatement)}</p>
-                      </div>
-                      <div className="space-y-3">
-                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><ListChecks size={14} /> Priority Action Steps</p>
-                        {(aiBrief?.prioritySteps || []).map((step, i) => (
-                          <div key={i} className="flex gap-3 p-3 bg-slate-800/40 rounded-2xl border border-slate-700/50 text-xs font-bold leading-none items-center shadow-lg"><CheckSquare size={14} className="text-indigo-500" /> {String(step)}</div>
-                        ))}
-                      </div>
-                    </Card>
+                   </div>
+                 )}
 
-                    <Card className="p-8">
-                      <SectionHeader icon={BrainCircuit} title="AI Strategic Roadmap" color="text-amber-400" />
-                      <div className="space-y-4">
-                        {aiSuggestions ? (
-                          <div className="space-y-2">
-                            {aiSuggestions.map((s, i) => (
-                              <div key={i} className="flex gap-3 items-start p-2 animate-in slide-in-from-right duration-500">
-                                <ArrowRightCircle className="text-indigo-400 mt-0.5 shrink-0" size={14} />
-                                <p className="text-[11px] text-slate-300 leading-tight font-medium"> {String(s)} </p>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-slate-500 text-center py-10">Upload trade data to generate strategy.</p>
-                        )}
-                      </div>
-                    </Card>
-                  </div>
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                  <SectionHeader icon={BrainCircuit} title="Emotional P&L Impact" color="text-[#e100ff]" />
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <Card className="lg:col-span-2 p-4 md:p-6 h-[300px] md:h-[400px] relative text-white">
-                      <div className="relative w-full h-[90%]">
-                        <DonutCenter value={emotionStats.reduce((acc, curr) => acc + curr.pl, 0)} />
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie data={emotionStats} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
-                              {emotionStats.map((e, idx) => <Cell key={idx} fill={COLORS.psychPalette[idx % COLORS.psychPalette.length]} />)}
-                            </Pie>
-                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }} itemStyle={{ color: '#ffffff' }} labelStyle={{ color: '#94a3b8', fontWeight: 'bold' }} formatter={(v, n, p) => [`${formatCurrency(p.payload.pl)}`, String(p.payload.name)]} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </Card>
-                    <Card className="p-4 md:p-6 bg-purple-500/5 h-[300px] md:h-[400px] relative text-white">
-                      <SectionHeader icon={AlertTriangle} title="Mistake Analysis" color="text-purple-400" />
-                      <ResponsiveContainer width="100%" height="80%"><BarChart data={errors} layout="vertical"><XAxis type="number" hide /><YAxis type="category" dataKey="cat" stroke={COLORS.white} fontSize={8} width={60} axisLine={false} tickLine={false} /><Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none' }} cursor={{ fill: 'transparent' }} formatter={(v) => formatCurrency(Number(v))} /><Bar dataKey="impact" fill={COLORS.rose} radius={[0, 4, 4, 0]} activeBar={false} /></BarChart></ResponsiveContainer>
-                    </Card>
-                  </div>
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-white text-white">
-                    <Card className="p-6 border-rose-500/20 bg-rose-500/5"><SectionHeader icon={XOctagon} title="Top Loss Drivers" color="text-rose-400" /><div className="space-y-4">{errors.slice(0, 5).map((f, i) => (<div key={i} className="flex gap-3"><XCircle size={14} className="text-rose-500 mt-1 shrink-0" /><div><p className="text-xs font-black uppercase leading-none">{String(f.cat)}</p><p className="text-[10px] text-rose-400 font-bold mt-1">{formatCurrency(f.impact)} Leaked</p></div></div>))}</div></Card>
-                    <Card className="p-6 border-amber-500/20 bg-amber-500/5 text-white text-white"><SectionHeader icon={ArrowUpCircle} title="Lessons (Losses)" color="text-amber-400" />{(dynamicAudit?.start || []).map((text, i) => <div key={i} className="flex gap-3 text-xs font-medium italic mb-3">"{String(text)}"</div>)}</Card>
-                    <Card className="p-6 border-emerald-500/20 bg-emerald-500/5 text-white text-white"><SectionHeader icon={CheckCircle} title="Patterns (Wins)" color="text-emerald-400" />{(dynamicAudit?.continue || []).map((text, i) => <div key={i} className="flex gap-3 text-xs font-medium italic mb-3">"{String(text)}"</div>)}</Card>
-                  </div>
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                  <Card className="p-6 border border-slate-800/60 bg-slate-900/50">
-                    <SectionHeader icon={BookOpen} title="Trade Journal Archive" />
-                    <div className="max-h-[350px] overflow-y-auto pr-4 space-y-3 custom-scrollbar text-white">
-                      {learnings.map((l, i) => (
-                        <div key={i} className="p-4 bg-slate-800/20 border border-slate-800/60 rounded-2xl flex justify-between items-start gap-4">
-                          <div className="flex-1 text-white"><span className="text-[10px] text-slate-500 font-bold uppercase">{String(l.date)}</span><p className="text-sm font-medium italic">"{String(l.text)}"</p></div>
-                          <div className={`font-mono font-bold ${l.pl < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{formatCurrency(l.pl)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                  <Card className="p-8 border-t border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
-                    <SectionHeader icon={Activity} title="Institutional Scorecard" sub="Behavioral Grade Summary" />
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-2">
-                      <ScoreBar label="Risk Management" score={scores.risk || 0} color="text-amber-400" />
-                      <ScoreBar label="Execution Discipline" score={scores.discipline || 0} color="text-indigo-400" />
-                      <ScoreBar label="Psychology & Mood" score={scores.psychology || 0} color="text-purple-400" />
-                      <ScoreBar label="Equity Consistency" score={scores.consistency || 0} color="text-rose-400" />
-                    </div>
-                    <div className="mt-8 p-4 bg-slate-800/30 rounded-2xl text-center">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">AGGREGATE PERFORMANCE SCORE</p>
-                      <p className="font-black text-4xl text-white">{String(Math.round(Object.values(scores || {}).reduce((a, b) => a + b, 0) / 4))}%</p>
-                    </div>
-                  </Card>
-                </motion.div>
-              </div>
-            )}
-
-            {activeTab === 'strategies' && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="space-y-8"
-              >
-                <SectionHeader icon={Compass} title="Technical Edge Ranking Matrix" />
-                <Card className="p-8 border-dashed border-2 border-slate-800 text-center">
-                  <SectionHeader icon={BarChartHorizontal} title="Strategy Performance Profile" sub="Cumulative P&L per Setup" color="text-indigo-400" />
-                  <div className="h-[300px] md:h-[400px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        layout="vertical"
-                        data={[...setupAnalysis].sort((a, b) => b.pl - a.pl)}
-                        margin={{ top: 20, right: 60, left: 60, bottom: 20 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-                        <XAxis type="number" stroke={COLORS.white} fontSize={10} axisLine={false} tickLine={false} />
-                        <YAxis type="category" dataKey="name" stroke={COLORS.white} fontSize={10} width={100} axisLine={false} tickLine={false} />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                        <Bar dataKey="pl" radius={[0, 4, 4, 0]} barSize={24} activeBar={false}>
-                          {[...setupAnalysis].sort((a, b) => b.pl - a.pl).map((entry, index) => (
-                            <Cell key={index} fill={entry.pl >= 0 ? COLORS.emerald : COLORS.rose} fillOpacity={0.8} />
-                          ))}
-                          <LabelList dataKey="pl" position="right" formatter={(v) => formatCurrency(v)} fill={COLORS.white} style={{ fontSize: '10px', fontWeight: 'bold' }} />
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {setupAnalysis.map((s, i) => (
-                    <Card key={i} className="group p-6 border border-slate-800 flex flex-col justify-between hover:border-indigo-500/50 transition-all text-white">
-                      <div>
-                        <div className="flex justify-between items-start mb-4 text-white"><h4 className="text-white font-black text-xl uppercase group-hover:text-indigo-400 leading-none">{String(s.name)}</h4><div className={`w-12 h-12 rounded-2xl flex items-center justify-center border-2 ${parseFloat(s.wr) >= 50 ? 'border-emerald-500/30 text-emerald-400' : 'border-rose-500/30 text-rose-400'}`}><p className="text-xs font-black">{String(s.wr)}%</p></div></div>
-                        <div className="grid grid-cols-2 gap-3 mb-6"><div className="bg-slate-800/30 p-3 rounded-2xl border border-slate-800 leading-none"><p className="text-[8px] text-slate-500 font-bold uppercase mb-1">R:R</p><p className="text-lg font-black text-white">1:{String(s.rr)}</p></div><div className="bg-slate-800/30 p-3 rounded-2xl border border-slate-800 leading-none"><p className="text-[8px] text-slate-500 font-black uppercase mb-1">EXP</p><p className={`text-lg font-black ${parseFloat(s.expectancy) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>₹{String(s.expectancy)}</p></div></div>
-                      </div>
-                      <div className="flex justify-between items-center text-xs font-bold uppercase leading-none"><span className="text-slate-500 text-[10px]">Net Impact</span><span className={parseFloat(s.pl) >= 0 ? "text-emerald-400" : "text-rose-400"}>{formatCurrency(s.pl)}</span></div>
-                    </Card>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </motion.main>
-        )}
-        <footer className="mt-20 py-8 border-t border-[#00f2fe]/10 text-center font-bold uppercase text-[10px] tracking-[0.3em] text-slate-600 drop-shadow-[0_0_8px_rgba(0,198,255,0.2)]">TradeAudit Institutional v2.0</footer>
-      </div>
-      <style>{`.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }`}</style>
-    </div>
-  );
-};
-
-export default App;
+                 {activeTab === 'strategies' && (
+                   <div className="space-y-12">
+                     <SectionHeader icon={Compass} title="Technical Edge Ranking Matrix" />
+                     <Card className="p-8 border-dashed border-2 border-slate-800 text-center">
+                       <SectionHeader icon={BarChartHorizontal} title="Strategy Performance Profile" sub="Cumulative P&L per Setup" color="text-indigo-400" />
+                       <div className="h-[300px] md:h-[400px]">
+                         <ResponsiveContainer width="100%" height="100%">
+                           <BarChart
+                             layout="vertical"
+                             data={[...setupAnalysis].sort((a, b) => b.pl - a.pl)}
+                             margin={{ top: 20, right: 60, left: 60, bottom: 20 }}
+                           >
+                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+                             <XAxis type="number" stroke={COLORS.white} fontSize={10} axisLine={false} tickLine={false} />
+                             <YAxis type="category" dataKey="name" stroke={COLORS.white} fontSize={10} width={100} axisLine={false} tickLine={false} />
+                             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                             <Bar dataKey="pl" radius={[0, 4, 4, 0]} barSize={24} activeBar={false}>
+                               {[...setupAnalysis].sort((a, b) => b.pl - a.pl).map((entry, index) => (
+                                 <Cell key={index} fill={entry.pl >= 0 ? COLORS.emerald : COLORS.rose} fillOpacity={0.8} />
+                               ))}
+                               <LabelList dataKey="pl" position="right" formatter={(v) => formatCurrency(v)} fill={COLORS.white} style={{ fontSize: '10px', fontWeight: 'bold' }} />
+                             </Bar>
+                           </BarChart>
+                         </ResponsiveContainer>
+                       </div>
+                     </Card>
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                       {setupAnalysis.map((s, i) => (
+                         <Card key={i} className="group p-6 border border-slate-800 flex flex-col justify-between hover:border-indigo-500/50 transition-all text-white">
+                           <div>
+                             <div className="flex justify-between items-start mb-4 text-white"><h4 className="text-white font-black text-xl uppercase group-hover:text-indigo-400 leading-none">{String(s.name)}</h4><div className={`w-12 h-12 rounded-2xl flex items-center justify-center border-2 ${parseFloat(s.wr) >= 50 ? 'border-emerald-500/30 text-emerald-400' : 'border-rose-500/30 text-rose-400'}`}><p className="text-xs font-black">{String(s.wr)}%</p></div></div>
+                             <div className="grid grid-cols-2 gap-3 mb-6"><div className="bg-slate-800/30 p-3 rounded-2xl border border-slate-800 leading-none"><p className="text-[8px] text-slate-500 font-bold uppercase mb-1">R:R</p><p className="text-lg font-black text-white">1:{String(s.rr)}</p></div><div className="bg-slate-800/30 p-3 rounded-2xl border border-slate-800 leading-none"><p className="text-[8px] text-slate-500 font-black uppercase mb-1">EXP</p><p className={`text-lg font-black ${parseFloat(s.expectancy) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>₹{String(s.expectancy)}</p></div></div>
+                           </div>
+                           <div className="flex justify-between items-center text-xs font-bold uppercase leading-none"><span className="text-slate-500 text-[10px]">Net Impact</span><span className={parseFloat(s.pl) >= 0 ? "text-emerald-400" : "text-rose-400"}>{formatCurrency(s.pl)}</span></div>
+                         </Card>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+               </div>
+             )}
+           </Motion.main>
+         )}
+         <footer className="mt-20 py-8 border-t border-[#00f2fe]/10 text-center font-bold uppercase text-[10px] tracking-[0.3em] text-slate-600 drop-shadow-[0_0_8px_rgba(0,198,255,0.2)]">TradeAudit Institutional v2.0</footer>
+       </div>
+       <style>{`.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }`}</style>
+       <AnimatePresence>
+         {showMigrationHub && (
+           <MigrationHub 
+             onComplete={() => setShowMigrationHub(false)} 
+             onCancel={() => setShowMigrationHub(false)} 
+           />
+         )}
+       </AnimatePresence>
+     </div>
+   );
+ };
+ 
+ export default App;

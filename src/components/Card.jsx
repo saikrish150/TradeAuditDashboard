@@ -1,7 +1,7 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 const Card = ({ children, className = "", onClick, style }) => (
-  <motion.div
+  <Motion.div
     onClick={onClick}
     style={style}
     whileHover={{ y: -8, scale: 1.02 }}
@@ -14,7 +14,7 @@ const Card = ({ children, className = "", onClick, style }) => (
     <div className="relative z-10 w-full h-full">
       {children}
     </div>
-  </motion.div>
+  </Motion.div>
 );
 
 export default Card;
