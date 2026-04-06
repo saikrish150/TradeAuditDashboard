@@ -28,23 +28,35 @@
 
 @layer utilities {
   /* Premium Glassmorphism & Depth Layers */
-  .glass-panel {
-    background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+  /* Modern Glass for 2026 Professional Standards */
+  .modern-glass {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 
-      0 4px 24px -1px rgba(0, 0, 0, 0.4),
-      0 0 1px 1px rgba(255, 255, 255, 0.05); /* Inner rim glow */
+      0 10px 40px -10px rgba(0, 0, 0, 0.5),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.03);
   }
 
-  /* Extreme Glass for active tabs or highlight areas */
-  .super-glass {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .active-glow {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), inset 0 0 12px rgba(99, 102, 241, 0.2);
   }
 
   .glow-text {
@@ -55,10 +67,27 @@
   .ambient-glow {
     position: absolute;
     border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.15;
+    filter: blur(100px);
+    opacity: 0.2;
     z-index: 0;
     pointer-events: none;
+  }
+
+  /* Non-scroll dashboard lock */
+  .dashboard-lock {
+    height: calc(100vh - 260px);
+    overflow: hidden;
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-lock {
+      height: auto;
+      overflow: visible;
+    }
+  }
+
+  .pb-safe-area {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
   }
 }
 

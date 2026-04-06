@@ -13,7 +13,6 @@ class BinanceService {
   }
 
   setUseBinanceUS(value) {
-    console.log(`[Binance] Switching to ${value ? 'US' : 'Global'} mode`);
     this.useBinanceUS = value;
   }
 
@@ -61,8 +60,6 @@ class BinanceService {
     const baseUrl = isFutures ? `https://${fDomain}/fapi/v1/klines` : `https://${domain}/api/v3/klines`;
     const url = `${baseUrl}?symbol=${symbol.ticker}&interval=${interval}&limit=1000`;
     
-    console.log(`[Binance] Fetching historical data: ${url}`);
-    
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -83,11 +80,9 @@ class BinanceService {
   connectAll(symbols, interval = '15m') {
     const subKey = `${symbols.map(s => s.ticker).sort().join(',')}:${interval}:${this.useBinanceUS}`;
     if (subKey === this.lastSubKey && this.sockets.size > 0) {
-      console.log(`[Binance] Subscriptions already up to date: ${subKey}`);
       return;
     }
 
-    console.log(`[Binance] Updating connections for ${subKey}`);
     this.lastSubKey = subKey;
     this.activeSymbols = symbols;
     this.activeInterval = interval;
@@ -121,15 +116,12 @@ class BinanceService {
     const baseUrl = this.useBinanceUS && type === 'spot' ? `wss://${wsDomain}:9443/stream` : `wss://${wsDomain}/stream`;
     const wsUrl = `${baseUrl}?streams=${streams}`;
     
-    console.log(`[Binance] Connecting ${type}: ${wsUrl}`);
-    
     try {
       const ws = new WebSocket(wsUrl);
       this.sockets.set(type, ws);
       this.statusSubject.next('connecting');
 
       ws.onopen = () => {
-        console.log(`[Binance] ${type} connected`);
         this.updateAggregateStatus();
       };
 
@@ -157,7 +149,6 @@ class BinanceService {
       };
       
       ws.onclose = () => {
-        console.log(`[Binance] ${type} connection closed`);
         this.sockets.delete(type);
         this.updateAggregateStatus();
         
@@ -230,7 +221,6 @@ class BinanceService {
       }
       this.lastSubKey = '';
     } else {
-      console.log('[Binance] Full disconnect');
       this.lastSubKey = '';
       this.reconnectTimeouts.forEach(t => clearTimeout(t));
       this.reconnectTimeouts.clear();

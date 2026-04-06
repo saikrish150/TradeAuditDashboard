@@ -97,7 +97,6 @@ export const AlertsView = () => {
     if (triggeredCountRef.current.has(alert.id)) return;
     
     triggeredCountRef.current.add(alert.id);
-    console.log(`[AlertsView] Price Hit! Sound and Popup only: ${alert.id}`);
     
     setTriggeredModal(alert);
     playAlertSound(); // Fire the audio cue
@@ -109,7 +108,6 @@ export const AlertsView = () => {
   };
 
   useEffect(() => {
-    console.log(`[AlertsView] Initializing connection for symbols on ${selectedInterval} interval`);
     binanceService.connectAll(SUPPORTED_SYMBOLS, selectedInterval);
     
     const subscription = binanceService.getPriceStream().subscribe((update) => {

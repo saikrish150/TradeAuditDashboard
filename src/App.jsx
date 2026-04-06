@@ -15,7 +15,7 @@ import {
   CandlestickChart, LayoutDashboard, BrainCircuit, AlertTriangle, Diamond, BoxSelect, Trophy,
   Compass, BarChartHorizontal, CalendarRange, Signal, BarChart3, IndianRupee,
   Terminal, AlertCircle, Lightbulb, ListChecks, CheckSquare,
-  ArrowRightCircle, Sparkles as SparklesIcon, DatabaseZap,
+  ArrowRightCircle, Sparkles as SparklesIcon,
   Smile, Play, ShieldAlert
 } from 'lucide-react';
 
@@ -27,7 +27,8 @@ import DonutCenter from './components/DonutCenter';
 import CustomTooltip from './components/CustomTooltip';
 import MigrationHub from './components/MigrationHub';
 import { AlertsView } from './components/AlertsView';
-import { FirebaseService } from './services/FirebaseService';
+import { firebaseService } from './services/firebaseService';
+import AccessShield from './components/AccessShield';
 import { MONTH_MAP, COLORS, cleanCurrency, formatCurrency, parseCSV, getMarketCategory } from './utils';
 
 const LightRaysAndParticles = () => {
@@ -84,6 +85,40 @@ const LightRaysAndParticles = () => {
         />
       ))}
     </div>
+  );
+};
+
+
+const MobileNav = ({ activeSection, setActiveSection }) => {
+  const tabs = [
+    { id: 'alerts', label: 'Alerts', icon: Signal },
+    { id: 'journal', label: 'Journal', icon: History },
+    { id: 'audit', label: 'Audit', icon: ShieldCheck }
+  ];
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-[150] md:hidden modern-glass border-t border-white/10 px-2 pb-safe-area shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+      <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveSection(tab.id)}
+            className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-300 relative ${
+              activeSection === tab.id ? 'text-indigo-400' : 'text-slate-500'
+            }`}
+          >
+            {activeSection === tab.id && (
+              <Motion.div
+                layoutId="active-nav-glow"
+                className="absolute top-0 w-12 h-1 bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full shadow-[0_4px_12px_rgba(99,102,241,0.5)]"
+              />
+            )}
+            <tab.icon size={20} className={activeSection === tab.id ? 'glow-text' : ''} />
+            <span className="text-[10px] font-black uppercase tracking-widest">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
   );
 };
 
@@ -160,6 +195,7 @@ const App = () => {
   const [selectedAsset, setSelectedAsset] = useState('All');
   const [isMigrated, setIsMigrated] = useState(true); // Default to true to prevent flash
   const [showMigrationHub, setShowMigrationHub] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const [datePreset, setDatePreset] = useState('CurrentMonth');
   const [startDate, setStartDate] = useState('');
@@ -167,18 +203,23 @@ const App = () => {
 
   const [heatmapMode, setHeatmapMode] = useState('pnl');
   const [isParsing, setIsParsing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [aiSuggestions, setAiSuggestions] = useState(null);
 
   useEffect(() => {
     // Check if user needs to migrate
-    FirebaseService.hasData().then(hasData => {
+    firebaseService.hasData().then(hasData => {
       setIsMigrated(hasData);
-      if (!hasData) setShowMigrationHub(true);
+      if (!hasData) {
+        setShowMigrationHub(true);
+        setLoading(false);
+      }
     });
 
     // Subscribe to live data
-    const unsubscribe = FirebaseService.subscribeToTrades((trades) => {
+    const unsubscribe = firebaseService.subscribeToTrades((trades) => {
       setRawTrades(trades);
+      setLoading(false);
       if (trades.length > 0) {
         setIsMigrated(true);
         setShowMigrationHub(false);
@@ -507,23 +548,34 @@ const App = () => {
   }, [processedData, metrics.winRate, metrics.overallRR, errors, emotionStats, bestDay, worstDay]);
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-100 font-sans p-4 md:p-8 relative">
+    <AccessShield>
+      <div className="min-h-screen bg-[#020617] text-slate-100 font-sans p-4 md:p-8 pb-24 md:pb-8 relative">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuOCIgbnVtT2N0YXZlcz0iMSIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNub2lzZSkiIG9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==')]"></div>
       <LightRaysAndParticles />
       <div className="max-w-7xl mx-auto relative">
         <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 relative">
-          <div className="flex items-center gap-4 z-20 w-full md:w-auto justify-center md:justify-start">
-            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-600/30 shrink-0">
-              <CandlestickChart className="text-white" size={24} />
+          <div className="flex items-center gap-4 z-20 w-full md:w-auto justify-between md:justify-start">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-600/30 shrink-0">
+                <CandlestickChart className="text-white" size={20} />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic leading-none">Trade<span className="text-indigo-500">Audit</span></h1>
+                <p className="text-slate-500 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] mt-1">Terminal v5.1.0</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-black tracking-tighter uppercase italic leading-none">Trade<span className="text-indigo-500">Audit</span></h1>
-              <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">Review Terminal v125.0</p>
-            </div>
+
+            {/* Mobile Filter Trigger */}
+            <button 
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className="md:hidden p-2.5 rounded-xl modern-glass border border-white/10 text-slate-400 active:scale-95 transition-all"
+            >
+              <Filter size={18} className={showMobileFilters ? 'text-indigo-400' : ''} />
+            </button>
           </div>
 
           {rawTrades.length > 0 && (
-            <nav className="flex super-glass p-1.5 rounded-2xl shadow-[0_0_30px_rgba(0,198,255,0.05)] md:absolute md:left-1/2 md:-translate-x-1/2 z-10 w-full md:w-auto overflow-x-auto scrollbar-hide order-3 md:order-none">
+            <nav className="hidden md:flex modern-glass p-1.5 rounded-2xl md:absolute md:left-1/2 md:-translate-x-1/2 z-10 w-auto overflow-x-auto scrollbar-hide">
               {[
                 { id: 'alerts', label: 'Alerts', icon: Signal },
                 { id: 'journal', label: 'Trading Journal', icon: History },
@@ -552,8 +604,69 @@ const App = () => {
 
         </header>
 
+        {/* Mobile Filter Drawer */}
+        <AnimatePresence>
+          {showMobileFilters && activeSection === 'audit' && (
+            <>
+              <Motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setShowMobileFilters(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[160] md:hidden"
+              />
+              <Motion.div 
+                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="fixed bottom-0 left-0 right-0 z-[170] modern-glass rounded-t-[32px] border-t border-white/20 p-6 md:hidden max-h-[80vh] overflow-y-auto"
+              >
+                <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6" />
+                <h3 className="text-xl font-black uppercase tracking-widest mb-6 flex items-center gap-3">
+                   <Filter className="text-indigo-400" /> Filters
+                </h3>
+                <div className="flex flex-col gap-4">
+                  <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
+                    <span className="text-xs font-black uppercase text-slate-500 tracking-widest">Timeframe</span>
+                    <select value={datePreset} onChange={(e) => setDatePreset(e.target.value)} className="bg-transparent text-slate-100 text-xs font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none text-right">
+                      <option className="bg-slate-950" value="All">All Time</option>
+                      <option className="bg-slate-950" value="CurrentMonth">Current Month</option>
+                      <option className="bg-slate-950" value="30">Past 30 Days</option>
+                      <option className="bg-slate-950" value="60">Past 60 Days</option>
+                      <option className="bg-slate-950" value="90">Past 90 Days</option>
+                      <option className="bg-slate-950" value="Custom">Custom Range</option>
+                    </select>
+                  </div>
+                  
+                  <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
+                    <span className="text-xs font-black uppercase text-slate-500 tracking-widest">Market</span>
+                    <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="bg-transparent text-slate-100 text-xs font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none text-right">
+                      <option className="bg-slate-950" value="All">All Types</option>
+                      <option className="bg-slate-950" value="Indian">Indian</option>
+                      <option className="bg-slate-950" value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
+                    <span className="text-xs font-black uppercase text-slate-500 tracking-widest">Asset</span>
+                    <select value={selectedAsset} onChange={(e) => setSelectedAsset(e.target.value)} className="bg-transparent text-slate-100 text-xs font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none text-right">
+                      {(availableAssets || []).map(a => <option className="bg-slate-950" key={a} value={a}>{a === 'All' ? 'All Assets' : a}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowMobileFilters(false)}
+                  className="w-full mt-8 py-4 bg-indigo-600 rounded-2xl text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
+                >
+                  Apply Filters
+                </button>
+              </Motion.div>
+            </>
+          )}
+        </AnimatePresence>
+        {/* Professional Mobile Bottom Navigation */}
+        <MobileNav activeSection={activeSection} setActiveSection={setActiveSection} />
+
+        
         {rawTrades.length > 0 && activeSection === 'audit' && (
-          <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 mb-8 mt-2 relative z-10 w-full bg-slate-950/20 p-2 rounded-2xl border border-slate-800/50 backdrop-blur-sm">
+          <div className="hidden md:flex flex-wrap items-center justify-center md:justify-end gap-2 mb-8 mt-2 relative z-10 w-full bg-slate-950/20 p-2 rounded-2xl border border-slate-800/50 backdrop-blur-sm">
             <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
               <Clock size={12} className="text-slate-500 ml-2" />
               <select value={datePreset} onChange={(e) => setDatePreset(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
@@ -606,10 +719,15 @@ const App = () => {
         )}
 
 
-        {(!rawTrades || rawTrades.length === 0) && !isParsing ? (
+        {loading ? (
+          <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6">
+            <div className="w-16 h-16 border-t-2 border-indigo-500 rounded-full animate-spin shadow-[0_0_20px_rgba(99,102,241,0.3)]" />
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Syncing Cloud Terminal...</p>
+          </div>
+        ) : (!rawTrades || rawTrades.length === 0) && !isParsing ? (
           <div className="min-h-[400px] flex items-center justify-center p-6 text-center">
             <Card className="max-w-xl w-full p-12 border-dashed border-2 border-slate-800">
-              <div className="w-20 h-20 bg-indigo-600/10 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse"><DatabaseZap className="text-indigo-500" size={40} /></div>
+              <div className="w-20 h-20 bg-indigo-600/10 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse"><Signal className="text-indigo-500" size={40} /></div>
               <h1 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase italic leading-none">Trade<span className="text-indigo-500">Audit</span> Cloud</h1>
               <p className="text-slate-400 mb-10 text-xs font-bold uppercase tracking-[0.2em]">Institutional Performance Terminal (Connected)</p>
               <button 
@@ -713,7 +831,7 @@ const App = () => {
                            <SectionHeader icon={Smile} title="Emotional Impact Distribution" color="text-purple-400" />
                            <div className="relative w-full h-[300px]">
                              <DonutCenter value={emotionStats.reduce((acc, curr) => acc + curr.pl, 0)} />
-                             <ResponsiveContainer width="100%" height="100%">
+                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                <PieChart>
                                  <Pie data={emotionStats} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
                                    {emotionStats.map((e, idx) => <Cell key={idx} fill={COLORS.qualityPalette[idx % COLORS.qualityPalette.length]} />)}
@@ -727,7 +845,7 @@ const App = () => {
                          <Card className="p-8">
                            <SectionHeader icon={ZapOff} title="Top Error Impact Chart" color="text-rose-400" />
                            <div className="h-[300px]">
-                             <ResponsiveContainer width="100%" height="100%">
+                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                <BarChart data={errors} layout="vertical" margin={{ left: 40, right: 20 }}>
                                  <XAxis type="number" hide />
                                  <YAxis type="category" dataKey="cat" stroke={COLORS.white} fontSize={10} width={100} axisLine={false} tickLine={false} />
@@ -921,7 +1039,7 @@ const App = () => {
                   <SectionHeader icon={Layers} title="3. Periodic P&L Distribution" color="text-[#00c6ff]" />
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2 p-4 md:p-6 h-[300px] md:h-[400px]">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <ComposedChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                           <defs>
                             <filter id="neonGlowPlus" x="-20%" y="-20%" width="140%" height="140%">
@@ -968,7 +1086,7 @@ const App = () => {
                       <SectionHeader icon={Layers} title="P&L Weight by Grade" />
                       <div className="relative w-full h-[80%]">
                         <DonutCenter value={qualityStats.reduce((acc, curr) => acc + curr.pl, 0)} />
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                           <PieChart>
                             <Pie data={qualityStats} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`} labelLine={{ stroke: COLORS.white }}>
                               {qualityStats.map((entry, index) => <Cell key={index} fill={COLORS.qualityPalette[index % COLORS.qualityPalette.length]} />)}
@@ -980,7 +1098,7 @@ const App = () => {
                     </Card>
                     <Card className="p-4 md:p-6 h-[340px] md:h-[420px]">
                       <SectionHeader icon={BoxSelect} title="Average Lot Size by Symbol" />
-                      <ResponsiveContainer width="100%" height="80%">
+                      <ResponsiveContainer width="100%" height="80%" minWidth={0}>
                         <BarChart data={sizingData} layout="vertical" margin={{ left: 40, right: 20 }}>
                           <XAxis type="number" hide />
                           <YAxis type="category" dataKey="name" stroke={COLORS.white} fontSize={9} width={80} axisLine={false} tickLine={false} />
@@ -1005,7 +1123,7 @@ const App = () => {
                       <SectionHeader icon={Target} title="Trade Outcome Weights" />
                       <div className="relative w-full h-[calc(100%-40px)]">
                         <DonutCenter value={statusStats.reduce((acc, curr) => acc + curr.pl, 0)} />
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                           <PieChart>
                             <Pie data={statusStats} innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
                               {statusStats.map((e, idx) => <Cell key={idx} fill={COLORS.qualityPalette[idx % COLORS.qualityPalette.length]} />)}
@@ -1023,7 +1141,7 @@ const App = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                     <Card className="p-4 md:p-6 h-[300px] md:h-[400px]">
                       <SectionHeader icon={TrendingUp} title="Cumulative Equity Path" />
-                      <ResponsiveContainer width="100%" height="85%">
+                      <ResponsiveContainer width="100%" height="85%" minWidth={0}>
                         <AreaChart data={equity}>
                           <Tooltip content={<CustomTooltip />} />
                           <Area type="monotone" dataKey="Equity" stroke={COLORS.indigo} strokeWidth={4} fill={COLORS.indigo} fillOpacity={0.1} />
@@ -1034,7 +1152,7 @@ const App = () => {
                       <SectionHeader icon={Target} title="Win/Loss Probability Profile" />
                       <div className="relative w-full h-[85%]">
                         <DonutCenter value={outcomeDist.reduce((acc, curr) => acc + (curr.pl || 0), 0)} />
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                           <PieChart>
                             <Pie data={outcomeDist} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
                               {outcomeDist.map((e, idx) => <Cell key={idx} fill={e.color} />)}
@@ -1052,7 +1170,7 @@ const App = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2 p-8">
                       <div className="h-[280px] md:h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                           <BarChart data={weekdayEdge} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                             <XAxis dataKey="name" stroke={COLORS.white} fontSize={11} axisLine={false} tickLine={false} />
@@ -1093,7 +1211,7 @@ const App = () => {
                      <Card className="p-8 border-dashed border-2 border-slate-800 text-center">
                        <SectionHeader icon={BarChartHorizontal} title="Strategy Performance Profile" sub="Cumulative P&L per Setup" color="text-indigo-400" />
                        <div className="h-[300px] md:h-[400px]">
-                         <ResponsiveContainer width="100%" height="100%">
+                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                            <BarChart
                              layout="vertical"
                              data={[...setupAnalysis].sort((a, b) => b.pl - a.pl)}
@@ -1141,8 +1259,9 @@ const App = () => {
            />
          )}
        </AnimatePresence>
-     </div>
-   );
- };
+      </div>
+    </AccessShield>
+    );
+  };
  
  export default App;

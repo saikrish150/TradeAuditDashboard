@@ -8,8 +8,8 @@ import {
 } from 'lucide-react';
 import { collection, addDoc, writeBatch, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../firebase';
-import { MigrationService } from '../services/MigrationService';
+import { db, storage } from '../lib/firebase';
+import { migrationService } from '../services/migrationService';
 
 const MigrationHub = ({ onComplete, onCancel }) => {
   const [files, setFiles] = useState({
@@ -98,7 +98,7 @@ const MigrationHub = ({ onComplete, onCancel }) => {
 
       // 4. Migrate Trades (Batching logic)
       for (const row of tradesData) {
-        const trade = MigrationService.mapTradeRow(row);
+        const trade = migrationService.mapTradeRow(row);
         
         // Handle Image
         if (trade.chartScreenshotLocal && files.images.length > 0) {
@@ -118,7 +118,7 @@ const MigrationHub = ({ onComplete, onCancel }) => {
 
       // 5. Migrate Snapshots
       for (const row of snapshotsData) {
-        const snapshot = MigrationService.mapSnapshotRow(row);
+        const snapshot = migrationService.mapSnapshotRow(row);
         if (snapshot.imageLocal && files.images.length > 0) {
           const cloudUrl = await uploadImage(snapshot.imageLocal, files.images);
           if (cloudUrl) snapshot.imageUrl = cloudUrl;
@@ -133,8 +133,8 @@ const MigrationHub = ({ onComplete, onCancel }) => {
       }
 
       // 6. Migrate Notes
-      for (const row of notesData) {
-        const note = MigrationService.mapNoteRow(row);
+      for (const row of snapshotsData) {
+        const note = migrationService.mapNoteRow(row);
         await addDoc(collection(db, 'notes'), note);
         processedCount++;
         setProgress({ 

@@ -1,12 +1,12 @@
 import { collection, addDoc, serverTimestamp, query, where, getDocs, writeBatch, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../firebase';
+import { db, storage } from '../lib/firebase';
 
 /**
- * MigrationService
+ * migrationService
  * Handles parsing and syncing of Notion CSV data to Firebase Firestore and Storage.
  */
-export const MigrationService = {
+export const migrationService = {
   /**
    * Cleans currency strings (e.g., "₹50.00") into numbers.
    */

@@ -1,7 +1,7 @@
 import { collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../lib/firebase';
 
-export const FirebaseService = {
+export const firebaseService = {
   /**
    * Listen to trades collection and transform for the UI
    */

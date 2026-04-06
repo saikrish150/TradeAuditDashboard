@@ -223,7 +223,6 @@ export const Chart = React.memo(({ symbol, interval, alerts, onAddAlert, onUpdat
     // Load History
     const loadData = async () => {
       try {
-        console.log(`[Chart] Loading history for ${symbol.ticker} (${interval})`);
         const history = await binanceService.getHistoricalData(symbol, interval);
         
         if (wasCancelled) return;
@@ -389,8 +388,6 @@ export const Chart = React.memo(({ symbol, interval, alerts, onAddAlert, onUpdat
         <button 
           onMouseDown={(e) => {
             e.preventDefault();
-            e.stopPropagation(); // Stop mousedown from reaching chart
-            console.log('[Chart] Deleting alert:', hoveredAlert.id);
             onDeleteAlert(hoveredAlert.id);
             setHoveredAlert(null);
           }}
