@@ -26,6 +26,7 @@ import ScoreBar from './components/ScoreBar';
 import DonutCenter from './components/DonutCenter';
 import CustomTooltip from './components/CustomTooltip';
 import MigrationHub from './components/MigrationHub';
+import { AlertsView } from './components/AlertsView';
 import { FirebaseService } from './services/FirebaseService';
 import { MONTH_MAP, COLORS, cleanCurrency, formatCurrency, parseCSV, getMarketCategory } from './utils';
 
@@ -510,9 +511,9 @@ const App = () => {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuOCIgbnVtT2N0YXZlcz0iMSIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNub2lzZSkiIG9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==')]"></div>
       <LightRaysAndParticles />
       <div className="max-w-7xl mx-auto relative">
-        <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-600/30">
+        <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 relative">
+          <div className="flex items-center gap-4 z-20 w-full md:w-auto justify-center md:justify-start">
+            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-600/30 shrink-0">
               <CandlestickChart className="text-white" size={24} />
             </div>
             <div>
@@ -521,89 +522,88 @@ const App = () => {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 w-full md:w-auto">
-            {rawTrades.length > 0 && (
-              <>
-                <nav className="flex super-glass p-1.5 rounded-2xl shadow-[0_0_30px_rgba(0,198,255,0.05)] self-center md:self-end relative">
-                  {[
-                    { id: 'alerts', label: 'Alerts', icon: Signal },
-                    { id: 'journal', label: 'Trading Journal', icon: History },
-                    { id: 'audit', label: 'Trade Audit', icon: ShieldCheck }
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveSection(tab.id)}
-                      className={`relative px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center gap-2 z-10 ${activeSection === tab.id ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-slate-500 hover:text-white'}`}
-                    >
-                      {activeSection === tab.id && (
-                        <Motion.div
-                          layoutId="active-pill"
-                          className="absolute inset-0 bg-gradient-to-r from-[#00f2fe]/20 to-[#4facfe]/20 rounded-xl border border-[#00f2fe]/30 shadow-[0_0_15px_rgba(0,242,254,0.4)]"
-                          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                        />
-                      )}
+          {rawTrades.length > 0 && (
+            <nav className="flex super-glass p-1.5 rounded-2xl shadow-[0_0_30px_rgba(0,198,255,0.05)] md:absolute md:left-1/2 md:-translate-x-1/2 z-10 w-full md:w-auto overflow-x-auto scrollbar-hide order-3 md:order-none">
+              {[
+                { id: 'alerts', label: 'Alerts', icon: Signal },
+                { id: 'journal', label: 'Trading Journal', icon: History },
+                { id: 'audit', label: 'Trade Audit', icon: ShieldCheck }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveSection(tab.id)}
+                  className={`relative px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 z-10 flex-1 md:flex-none whitespace-nowrap ${activeSection === tab.id ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-slate-500 hover:text-white'}`}
+                >
+                  {activeSection === tab.id && (
+                    <Motion.div
+                      layoutId="active-pill"
+                      className="absolute inset-0 bg-gradient-to-r from-[#00f2fe]/20 to-[#4facfe]/20 rounded-xl border border-[#00f2fe]/30 shadow-[0_0_15px_rgba(0,242,254,0.4)]"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-20 flex items-center gap-2">
+                    <tab.icon size={14} />
+                    {tab.label}
+                  </span>
+                </button>
+              ))}
+            </nav>
+          )}
 
-                      <span className="relative z-20 flex items-center gap-2">
-                        <tab.icon size={14} />
-                        {tab.label}
-                      </span>
-                    </button>
-                  ))}
-                </nav>
-                <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 mt-4">
-                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
-                    <Clock size={12} className="text-slate-500 ml-2" />
-                    <select value={datePreset} onChange={(e) => setDatePreset(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                      <option className="bg-slate-900" value="All">All Time</option>
-                      <option className="bg-slate-900" value="CurrentMonth">Current Month</option>
-                      <option className="bg-slate-900" value="30">Past 30 Days</option>
-                      <option className="bg-slate-900" value="60">Past 60 Days</option>
-                      <option className="bg-slate-900" value="90">Past 90 Days</option>
-                      <option className="bg-slate-900" value="Custom">Custom Range</option>
-                    </select>
-                  </div>
-                  {datePreset === 'Custom' && (
-                    <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
-                      <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
-                      <span className="text-slate-500 text-[10px]">-</span>
-                      <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
-                    <Globe size={12} className="text-slate-500 ml-2" />
-                    <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                      <option className="bg-slate-900" value="All">Type: All</option>
-                      <option className="bg-slate-900" value="Indian">Indian Markets</option>
-                      <option className="bg-slate-900" value="Other">Other Markets</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
-                    <Hash size={12} className="text-slate-500 ml-2" />
-                    <select value={selectedAsset} onChange={(e) => setSelectedAsset(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                      {(availableAssets || []).map(a => <option className="bg-slate-900" key={a} value={a}>{a === 'All' ? 'Asset: All' : a}</option>)}
-                    </select>
-                  </div>
-                  {datePreset === 'All' && (
-                    <>
-                      <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
-                        <Filter size={12} className="text-slate-500 ml-2" />
-                        <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                          {(availableYears || []).map(y => <option className="bg-slate-900" key={y} value={y}>{y === 'All' ? 'Year: All' : y}</option>)}
-                        </select>
-                      </div>
-                      <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
-                        <CalendarDays size={12} className="text-slate-500 ml-2" />
-                        <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                          {(availableMonths || []).map(m => <option className="bg-slate-900" key={m} value={m}>{m === 'All' ? 'Month: All' : m}</option>)}
-                        </select>
-                      </div>
-                    </>
-                  )}
+        </header>
+
+        {rawTrades.length > 0 && activeSection === 'audit' && (
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 mb-8 mt-2 relative z-10 w-full bg-slate-950/20 p-2 rounded-2xl border border-slate-800/50 backdrop-blur-sm">
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+              <Clock size={12} className="text-slate-500 ml-2" />
+              <select value={datePreset} onChange={(e) => setDatePreset(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
+                <option className="bg-slate-900" value="All">All Time</option>
+                <option className="bg-slate-900" value="CurrentMonth">Current Month</option>
+                <option className="bg-slate-900" value="30">Past 30 Days</option>
+                <option className="bg-slate-900" value="60">Past 60 Days</option>
+                <option className="bg-slate-900" value="90">Past 90 Days</option>
+                <option className="bg-slate-900" value="Custom">Custom Range</option>
+              </select>
+            </div>
+            {datePreset === 'Custom' && (
+              <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
+                <span className="text-slate-500 text-[10px]">-</span>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
+              </div>
+            )}
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+              <Globe size={12} className="text-slate-500 ml-2" />
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
+                <option className="bg-slate-900" value="All">Type: All</option>
+                <option className="bg-slate-900" value="Indian">Indian Markets</option>
+                <option className="bg-slate-900" value="Other">Other Markets</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+              <Hash size={12} className="text-slate-500 ml-2" />
+              <select value={selectedAsset} onChange={(e) => setSelectedAsset(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
+                {(availableAssets || []).map(a => <option className="bg-slate-900" key={a} value={a}>{a === 'All' ? 'Asset: All' : a}</option>)}
+              </select>
+            </div>
+            {datePreset === 'All' && (
+              <>
+                <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+                  <Filter size={12} className="text-slate-500 ml-2" />
+                  <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
+                    {(availableYears || []).map(y => <option className="bg-slate-900" key={y} value={y}>{y === 'All' ? 'Year: All' : y}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+                  <CalendarDays size={12} className="text-slate-500 ml-2" />
+                  <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
+                    {(availableMonths || []).map(m => <option className="bg-slate-900" key={m} value={m}>{m === 'All' ? 'Month: All' : m}</option>)}
+                  </select>
                 </div>
               </>
             )}
           </div>
-        </header>
+        )}
 
 
         {(!rawTrades || rawTrades.length === 0) && !isParsing ? (
@@ -635,9 +635,7 @@ const App = () => {
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             {activeSection === 'alerts' && (
-               <div className="min-h-[400px] flex items-center justify-center">
-                 <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Alert Intelligence Integration Pending</p>
-               </div>
+               <AlertsView />
              )}
  
              {activeSection === 'journal' && (
@@ -651,8 +649,8 @@ const App = () => {
                  <nav className="flex justify-center md:justify-start gap-4 mb-10 border-b border-slate-800 pb-4 overflow-x-auto scrollbar-hide">
                    {[
                      { id: 'performance', label: 'Performance', icon: Activity },
-                     { id: 'strategies', label: 'Strategies', icon: Target },
-                     { id: 'audit', label: 'Audit', icon: ShieldCheck }
+                     { id: 'audit', label: 'Audit', icon: ShieldCheck },
+                     { id: 'strategies', label: 'Strategies', icon: Target }
                    ].map((t) => (
                      <button
                        key={t.id}

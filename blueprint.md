@@ -7,16 +7,23 @@ A comprehensive institutional-grade trading performance dashboard designed for p
 
 ### Tech Stack
 - **Framework**: React 19 (Vite)
-- **Styling**: Tailwind CSS with custom glassmorphism effects
-- **Animations**: Framer Motion for smooth, premium transitions
-- **Visualization**: Recharts for high-performance financial charting
-- **Icons**: Lucide React for consistent, interactive iconography
+- **Database (Hybrid)**: 
+  - **Firebase**: Native cloud storage for Audit logs, Daily Snapshots, and User Journaling.
+  - **Supabase**: Real-time alert management and persistence (linked to external automation/bots).
+- **Real-time Engine**: Binance WebSocket Gateway using **RxJS** for reactive price streams.
+- **Styling**: Tailwind CSS with custom glassmorphism effects.
+- **Animations**: Framer Motion for smooth, premium transitions.
+- **Visualization**: 
+  - **Recharts**: Performance analytics and behavioral distribution maps.
+  - **Lightweight Charts**: Interactive financial charting with price line overlays.
+- **Icons**: Lucide React for consistent, interactive iconography.
 
 ### Design System
 - **Theme**: Ultra-dark professional aesthetic using `#020617` (Slate 950) as base.
 - **Aesthetics**: Heavy use of glassmorphism (`glass-panel`), glowing light rays, and floating particles for a premium "Institutional Terminal" feel.
 - **Typography**: Sans-serif font system with high contrast for monospaced financial data.
 - **Interactivity**: Micro-animations on hover for cards, active tab pills, and data points.
+- **Layout**: "Non-Scroll" Dashboard design with dynamic viewport height calculations (`calc(100vh - 260px)`) to lock high-density data views to the user's monitor.
 
 ### Feature Set
 - **Metrics Dashboard**: Net P&L (INR formatting), Win Rate, Profit Factor, Avg Win/Loss, Expectancy.
@@ -25,26 +32,45 @@ A comprehensive institutional-grade trading performance dashboard designed for p
 - **Sizing Matrix**: Average lot size analysis by market/symbol.
 - **Strategy Analysis**: Performance breakdown by setup/strategy.
 - **CSV Integration**: Flexible parser for importing external trading journals.
+- **Alert Intelligence**:
+  - Real-time price tracking for BTC, ETH, and GOLD.
+  - Drag-and-drop price alert creation on the chart.
+  - Browser Notification and Audio chime triggers.
+  - Hybrid persistence: Alerts sync to Supabase for multi-device/bot visibility.
 
 ---
 
-## Plan: Full-Scale Triple-Table Journal Integration
+## Completed: Alerts Intelligence Integration
+
+### Objective
+Migrate and optimize the standalone trading alert logic into the Trade Audit dashboard while maintaining a hybrid database connection to Supabase.
+
+### Accomplishments
+1. **Hybrid Infrastructure**: Configured dual-DB environment (Firebase + Supabase).
+2. **WebSocket Porting**: Optimized Binance WebSocket service for Trade Audit's state management.
+3. **Interactive Charting**:
+   - Ported `Chart.jsx` with full Support for Lightweight Charts **v5 API**.
+   - Integrated `autoSize` and `ResizeObserver` for flexible dashboard layouts.
+   - Fixed "Object is disposed" hardware acceleration issues on hot-reload.
+4. **Performance Tuning**:
+   - Implemented `React.memo` across high-frequency components.
+   - Moved price-tick state to `useRef` to eliminate re-render storms during high volatility.
+5. **Geo-Routing**: Added Global/US server toggle to bypass regional Binance API restrictions.
+6. **Smart Alerting**:
+   - High-fidelity audio triggers (Mixkit SFX).
+   - Desktop system notifications.
+   - Persistence sync to Supabase for cross-platform availability.
+
+## Active Plan: Full-Scale Triple-Table Journal Integration
 
 ### Objective
 Expand the application into a comprehensive trading workstation by migrating and synchronizing three core data collections from Notion into a unified Firebase ecosystem.
 
-### Data Architecture (Cloud)
-1. **`trades`**: Individual execution data, P&L, strategy, and asset tracking.
-2. **`dailySnapshots`**: Higher-level daily performance reflections, psychology scores, and chart imagery.
-3. **`notes`**: Searchable repository for trading rules, setup checklists, and general reflections.
-
 ### Actionable Steps
 1. **Infrastructure**: Initialized `src/firebase.js` with active project credentials.
-2. **Triple-Sync Utility**: Build a migration tool in the UI that handles 3 simultaneous CSV uploads (one for each Notion table).
-3. **Multi-Collection Schema**: Define normalized data models for Firestore to ensure seamless cross-referencing (e.g., linking a trade to its daily snapshot).
-4. **Journal Tab (CRUD)**:
+2. **Journal Tab (CRUD)**:
    - **Trade Log**: Enhanced table with inline edit/delete.
    - **Performance Reflection**: Daily snapshot grid with image lightboxes.
    - **Trading Notebook**: Markdown-supported note-taking interface.
-5. **Analytics Integration**: Update charts to consume live data from Firestore, enabling real-time performance tracking.
-6. **Hosting**: Deploy the final full-scale application to Firebase Hosting.
+3. **Analytics Integration**: Update charts to consume live data from Firestore, enabling real-time performance tracking.
+4. **Hosting**: Deploy the final full-scale application to Firebase Hosting.
