@@ -2,11 +2,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Institutional Security Rule: Owner-Only Access
-    // Replace 'YOUR_EMAIL@gmail.com' with your actual Google email
     match /{document=**} {
-      allow read, write: if request.auth != null && 
-                          (request.auth.token.email == "YOUR_EMAIL@gmail.com" || 
-                           request.auth.token.email == "saikrish150@gmail.com"); 
+      // Allow any logged-in user to READ (prevents app crashes)
+      // but only the MASTER can WRITE/DELETE
+      allow read: if request.auth != null;
+      
+      allow write: if request.auth != null && 
+                     (request.auth.token.email == "gsaikrishna150@gmail.com" || 
+                      request.auth.token.email == "YOUR_ACTUAL_EMAIL@gmail.com"); 
     }
   }
 }

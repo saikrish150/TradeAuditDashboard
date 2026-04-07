@@ -7,7 +7,16 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        'journal': {
+          'red': '#FF3B3B',
+          'gold': '#D4AF37',
+          'bg': '#0B0B0B',
+          'card': '#121212',
+        }
+      }
+    },
   },
   plugins: [
     tailwindcssAnimate

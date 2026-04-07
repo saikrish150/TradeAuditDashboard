@@ -29,6 +29,8 @@ import MigrationHub from './components/MigrationHub';
 import { AlertsView } from './components/AlertsView';
 import { firebaseService } from './services/firebaseService';
 import AuthShield from './components/AuthShield';
+import TradingJournal from './components/Journal/TradingJournal';
+import { exchangeRateService } from './services/exchangeRateService';
 import { MONTH_MAP, COLORS, cleanCurrency, formatCurrency, parseCSV, getMarketCategory } from './utils';
 
 const LightRaysAndParticles = () => {
@@ -179,7 +181,7 @@ const TradeArchiveCarousel = ({ images }) => {
 
 
 const App = () => {
-  const [activeSection, setActiveSection] = useState('audit');
+  const [activeSection, setActiveSection] = useState('journal');
   const [activeTab, setActiveTab] = useState('performance');
   const [rawTrades, setRawTrades] = useState([]);
 
@@ -205,6 +207,7 @@ const App = () => {
   const [isParsing, setIsParsing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [liveRate, setLiveRate] = useState(83.5);
 
   useEffect(() => {
     // Check if user needs to migrate
@@ -227,6 +230,12 @@ const App = () => {
         const yearsFound = Array.from(new Set(trades.map(t => t.year))).sort();
         setAvailableYears(['All', ...yearsFound]);
       }
+    });
+
+    // Fetch live Forex rate
+    exchangeRateService.getUsdToInrRate().then(rate => {
+      setLiveRate(rate);
+      console.log(`[Forex] Live USD/INR Rate Synced: ${rate}`);
     });
 
     return () => unsubscribe();
@@ -323,37 +332,43 @@ const App = () => {
       if (cumulativePL > peakEquity) peakEquity = cumulativePL;
       const dd = cumulativePL - peakEquity; if (dd < maxDDValue) maxDDValue = dd;
 
+      // Smart Outcome Detection (Raw String vs P&L)
+      const rawOutcome = String(t.isWin || 'Neutral').toUpperCase();
+      const isActuallyWin = ['WIN', 'W'].includes(rawOutcome) || (t.pl > 0 && !['LOSS', 'L', 'NEUTRAL', 'NETURAL', 'BE', 'BREAK EVEN'].includes(rawOutcome));
+      const isActuallyLoss = ['LOSS', 'L'].includes(rawOutcome) || (t.pl < 0 && !['WIN', 'W', 'NEUTRAL', 'NETURAL', 'BE', 'BREAK EVEN', 'RUNNING'].includes(rawOutcome));
+      const isNeutral = ['NEUTRAL', 'NETURAL', 'BE', 'BREAK EVEN'].includes(rawOutcome);
+
       // Smart Multi-Setup Analysis
-      const setupsToProcess = (t.setups && t.setups.length > 0) ? t.setups : [t.setup || 'Misc'];
+      const setupsToProcess = (t.setups && t.setups.length > 0) ? t.setups : [t.setup || t.strategy || 'Misc'];
       
       setupsToProcess.forEach(sName => {
         const setupKey = String(sName).trim();
         if (!setupAnalysisMap[setupKey]) setupAnalysisMap[setupKey] = { pl: 0, wins: 0, total: 0, winSum: 0, lossSum: 0 };
         setupAnalysisMap[setupKey].pl += t.pl; 
         setupAnalysisMap[setupKey].total += 1;
-        if (t.pl > 0) { 
+        if (isActuallyWin) { 
           setupAnalysisMap[setupKey].wins += 1; 
           setupAnalysisMap[setupKey].winSum += t.pl; 
-        } else { 
+        } else if (isActuallyLoss) { 
           setupAnalysisMap[setupKey].lossSum += Math.abs(t.pl); 
         }
       });
 
-      const eKey = t.emotion || 'Neutral';
+      const eKey = t.emotions || t.emotion || 'Unspecified';
       if (!emotionalPnlMap[eKey]) emotionalPnlMap[eKey] = { pl: 0, count: 0 };
       emotionalPnlMap[eKey].pl += t.pl; emotionalPnlMap[eKey].count += 1;
 
-      const qKey = t.quality || 'Unrated';
+      const qKey = t.tradeQuality || t.quality || 'Unspecified';
       if (!qualityPnlMap[qKey]) qualityPnlMap[qKey] = { pl: 0, count: 0 };
       qualityPnlMap[qKey].pl += t.pl; qualityPnlMap[qKey].count += 1;
 
-      const sKey = t.status || t.quality || 'Unrated';
+      const sKey = t.tradeStatus || t.status || 'Unspecified';
       if (!statusPnlMap[sKey]) statusPnlMap[sKey] = { pl: 0, count: 0 };
       statusPnlMap[sKey].pl += t.pl; statusPnlMap[sKey].count += 1;
 
       const symKey = t.market || 'Unknown';
       if (!symbolSizingMap[symKey]) symbolSizingMap[symKey] = { totalLots: 0, count: 0 };
-      symbolSizingMap[symKey].totalLots += t.lots; symbolSizingMap[symKey].count += 1;
+      symbolSizingMap[symKey].totalLots += (t.lots || t.positionSize || 0); symbolSizingMap[symKey].count += 1;
 
       const mIdx = MONTH_MAP[t.month];
       const checkDate = new Date(Date.UTC(parseInt(t.year), mIdx, t.dayNum, 12, 0, 0));
@@ -361,16 +376,16 @@ const App = () => {
 
       weekDayStatsRaw[dayOfWeek].total += 1;
       weekDayStatsRaw[dayOfWeek].pl += t.pl;
-      if (t.pl > 0) weekDayStatsRaw[dayOfWeek].wins += 1;
+      if (isActuallyWin) weekDayStatsRaw[dayOfWeek].wins += 1;
 
-      if (t.pl > 0) {
+      if (isActuallyWin) {
         winCount++; winTotal += t.pl; currentLosingStreak = 0; currentWinningStreak++;
         if (currentWinningStreak > maxWinningStreak) maxWinningStreak = currentWinningStreak;
-      } else if (t.pl < 0) {
-        lossTotal += Math.abs(t.pl); const reasonKey = t.reason || "Unspecified Error";
+      } else if (isActuallyLoss) {
+        lossTotal += Math.abs(t.pl); const reasonKey = t.lossReason || t.lossReasons?.[0] || t.reason || "Unspecified Error";
         if (!errorMap[reasonKey]) errorMap[reasonKey] = { impact: 0, count: 0 };
         errorMap[reasonKey].impact += t.pl; errorMap[reasonKey].count += 1;
-        if (t.emotion.toLowerCase().includes('revenge')) revengeLoss += Math.abs(t.pl);
+        if (String(t.emotions || t.emotion).toLowerCase().includes('revenge')) revengeLoss += Math.abs(t.pl);
         currentWinningStreak = 0; currentLosingStreak++;
         if (currentLosingStreak > maxLosingStreak) maxLosingStreak = currentLosingStreak;
       }
@@ -393,10 +408,10 @@ const App = () => {
           date: t.fullDate, 
           text: t.learning, 
           pl: t.pl,
-          screenshots: t.screenshots || [t.screenshotUrl].filter(Boolean)
+          screenshots: t.screenshots || [t.screenshotUrl || t.chartScreenshotUrl].filter(Boolean)
         });
       }
-      if (t.quality.toLowerCase().includes('a') || t.quality.toLowerCase().includes('b')) ruleAlignedCount++;
+      if (String(t.tradeQuality || t.quality).toLowerCase().includes('a') || String(t.tradeQuality || t.quality).toLowerCase().includes('b')) ruleAlignedCount++;
     });
 
     const activeMonthsArray = Array.from(activeMonthsSet).sort((a, b) => new Date(Date.parse(`1 ${a}`)) - new Date(Date.parse(`1 ${b}`)));
@@ -549,7 +564,7 @@ const App = () => {
 
   return (
     <AuthShield>
-      <div className="min-h-screen bg-[#020617] text-slate-100 font-sans p-4 md:p-8 pb-24 md:pb-8 relative">
+      <div className={`min-h-screen ${activeSection === 'journal' ? 'bg-[#0B0B0B]' : 'bg-[#020617]'} text-slate-100 font-sans p-4 md:p-8 pb-24 md:pb-8 relative transition-colors duration-1000`}>
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuOCIgbnVtT2N0YXZlcz0iMSIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNub2lzZSkiIG9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==')]"></div>
       <LightRaysAndParticles />
       <div className="max-w-7xl mx-auto relative">
@@ -757,9 +772,7 @@ const App = () => {
              )}
  
              {activeSection === 'journal' && (
-               <div className="min-h-[400px] flex items-center justify-center">
-                 <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Manual Entry & Journaling Hub Pending</p>
-               </div>
+               <TradingJournal liveRate={liveRate} />
              )}
  
              {activeSection === 'audit' && (

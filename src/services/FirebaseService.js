@@ -1,6 +1,6 @@
 import { 
   collection, query, orderBy, onSnapshot, getDocs, 
-  doc, updateDoc, deleteDoc, writeBatch 
+  doc, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -38,26 +38,18 @@ export const firebaseService = {
         // Map to the internal format used by App.jsx analytics
         return {
           id: doc.id,
-          pl: parseFloat(data.pl) || 0,
-          strategy: data.strategy || 'None',
-          setup: data.strategy || 'Uncategorized', 
-          setups: data.setups || [], 
-          emotion: data.emotions || 'Normal',
-          reason: data.lossReason || '',
-          learning: data.learning || '',
-          quality: data.tradeQuality || 'Unrated',
-          status: data.tradeStatus || 'Closed',
-          direction: data.direction || 'N/A',
-          lots: parseFloat(data.positionSize) || 0,
-          market: data.market || 'Unknown',
-          category: data.category || 'Other',
+          ...data,
+          // Only normalize the date for UI helper fields 
           dayNum: jsDate.getDate(),
           fullDate: jsDate.toDateString(),
           jsDate: jsDate,
           month: jsDate.toLocaleString('default', { month: 'long' }),
           year: jsDate.getFullYear().toString(),
           screenshotUrl: screenshotsArr[0] || null, // Fallback for single use
-          screenshots: screenshotsArr // Full array for gallery/carousel
+          screenshots: screenshotsArr, // Full array for gallery/carousel
+          // Ensure fields from manual entry and migration are present without overrides
+          pl: parseFloat(data.pl) || 0,
+          lots: parseFloat(data.positionSize || data.lots) || 0
         };
       });
       onData(trades);
@@ -111,5 +103,125 @@ export const firebaseService = {
       batch.delete(ref);
     });
     return await batch.commit();
+  },
+
+  /**
+   * Add a new trade
+   */
+  async addTrade(tradeData) {
+    return await addDoc(collection(db, 'trades'), {
+      ...tradeData,
+      date: tradeData.date || serverTimestamp(),
+      createdAt: serverTimestamp()
+    });
+  },
+
+  /**
+   * Listen to daily snapshots
+   */
+  subscribeToSnapshots(onData) {
+    const q = query(collection(db, 'dailySnapshots'), orderBy('date', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let jsDate = data.date?.toDate ? data.date.toDate() : new Date(data.date || Date.now());
+        return { 
+          id: doc.id, 
+          ...data,
+          jsDate: jsDate,
+          date: jsDate.toDateString() 
+        };
+      });
+      onData(items);
+    });
+  },
+
+  /**
+   * Add a daily snapshot
+   */
+  async addSnapshot(data) {
+    return await addDoc(collection(db, 'dailySnapshots'), {
+      ...data,
+      date: data.date || serverTimestamp(),
+      createdAt: serverTimestamp()
+    });
+  },
+
+  /**
+   * Listen to notes
+   */
+  subscribeToNotes(onData) {
+    const q = query(collection(db, 'notes'), orderBy('date', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let jsDate = data.date?.toDate ? data.date.toDate() : new Date(data.date || Date.now());
+        return { 
+          id: doc.id, 
+          ...data,
+          jsDate: jsDate,
+          date: jsDate.toDateString()
+        };
+      });
+      onData(items);
+    });
+  },
+
+  /**
+   * Add a note
+   */
+  async addNote(data) {
+    return await addDoc(collection(db, 'notes'), {
+      ...data,
+      date: data.date || serverTimestamp(),
+      createdAt: serverTimestamp()
+    });
+  },
+
+  /**
+   * Listen to goals
+   */
+  subscribeToGoals(onData) {
+    const q = query(collection(db, 'goals'), orderBy('startDate', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Goals use startDate and endDate strings (YYYY-MM-DD from input) 
+        // but Firestore might store them as Timestamps if they were server-side generated.
+        // We'll normalize them to strings for the UI.
+        const normalize = (val) => val?.toDate ? val.toDate().toISOString().split('T')[0] : val;
+        return { 
+          id: doc.id, 
+          ...data,
+          startDate: normalize(data.startDate),
+          endDate: normalize(data.endDate)
+        };
+      });
+      onData(items);
+    });
+  },
+
+  /**
+   * Create or update a goal
+   */
+  async updateGoal(id, data) {
+    if (id) {
+      const ref = doc(db, 'goals', id);
+      return await updateDoc(ref, data);
+    } else {
+      return await addDoc(collection(db, 'goals'), {
+        ...data,
+        createdAt: serverTimestamp()
+      });
+    }
+  },
+
+  /**
+   * Delete a trade record
+   */
+  async deleteTrade(id) {
+    if (!id) return;
+    const itemRef = doc(db, 'trades', id);
+    return await deleteDoc(itemRef);
   }
 };
