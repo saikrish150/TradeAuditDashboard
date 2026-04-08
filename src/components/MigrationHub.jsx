@@ -10,6 +10,8 @@ import { collection, addDoc, writeBatch, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { migrationService } from '../services/migrationService';
+import { firebaseService } from '../services/firebaseService';
+import { RotateCw, Wrench, ShieldAlert } from 'lucide-react';
 
 const MigrationHub = ({ onComplete, onCancel }) => {
   const [files, setFiles] = useState({
@@ -22,6 +24,8 @@ const MigrationHub = ({ onComplete, onCancel }) => {
   const [status, setStatus] = useState('idle'); // idle, processing, complete, error
   const [progress, setProgress] = useState({ total: 0, current: 0, message: '' });
   const [error, setError] = useState(null);
+  const [isRepairing, setIsRepairing] = useState(false);
+  const [repairComplete, setRepairComplete] = useState(false);
 
   const handleFileChange = (type, e) => {
     const file = e.target.files[0];
@@ -154,6 +158,27 @@ const MigrationHub = ({ onComplete, onCancel }) => {
     }
   };
 
+  const handleDataRepair = async () => {
+    setIsRepairing(true);
+    setRepairComplete(false);
+    setError(null);
+    try {
+      await firebaseService.repairAllTradeOutcomes((current, total) => {
+        const percent = Math.round((current / total) * 100);
+        setProgress({ total, current, message: `Analyzing & Repairing Row ${current}/${total} (${percent}%)...` });
+      });
+      setRepairComplete(true);
+      setTimeout(() => {
+        setIsRepairing(false);
+        setRepairComplete(false);
+      }, 3000);
+    } catch (err) {
+      console.error(err);
+      setError("Repair failed: " + err.message);
+      setIsRepairing(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
       <motion.div 
@@ -243,15 +268,54 @@ const MigrationHub = ({ onComplete, onCancel }) => {
                 >
                   Skip Migration
                 </button>
-                <button 
-                  onClick={startMigration}
-                  disabled={!files.trades || !files.snapshots || !files.notes}
-                  className="group flex items-center gap-3 px-8 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-white/10 disabled:text-white/20 text-white rounded-2xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/20"
-                >
-                  Initialize Cloud Sync
-                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                </button>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={handleDataRepair}
+                    disabled={isRepairing}
+                    className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all ${
+                      repairComplete 
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50' 
+                      : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    {isRepairing ? (
+                      <>
+                        <RotateCw size={14} className="animate-spin" />
+                        Repairing...
+                      </>
+                    ) : repairComplete ? (
+                      <>
+                        <ShieldCheck size={14} />
+                        Sync Fixed!
+                      </>
+                    ) : (
+                      <>
+                        <Wrench size={14} />
+                        Sync W/L Logic
+                      </>
+                    )}
+                  </button>
+                  <button 
+                    onClick={startMigration}
+                    disabled={!files.trades || !files.snapshots || !files.notes || isRepairing}
+                    className="group flex items-center gap-3 px-8 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-white/10 disabled:text-white/20 text-white rounded-2xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/20"
+                  >
+                    Initialize Cloud Sync
+                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
               </div>
+
+              {/* Repair Progress Info */}
+              {isRepairing && (
+                <div className="p-4 bg-journal-gold/10 border border-journal-gold/20 rounded-2xl flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full border-2 border-journal-gold/30 border-t-journal-gold animate-spin flex-shrink-0" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-journal-gold tracking-[0.2em]">Surgical Data Repair in Progress</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">{progress.message}</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -772,7 +772,10 @@ const App = () => {
              )}
  
              {activeSection === 'journal' && (
-               <TradingJournal liveRate={liveRate} />
+               <TradingJournal 
+                 liveRate={liveRate} 
+                 onOpenMigration={() => setShowMigrationHub(true)}
+               />
              )}
  
              {activeSection === 'audit' && (

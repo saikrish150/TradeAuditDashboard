@@ -148,6 +148,22 @@ export const firebaseService = {
   },
 
   /**
+   * Update a daily snapshot
+   */
+  async updateSnapshot(id, data) {
+    const itemRef = doc(db, 'dailySnapshots', id);
+    return await updateDoc(itemRef, data);
+  },
+
+  /**
+   * Delete a daily snapshot
+   */
+  async deleteSnapshot(id) {
+    const itemRef = doc(db, 'dailySnapshots', id);
+    return await deleteDoc(itemRef);
+  },
+
+  /**
    * Listen to notes
    */
   subscribeToNotes(onData) {
@@ -176,6 +192,22 @@ export const firebaseService = {
       date: data.date || serverTimestamp(),
       createdAt: serverTimestamp()
     });
+  },
+
+  /**
+   * Update a note
+   */
+  async updateNote(id, data) {
+    const itemRef = doc(db, 'notes', id);
+    return await updateDoc(itemRef, data);
+  },
+
+  /**
+   * Delete a note
+   */
+  async deleteNote(id) {
+    const itemRef = doc(db, 'notes', id);
+    return await deleteDoc(itemRef);
   },
 
   /**
@@ -217,11 +249,36 @@ export const firebaseService = {
   },
 
   /**
-   * Delete a trade record
+   * Data Integrity Repair: Synchronize all isWin values with actual P&L
+   * Force all outcomes to Booleans (true/false) based on P&L performance.
    */
-  async deleteTrade(id) {
-    if (!id) return;
-    const itemRef = doc(db, 'trades', id);
-    return await deleteDoc(itemRef);
+  async repairAllTradeOutcomes(onProgress) {
+    const q = query(collection(db, 'trades'));
+    const snapshot = await getDocs(q);
+    const total = snapshot.docs.length;
+    let updateCount = 0;
+    
+    // Chunk documents into batches of 400 (Stay safe under the 500 limit)
+    const docs = snapshot.docs;
+    for (let i = 0; i < docs.length; i += 400) {
+      const batch = writeBatch(db);
+      const chunk = docs.slice(i, i + 400);
+      
+      chunk.forEach(tradeDoc => {
+        const data = tradeDoc.data();
+        const plVal = parseFloat(data.pl) || 0;
+        const expectedIsWin = plVal >= 0;
+        
+        // Only update if currently mismatched or not a boolean
+        if (data.isWin !== expectedIsWin) {
+          batch.update(tradeDoc.ref, { isWin: expectedIsWin });
+          updateCount++;
+        }
+      });
+      
+      await batch.commit();
+      if (onProgress) onProgress(Math.min(i + 400, total), total);
+    }
+    return { updateCount, total };
   }
 };

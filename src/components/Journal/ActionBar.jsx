@@ -1,14 +1,15 @@
 import React from 'react';
-import { Plus, Camera, FileText, Database } from 'lucide-react';
+import { Plus, Camera, FileText, Database, DatabaseZap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenInspector }) => {
+const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenInspector, onOpenMigration }) => {
 
   const buttons = [
     { id: 'trade', label: 'Add Trade', icon: Plus, action: onAddTrade, color: 'journal-red' },
     { id: 'snapshot', label: 'Add Snapshot', icon: Camera, action: onAddSnapshot, color: 'journal-gold' },
     { id: 'note', label: 'Add Notes', icon: FileText, action: onAddNote, color: 'white' },
     { id: 'inspector', label: 'Raw Data', icon: Database, action: onOpenInspector, color: 'cyan' },
+    { id: 'migration', label: 'Cloud Sync', icon: DatabaseZap, action: onOpenMigration, color: 'indigo' },
   ];
 
   return (
@@ -27,6 +28,7 @@ const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenInspector }) =>
               ${btn.color === 'journal-red' ? 'text-journal-red hover:red-glow' : ''}
               ${btn.color === 'journal-gold' ? 'text-journal-gold hover:gold-glow' : ''}
               ${btn.color === 'cyan' ? 'text-cyan-400 hover:shadow-[0_0_20px_rgba(34,211,238,0.2)]' : ''}
+              ${btn.color === 'indigo' ? 'text-indigo-400 hover:shadow-[0_0_20px_rgba(129,140,248,0.2)]' : ''}
               ${btn.color === 'white' ? 'text-slate-100 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]' : ''}
             `}
           >

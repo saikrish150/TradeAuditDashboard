@@ -11,7 +11,8 @@ import {
   DIRECTION_OPTIONS,
   POSITION_TYPE_OPTIONS,
   TRADE_MODE_OPTIONS,
-  TRADE_QUALITY_OPTIONS
+  TRADE_QUALITY_OPTIONS,
+  COMPLIANCE_OPTIONS
 } from '../../constants/journalOptions';
 
 const ModalWrapper = ({ isOpen, onClose, title, children }) => {
@@ -118,13 +119,13 @@ const SingleSelect = ({ label, options, value, onChange }) => {
 
   return (
     <div className="flex flex-col gap-2 relative" ref={selectRef}>
-      <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{label}</label>
+      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{label}</label>
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className="h-[44px] bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-2 flex items-center gap-2 cursor-pointer hover:border-journal-gold/30 transition-all font-bold text-xs text-white"
       >
         {value || <span className="text-slate-600 italic">Select...</span>}
-        <ChevronDown size={14} className={`ml-auto text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={14} className={`ml-auto text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </div>
       
       <AnimatePresence>
@@ -179,19 +180,51 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
   });
 
   useEffect(() => {
+    const val = parseFloat(formData.pl);
+    if (!isNaN(val)) {
+      setFormData(prev => ({ ...prev, isWin: val >= 0 ? 'WIN' : 'LOSS' }));
+    }
+  }, [formData.pl]);
+
+  useEffect(() => {
     if (editingTrade && isOpen) {
+      // Smart mapping helper to handle aliased data from migration
+      const getSmartVal = (key, aliases = []) => {
+        if (editingTrade[key] !== undefined && editingTrade[key] !== '') return editingTrade[key];
+        for (const alias of aliases) {
+          if (editingTrade[alias] !== undefined && editingTrade[alias] !== '') return editingTrade[alias];
+        }
+        if (editingTrade.originalData) {
+          if (editingTrade.originalData[key] !== undefined && editingTrade.originalData[key] !== '') return editingTrade.originalData[key];
+          for (const alias of aliases) {
+            if (editingTrade.originalData[alias] !== undefined && editingTrade.originalData[alias] !== '') return editingTrade.originalData[alias];
+          }
+        }
+        return '';
+      };
+
       setFormData({
-        ...editingTrade,
-        // Ensure date is in correct format for datetime-local
         date: editingTrade.jsDate ? new Date(editingTrade.jsDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
-        screenshot: null, // Files cannot be pre-filled
+        market: getSmartVal('market', ['Market']),
+        direction: (getSmartVal('direction', ['Direction']) || 'LONG').toUpperCase().includes('LONG') ? 'LONG' : (getSmartVal('direction').toUpperCase().includes('SHORT') ? 'SHORT' : 'OBSERVE'),
+        isWin: (editingTrade.isWin === true || String(getSmartVal('isWin', ['W/L'])).toUpperCase() === 'WIN') ? 'WIN' : 'LOSS',
         pl: editingTrade.pl?.toString() || '',
-        positionSize: editingTrade.positionSize || editingTrade.lots || '',
-        setups: editingTrade.setups || [],
-        lossReasons: editingTrade.lossReasons || []
+        rr: getSmartVal('rr', ['Taken RR', 'RR']),
+        screenshot: null,
+        reason: getSmartVal('reason', ['reasonForTrade', 'Reson For Trade', 'logic']),
+        learning: getSmartVal('learning', ['Learning ']),
+        setups: Array.isArray(editingTrade.setups) ? editingTrade.setups : [],
+        lossReasons: Array.isArray(editingTrade.lossReasons) ? editingTrade.lossReasons : (getSmartVal('lossReason', ['lossReasons', 'LOSS REASON ']) ? [getSmartVal('lossReason', ['lossReasons', 'LOSS REASON '])] : []),
+        emotions: getSmartVal('emotions', ['Emotions', 'emotion']) || 'Calm',
+        positionSize: getSmartVal('positionSize', ['Position Size(Lots)', 'lots']),
+        tradeQuality: getSmartVal('tradeQuality', ['Trade Quality', 'quality']) || 'A',
+        tradeStatus: getSmartVal('tradeStatus', ['Trade Status', 'status']) || 'Neutral',
+        positionType: getSmartVal('positionType', ['Position Type']) || 'Intraday',
+        tradeMode: getSmartVal('tradeMode', ['Trade mode (Buying/Selling)']) || 'Buying',
+        chartScreenshotUrl: getSmartVal('chartScreenshotUrl', ['screenshotUrl', 'chartScreenshotUrl', 'Chart Screenshot'])
       });
     } else if (!editingTrade && isOpen) {
-      // Reset form for new entry
+      // Reset form for new entry - ensuring no field is undefined
       setFormData({
         date: new Date().toISOString().slice(0, 16),
         market: '',
@@ -204,12 +237,13 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
         learning: '',
         setups: [],
         lossReasons: [],
-        emotions: 'Clam',
+        emotions: 'Calm',
         positionSize: '',
-        tradeQuality: 'A++',
-        tradeStatus: 'Netural',
+        tradeQuality: 'A',
+        tradeStatus: 'Neutral',
         positionType: 'Intraday',
-        tradeMode: 'Buying'
+        tradeMode: 'Buying',
+        chartScreenshotUrl: ''
       });
     }
   }, [editingTrade, isOpen]);
@@ -240,7 +274,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Execution Date & Time */}
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Execution Date & Time</label>
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Execution Date & Time</label>
             <input 
               type="datetime-local" 
               value={formData.date}
@@ -258,7 +292,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
 
           {/* Direction Radio */}
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Direction</label>
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Direction</label>
             <div className="flex gap-2">
               {DIRECTION_OPTIONS.map(d => (
                 <button
@@ -278,32 +312,11 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
             </div>
           </div>
 
-          {/* isWin Options */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Outcome Status</label>
-            <div className="flex flex-wrap gap-2">
-              {OUTCOME_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setFormData({...formData, isWin: opt.value})}
-                  className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                    formData.isWin === opt.value 
-                    ? (opt.value === 'WIN' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 
-                       opt.value === 'LOSS' ? 'bg-red-500/10 border-journal-red text-journal-red' : 
-                       'bg-slate-500/10 border-slate-400 text-slate-300')
-                    : 'bg-slate-950/30 border-slate-800 text-slate-600 hover:border-slate-700'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* P&L Input */}
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Net P&L (INR)</label>
+              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Net P&L (INR)</label>
               {formData.market !== 'NIFTY' && (
                 <div className="flex items-center gap-2">
                   {showRateInput ? (
@@ -337,7 +350,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
               )}
             </div>
             <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                 {isUsd ? '$' : <IndianRupee size={14} />}
               </div>
               <input 
@@ -349,30 +362,24 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
               />
             </div>
           </div>
-
-          {/* Taken RR */}
-          <div className="flex flex-col gap-2">
-             <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Risk/Reward (RR)</label>
-             <input 
-                type="text" 
-                value={formData.rr}
-                onChange={e => setFormData({...formData, rr: e.target.value})}
-                placeholder="e.g. 1:2.5"
-                className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50"
-             />
-          </div>
         </div>
 
         {/* Screenshot Upload */}
         <div className="flex flex-col gap-2">
-           <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Chart Analysis Screenshot</label>
+           <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Chart Analysis Screenshot</label>
            <div className="relative h-48 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center gap-3 bg-slate-950/30 hover:bg-slate-950/50 transition-all cursor-pointer overflow-hidden">
-              {formData.screenshot ? (
+              {(formData.screenshot || formData.chartScreenshotUrl) ? (
                 <>
-                  <img src={URL.createObjectURL(formData.screenshot)} className="w-full h-full object-contain" />
+                  <img 
+                    src={formData.screenshot ? URL.createObjectURL(formData.screenshot) : formData.chartScreenshotUrl} 
+                    className="w-full h-full object-contain" 
+                  />
                   <button 
-                    onClick={(e) => { e.stopPropagation(); setFormData({...formData, screenshot: null}); }}
-                    className="absolute top-2 right-2 p-2 bg-journal-red/80 rounded-full text-white"
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setFormData({...formData, screenshot: null, chartScreenshotUrl: ''}); 
+                    }}
+                    className="absolute top-2 right-2 p-2 bg-journal-red/80 rounded-full text-white hover:bg-red-600 transition-colors"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -387,10 +394,11 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
            </div>
         </div>
 
+
         {/* Text Areas */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex flex-col gap-2">
-             <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Reason For Trade</label>
+             <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Reason For Trade</label>
              <textarea 
                value={formData.reason}
                onChange={e => setFormData({...formData, reason: e.target.value})}
@@ -399,7 +407,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
              />
           </div>
           <div className="flex flex-col gap-2">
-             <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Key Learning / Reflection</label>
+             <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Key Learning / Reflection</label>
              <textarea 
                value={formData.learning}
                onChange={e => setFormData({...formData, learning: e.target.value})}
@@ -409,9 +417,9 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
           </div>
         </div>
 
-        {/* Multi Selects */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           <div className={formData.isWin === 'WIN' ? 'md:col-span-2' : ''}>
+        {/* Multi Selects & Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+           <div className={parseFloat(formData.pl) > 0 ? "md:col-span-2" : "md:col-span-3"}>
              <MultiSelect 
                label="Aligned Setups" 
                options={SETUP_OPTIONS}
@@ -420,20 +428,34 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
              />
            </div>
            
-           {formData.isWin !== 'WIN' && (
-             <MultiSelect 
-               label="Loss Reasons" 
-               options={LOSS_REASON_OPTIONS}
-               selected={formData.lossReasons}
-               onChange={val => setFormData({...formData, lossReasons: val})}
-             />
+           {parseFloat(formData.pl) > 0 && (
+             <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Taken RR</label>
+                <input 
+                  type="text" 
+                  value={formData.rr}
+                  onChange={e => setFormData({...formData, rr: e.target.value})}
+                  placeholder="1:2.5"
+                  className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 h-[42px]"
+                />
+             </div>
            )}
         </div>
+
+        {/* Conditional Loss Reasons */}
+        {(formData.isWin !== 'WIN' && parseFloat(formData.pl) < 0) && (
+          <MultiSelect 
+            label="Loss Reasons" 
+            options={LOSS_REASON_OPTIONS}
+            selected={formData.lossReasons}
+            onChange={val => setFormData({...formData, lossReasons: val})}
+          />
+        )}
 
         {/* Additional Selects */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
            <div className="flex flex-col gap-2 text-center lg:text-left">
-              <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Position Size</label>
+              <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Position Size</label>
               <input type="number" value={formData.positionSize} onChange={e => setFormData({...formData, positionSize: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none" placeholder="Lots" />
            </div>
            
@@ -459,7 +481,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
            />
 
            <div className="flex flex-col gap-2">
-              <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Type</label>
+              <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Type</label>
               <div className="flex gap-2 h-[40px]">
                 {POSITION_TYPE_OPTIONS.map(q => (
                   <button
@@ -478,7 +500,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
            </div>
 
            <div className="flex flex-col gap-2">
-              <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Trade Mode</label>
+              <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Trade Mode</label>
               <div className="flex gap-2 h-[40px]">
                 {TRADE_MODE_OPTIONS.map(q => (
                   <button
@@ -522,38 +544,101 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
 };
 
 
-export const AddSnapshotModal = ({ isOpen, onClose, onSave }) => {
+export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, existingTags = [] }) => {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().slice(0, 10),
     image: null,
+    imageUrl: '',
     tags: [],
     noOfTrades: '',
     rulesFollowed: true,
     emotionsInControl: true,
-    setupFollowed: true
+    setupFollowed: true,
+    setup: ''
   });
+
+  useEffect(() => {
+    if (editingSnapshot && isOpen) {
+      setFormData({
+        ...editingSnapshot,
+        date: editingSnapshot.date || new Date().toISOString().slice(0, 10),
+        image: null,
+        imageUrl: editingSnapshot.imageUrl || '',
+        tags: editingSnapshot.tags || [],
+        noOfTrades: editingSnapshot.noOfTrades || '',
+        rulesFollowed: !!editingSnapshot.rulesFollowed,
+        emotionsInControl: !!editingSnapshot.emotionsInControl,
+        setupFollowed: !!editingSnapshot.setupFollowed,
+        setup: editingSnapshot.setup || ''
+      });
+    } else if (!editingSnapshot && isOpen) {
+      setFormData({
+        date: new Date().toISOString().slice(0, 10),
+        image: null,
+        imageUrl: '',
+        tags: [],
+        noOfTrades: '',
+        rulesFollowed: true,
+        emotionsInControl: true,
+        setupFollowed: true,
+        setup: ''
+      });
+    }
+  }, [editingSnapshot, isOpen]);
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(formData);
+      onClose();
+    } catch (error) {
+      console.error('Error saving snapshot:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <ModalWrapper isOpen={isOpen} onClose={onClose} title="Log Daily Performance Snapshot">
        <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Snapshot Date</label>
-                <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Snapshot Date</label>
+                  <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
+               </div>
+               <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Execution Volume</label>
+                  <input type="number" placeholder="No. of Trades" value={formData.noOfTrades} onChange={e => setFormData({...formData, noOfTrades: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50" />
+               </div>
              </div>
-             <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Execution Volume</label>
-                <input type="number" placeholder="No. of Trades" value={formData.noOfTrades} onChange={e => setFormData({...formData, noOfTrades: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50" />
-             </div>
-          </div>
+
+             <MultiSelect 
+                label="Metadata Tags" 
+                options={existingTags}
+                selected={formData.tags}
+                onChange={val => setFormData({...formData, tags: val})}
+             />
 
           <div className="flex flex-col gap-2">
              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Daily Chart / Result Image</label>
              <div className="relative h-48 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center gap-3 bg-slate-950/30 hover:bg-slate-950/50 transition-all cursor-pointer overflow-hidden text-center">
-                {formData.image ? (
+                {formData.image || formData.imageUrl ? (
                    <>
-                    <img src={URL.createObjectURL(formData.image)} className="w-full h-full object-contain" />
-                    <button onClick={(e) => { e.stopPropagation(); setFormData({...formData, image: null}); }} className="absolute top-2 right-2 p-2 bg-journal-red/80 rounded-full text-white"><Trash2 size={16} /></button>
+                    <img 
+                      src={formData.image ? URL.createObjectURL(formData.image) : formData.imageUrl} 
+                      className="w-full h-full object-contain" 
+                    />
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setFormData({...formData, image: null, imageUrl: ''}); 
+                      }} 
+                      className="absolute top-2 right-2 p-2 bg-journal-red/80 rounded-full text-white"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                    </>
                 ) : (
                   <>
@@ -568,11 +653,7 @@ export const AddSnapshotModal = ({ isOpen, onClose, onSave }) => {
           <div className="space-y-4">
              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Rule Compliance Checklist</label>
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  { key: 'rulesFollowed', label: 'Rules Followed' },
-                  { key: 'emotionsInControl', label: 'In Control' },
-                  { key: 'setupFollowed', label: 'Setup Disciplined' }
-                ].map(item => (
+                {COMPLIANCE_OPTIONS.map(item => (
                   <label key={item.key} className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${formData[item.key] ? 'bg-journal-gold/5 border-journal-gold/40 text-journal-gold' : 'bg-slate-950/30 border-slate-800 text-slate-500'}`}>
                      <span className="text-[10px] font-black uppercase italic tracking-widest">{item.label}</span>
                      <input type="checkbox" checked={formData[item.key]} onChange={e => setFormData({...formData, [item.key]: e.target.checked})} className="hidden" />
@@ -584,10 +665,13 @@ export const AddSnapshotModal = ({ isOpen, onClose, onSave }) => {
 
           <div className="pt-6 border-t border-white/5">
             <button 
-              onClick={() => { onSave(formData); onClose(); }}
-              className="w-full py-4 bg-journal-gold text-journal-bg rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
+              onClick={handleSave}
+              disabled={isSaving}
+              className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-lg transition-all ${
+                isSaving ? 'bg-slate-700 cursor-wait' : 'bg-journal-gold text-journal-bg hover:scale-[1.02] active:scale-95'
+              }`}
             >
-              Sync Snapshot
+              {isSaving ? 'Syncing Record...' : 'Sync Snapshot'}
             </button>
           </div>
        </div>

@@ -37,3 +37,12 @@ export const POSITION_TYPE_OPTIONS = ['Intraday', 'Swing'];
 export const TRADE_MODE_OPTIONS = ['Buying', 'Selling'];
 
 export const TRADE_QUALITY_OPTIONS = ['A++', 'A', 'Bad'];
+
+export const COMPLIANCE_OPTIONS = [
+  { key: 'rulesFollowed', label: 'All Rules Followed', shortLabel: 'Rules' },
+  { key: 'emotionsInControl', label: 'Emotions in Control', shortLabel: 'EQ' },
+  { key: 'setupFollowed', label: 'Taken only setup', shortLabel: 'System' }
+];
+
+export const SNAPSHOT_TAG_OPTIONS = [
+  'Sideways', 'Trending', 'traping', 'volatile'];

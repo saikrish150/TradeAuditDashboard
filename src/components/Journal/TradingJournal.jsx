@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { firebaseService } from '../../services/firebaseService';
@@ -14,8 +14,9 @@ import MasterTable from './MasterTable';
 import SnapshotSection from './SnapshotSection';
 import CalendarSection from './CalendarSection';
 import { AddTradeModal, AddSnapshotModal, AddNoteModal, DataInspectorModal } from './JournalModals';
+import { SNAPSHOT_TAG_OPTIONS } from '../../constants/journalOptions';
 
-const TradingJournal = ({ liveRate }) => {
+const TradingJournal = ({ liveRate, onOpenMigration }) => {
   const [activeTab, setActiveTab] = useState('trades'); // trades, snapshots, calendar
   const [trades, setTrades] = useState([]);
   const [snapshots, setSnapshots] = useState([]);
@@ -28,6 +29,7 @@ const TradingJournal = ({ liveRate }) => {
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
+  const [editingSnapshot, setEditingSnapshot] = useState(null);
   const [viewerImage, setViewerImage] = useState(null);
 
   useEffect(() => {
@@ -86,6 +88,7 @@ const TradingJournal = ({ liveRate }) => {
       ...data,
       pl: parseFloat(data.pl) || 0,
       chartScreenshotUrl: screenshotUrl,
+      reasonForTrade: data.reason || data.reasonForTrade || '', // Ensure standardized key
       jsDate: new Date(data.date),
       fullDate: new Date(data.date).toDateString(),
       year: new Date(data.date).getFullYear().toString(),
@@ -104,7 +107,7 @@ const TradingJournal = ({ liveRate }) => {
   };
 
   const handleSaveSnapshot = async (data) => {
-    let imageUrl = null;
+    let imageUrl = data.imageUrl || null;
     if (data.image) {
       imageUrl = await uploadImage(data.image, 'daily_snapshots');
     }
@@ -117,7 +120,12 @@ const TradingJournal = ({ liveRate }) => {
     };
     delete snapshotRecord.image;
 
-    await firebaseService.addSnapshot(snapshotRecord);
+    if (editingSnapshot) {
+      await firebaseService.updateSnapshot(editingSnapshot.id, snapshotRecord);
+      setEditingSnapshot(null);
+    } else {
+      await firebaseService.addSnapshot(snapshotRecord);
+    }
   };
 
   const handleSaveNote = async (data) => {
@@ -128,9 +136,20 @@ const TradingJournal = ({ liveRate }) => {
     });
   };
 
+  const existingSnapshotTags = useMemo(() => {
+    const historicalTags = snapshots.flatMap(s => s.tags || []);
+    return Array.from(new Set([...SNAPSHOT_TAG_OPTIONS, ...historicalTags])).sort();
+  }, [snapshots]);
+
   const handleDeleteTrade = async (id) => {
     if (confirm('Are you sure you want to delete this trade record? This action cannot be undone.')) {
       await firebaseService.deleteTrade(id);
+    }
+  };
+
+  const handleDeleteSnapshot = async (id) => {
+    if (confirm('Are you sure you want to delete this snapshot? This will remove your EOD analysis record permanently.')) {
+      await firebaseService.deleteSnapshot(id);
     }
   };
 
@@ -148,6 +167,7 @@ const TradingJournal = ({ liveRate }) => {
         onAddSnapshot={() => setShowSnapshotModal(true)} 
         onAddNote={() => setShowNoteModal(true)} 
         onOpenInspector={() => setShowInspector(true)}
+        onOpenMigration={onOpenMigration}
       />
 
       <div className="max-w-7xl mx-auto px-4 pb-20">
@@ -184,7 +204,12 @@ const TradingJournal = ({ liveRate }) => {
 
           {activeTab === 'snapshots' && (
             <motion.div key="snapshots" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <SnapshotSection snapshots={snapshots} />
+              <SnapshotSection 
+                snapshots={snapshots} 
+                onEditSnapshot={(s) => { setEditingSnapshot(s); setShowSnapshotModal(true); }}
+                onDeleteSnapshot={handleDeleteSnapshot}
+                onViewImage={setViewerImage}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -208,8 +233,10 @@ const TradingJournal = ({ liveRate }) => {
       />
       <AddSnapshotModal 
         isOpen={showSnapshotModal} 
-        onClose={() => setShowSnapshotModal(false)} 
+        onClose={() => { setShowSnapshotModal(false); setEditingSnapshot(null); }} 
         onSave={handleSaveSnapshot} 
+        editingSnapshot={editingSnapshot}
+        existingTags={existingSnapshotTags}
       />
       <AddNoteModal 
         isOpen={showNoteModal} 
