@@ -16,6 +16,7 @@ import NotesSection from './NotesSection';
 import CalendarSection from './CalendarSection';
 import { AddTradeModal, AddSnapshotModal, AddNoteModal, DataInspectorModal } from './JournalModals';
 import { SNAPSHOT_TAG_OPTIONS, NOTE_CATEGORY_OPTIONS } from '../../constants/journalOptions';
+import UtilityHub from './UtilityHub';
 
 const TradingJournal = ({ liveRate, onOpenMigration }) => {
   const [activeTab, setActiveTab] = useState('trades'); // trades, snapshots, calendar, notes
@@ -312,6 +313,11 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
           </motion.div>
         )}
       </AnimatePresence>
+      <UtilityHub 
+        trades={trades} 
+        snapshots={snapshots} 
+        notes={notes} 
+      />
     </div>
   );
 };

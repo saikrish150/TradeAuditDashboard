@@ -7,54 +7,61 @@ import { db } from '../lib/firebase';
 
 export const firebaseService = {
   /**
-   * Listen to trades collection and transform for the UI
+   * Internal helper to transform trade database documents for the UI
+   */
+  _transformTrade(doc) {
+    const data = doc.data();
+    let jsDate;
+    if (data.date?.toDate) {
+      jsDate = data.date.toDate();
+    } else if (data.date) {
+      jsDate = new Date(data.date);
+    } else {
+      jsDate = new Date();
+    }
+
+    let screenshotsArr = [];
+    if (Array.isArray(data.chartScreenshotUrls)) {
+      screenshotsArr = data.chartScreenshotUrls;
+    } else if (data.chartScreenshotUrl) {
+      screenshotsArr = data.chartScreenshotUrl.includes(',') 
+        ? data.chartScreenshotUrl.split(',').map(s => s.trim())
+        : [data.chartScreenshotUrl];
+    }
+
+    return {
+      id: doc.id,
+      ...data,
+      dayNum: jsDate.getDate(),
+      fullDate: jsDate.toDateString(),
+      jsDate: jsDate,
+      month: jsDate.toLocaleString('default', { month: 'long' }),
+      year: jsDate.getFullYear().toString(),
+      screenshotUrl: screenshotsArr[0] || null,
+      screenshots: screenshotsArr,
+      pl: parseFloat(data.pl) || 0,
+      lots: parseFloat(data.positionSize || data.lots) || 0
+    };
+  },
+
+  /**
+   * Listen to trades collection (Limited for UI Performance)
    */
   subscribeToTrades(onData) {
     const q = query(collection(db, 'trades'), orderBy('date', 'desc'), limit(200));
     return onSnapshot(q, (snapshot) => {
-      const trades = snapshot.docs.map(doc => {
-        const data = doc.data();
-        let jsDate;
-        
-        // Handle different date formats (Timestamp vs ISO String)
-        if (data.date?.toDate) {
-          jsDate = data.date.toDate();
-        } else if (data.date) {
-          jsDate = new Date(data.date);
-        } else {
-          jsDate = new Date();
-        }
-
-        // Normalize screenshots (Handle single string, array, or comma-separated string)
-        let screenshotsArr = [];
-        if (Array.isArray(data.chartScreenshotUrls)) {
-          screenshotsArr = data.chartScreenshotUrls;
-        } else if (data.chartScreenshotUrl) {
-          // If Notion exported multiple as "url1, url2", handle it
-          screenshotsArr = data.chartScreenshotUrl.includes(',') 
-            ? data.chartScreenshotUrl.split(',').map(s => s.trim())
-            : [data.chartScreenshotUrl];
-        }
-
-        // Map to the internal format used by App.jsx analytics
-        return {
-          id: doc.id,
-          ...data,
-          // Only normalize the date for UI helper fields 
-          dayNum: jsDate.getDate(),
-          fullDate: jsDate.toDateString(),
-          jsDate: jsDate,
-          month: jsDate.toLocaleString('default', { month: 'long' }),
-          year: jsDate.getFullYear().toString(),
-          screenshotUrl: screenshotsArr[0] || null, // Fallback for single use
-          screenshots: screenshotsArr, // Full array for gallery/carousel
-          // Ensure fields from manual entry and migration are present without overrides
-          pl: parseFloat(data.pl) || 0,
-          lots: parseFloat(data.positionSize || data.lots) || 0
-        };
-      });
+      const trades = snapshot.docs.map(doc => this._transformTrade(doc));
       onData(trades);
     });
+  },
+
+  /**
+   * Fetch ALL trades (Bypasses UI limits for Full Backup)
+   */
+  async getAllTrades() {
+    const q = query(collection(db, 'trades'), orderBy('date', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => this._transformTrade(doc));
   },
 
   /**
@@ -118,23 +125,36 @@ export const firebaseService = {
   },
 
   /**
-   * Listen to daily snapshots
+   * Internal helper to transform simplified collections (Snapshots, Notes)
+   */
+  _transformGeneric(doc) {
+    const data = doc.data();
+    let jsDate = data.date?.toDate ? data.date.toDate() : new Date(data.date || Date.now());
+    return { 
+      id: doc.id, 
+      ...data,
+      jsDate: jsDate,
+      date: jsDate.toDateString() 
+    };
+  },
+
+  /**
+   * Listen to daily snapshots (Limited for UI Performance)
    */
   subscribeToSnapshots(onData) {
     const q = query(collection(db, 'dailySnapshots'), orderBy('date', 'desc'), limit(100));
     return onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => {
-        const data = doc.data();
-        let jsDate = data.date?.toDate ? data.date.toDate() : new Date(data.date || Date.now());
-        return { 
-          id: doc.id, 
-          ...data,
-          jsDate: jsDate,
-          date: jsDate.toDateString() 
-        };
-      });
-      onData(items);
+      onData(snapshot.docs.map(doc => this._transformGeneric(doc)));
     });
+  },
+
+  /**
+   * Fetch ALL Snapshots (Bypasses UI limits for Full Backup)
+   */
+  async getAllSnapshots() {
+    const q = query(collection(db, 'dailySnapshots'), orderBy('date', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => this._transformGeneric(doc));
   },
 
   /**
@@ -165,23 +185,22 @@ export const firebaseService = {
   },
 
   /**
-   * Listen to notes
+   * Listen to notes (Limited for UI Performance)
    */
   subscribeToNotes(onData) {
     const q = query(collection(db, 'notes'), orderBy('date', 'desc'), limit(100));
     return onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => {
-        const data = doc.data();
-        let jsDate = data.date?.toDate ? data.date.toDate() : new Date(data.date || Date.now());
-        return { 
-          id: doc.id, 
-          ...data,
-          jsDate: jsDate,
-          date: jsDate.toDateString()
-        };
-      });
-      onData(items);
+      onData(snapshot.docs.map(doc => this._transformGeneric(doc)));
     });
+  },
+
+  /**
+   * Fetch ALL Notes (Bypasses UI limits for Full Backup)
+   */
+  async getAllNotes() {
+    const q = query(collection(db, 'notes'), orderBy('date', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => this._transformGeneric(doc));
   },
 
   /**
