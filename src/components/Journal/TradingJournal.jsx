@@ -12,12 +12,13 @@ import GoalTracking from './GoalTracking';
 import HabitTracker from './HabitTracker';
 import MasterTable from './MasterTable';
 import SnapshotSection from './SnapshotSection';
+import NotesSection from './NotesSection';
 import CalendarSection from './CalendarSection';
 import { AddTradeModal, AddSnapshotModal, AddNoteModal, DataInspectorModal } from './JournalModals';
-import { SNAPSHOT_TAG_OPTIONS } from '../../constants/journalOptions';
+import { SNAPSHOT_TAG_OPTIONS, NOTE_CATEGORY_OPTIONS } from '../../constants/journalOptions';
 
 const TradingJournal = ({ liveRate, onOpenMigration }) => {
-  const [activeTab, setActiveTab] = useState('trades'); // trades, snapshots, calendar
+  const [activeTab, setActiveTab] = useState('trades'); // trades, snapshots, calendar, notes
   const [trades, setTrades] = useState([]);
   const [snapshots, setSnapshots] = useState([]);
   const [notes, setNotes] = useState([]);
@@ -30,6 +31,7 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
   const [showInspector, setShowInspector] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [editingSnapshot, setEditingSnapshot] = useState(null);
+  const [editingNote, setEditingNote] = useState(null);
   const [viewerImage, setViewerImage] = useState(null);
 
   useEffect(() => {
@@ -58,6 +60,10 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
       if (e.key.toLowerCase() === 's') {
         e.preventDefault();
         setShowSnapshotModal(true);
+      }
+      if (e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        setShowNoteModal(true);
       }
     };
 
@@ -129,11 +135,18 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
   };
 
   const handleSaveNote = async (data) => {
-    await firebaseService.addNote({
+    const noteData = {
       ...data,
       jsDate: new Date(data.date),
       date: new Date(data.date).toDateString()
-    });
+    };
+
+    if (editingNote) {
+      await firebaseService.updateNote(editingNote.id, noteData);
+      setEditingNote(null);
+    } else {
+      await firebaseService.addNote(noteData);
+    }
   };
 
   const existingSnapshotTags = useMemo(() => {
@@ -150,6 +163,12 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
   const handleDeleteSnapshot = async (id) => {
     if (confirm('Are you sure you want to delete this snapshot? This will remove your EOD analysis record permanently.')) {
       await firebaseService.deleteSnapshot(id);
+    }
+  };
+
+  const handleDeleteNote = async (id) => {
+    if (confirm('Are you sure you want to delete this journal entry? This will permanently remove it from your archive.')) {
+      await firebaseService.deleteNote(id);
     }
   };
 
@@ -178,7 +197,8 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
         <div className="flex justify-center gap-4 mb-8">
            {[
              { id: 'trades', label: 'Trade Journal' },
-             { id: 'snapshots', label: 'EOD Snapshots' }
+             { id: 'snapshots', label: 'EOD Snapshots' },
+             { id: 'notes', label: 'Psychology Notes' }
            ].map(tab => (
              <button
                key={tab.id}
@@ -212,6 +232,16 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
               />
             </motion.div>
           )}
+
+          {activeTab === 'notes' && (
+            <motion.div key="notes" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <NotesSection 
+                notes={notes}
+                onEditNote={(n) => { setEditingNote(n); setShowNoteModal(true); }}
+                onDeleteNote={handleDeleteNote}
+              />
+            </motion.div>
+          )}
         </AnimatePresence>
 
         <div className="mt-12">
@@ -240,8 +270,9 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
       />
       <AddNoteModal 
         isOpen={showNoteModal} 
-        onClose={() => setShowNoteModal(false)} 
-        onSave={handleSaveNote} 
+        onClose={() => { setShowNoteModal(false); setEditingNote(null); }} 
+        onSave={handleSaveNote}
+        editingNote={editingNote} 
       />
       <DataInspectorModal
         isOpen={showInspector}

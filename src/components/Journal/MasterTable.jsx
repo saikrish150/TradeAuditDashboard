@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { JOURNAL_COLUMNS } from '../../constants/journalColumns';
 import { formatCurrency } from '../../utils';
+import { FullTextModal } from './JournalModals';
 
 const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage }) => {
   const [activeTab, setActiveTab] = useState('Today');
@@ -15,6 +16,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage }) => {
   const [filters, setFilters] = useState([]); // Array of { field, value, type, op }
   const [activeFilterPopup, setActiveFilterPopup] = useState(null); // field name only
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
+  const [viewingText, setViewingText] = useState(null);
   const popoverRef = useRef(null);
 
   // Click outside listener for dynamic popovers
@@ -455,9 +457,24 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage }) => {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-[10px] font-bold text-slate-200">{getVal(trade, 'emotion')}</td>
-                <td className="px-6 py-4 text-[10px] font-medium text-slate-400 truncate max-w-[150px]">{Array.isArray(getVal(trade, 'reason')) ? getVal(trade, 'reason').join(', ') : getVal(trade, 'reason')}</td>
-                <td className="px-6 py-4 text-[10px] font-medium text-slate-300 truncate max-w-[150px]">{getVal(trade, 'reasonForTrade')}</td>
-                <td className="px-6 py-4 text-[10px] font-medium text-slate-200 italic truncate max-w-[200px]">{getVal(trade, 'learning')}</td>
+                <td 
+                  onClick={() => setViewingText({ title: 'Loss Reasons / Logic', content: Array.isArray(getVal(trade, 'reason')) ? getVal(trade, 'reason').join(', ') : getVal(trade, 'reason') })}
+                  className="px-6 py-4 text-[10px] font-medium text-slate-400 truncate max-w-[150px] cursor-pointer hover:text-white transition-colors"
+                >
+                  {Array.isArray(getVal(trade, 'reason')) ? getVal(trade, 'reason').join(', ') : getVal(trade, 'reason')}
+                </td>
+                <td 
+                  onClick={() => setViewingText({ title: 'Reason For Trade', content: getVal(trade, 'reasonForTrade') })}
+                  className="px-6 py-4 text-[10px] font-medium text-slate-300 truncate max-w-[150px] cursor-pointer hover:text-white transition-colors"
+                >
+                  {getVal(trade, 'reasonForTrade')}
+                </td>
+                <td 
+                  onClick={() => setViewingText({ title: 'Key Learning / Reflection', content: getVal(trade, 'learning') })}
+                  className="px-6 py-4 text-[10px] font-medium text-slate-200 italic truncate max-w-[200px] cursor-pointer hover:text-white transition-colors"
+                >
+                   {getVal(trade, 'learning')}
+                </td>
                 <td className="px-6 py-4 text-[11px] font-bold text-slate-200">{getVal(trade, 'lots')}</td>
                 <td className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">{trade.positionType || trade.type || '-'}</td>
                 <td className="px-6 py-4">
@@ -533,6 +550,13 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage }) => {
           </button>
         </div>
       </div>
+
+      <FullTextModal 
+        isOpen={!!viewingText}
+        onClose={() => setViewingText(null)}
+        title={viewingText?.title}
+        content={viewingText?.content}
+      />
     </div>
   );
 };

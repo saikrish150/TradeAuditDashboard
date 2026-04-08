@@ -46,3 +46,7 @@ export const COMPLIANCE_OPTIONS = [
 
 export const SNAPSHOT_TAG_OPTIONS = [
   'Sideways', 'Trending', 'traping', 'volatile'];
+
+export const NOTE_CATEGORY_OPTIONS = [
+  "Observation's", 'Important Learnings', 'Most Repeated Mistakes'
+];

@@ -12,10 +12,11 @@ import {
   POSITION_TYPE_OPTIONS,
   TRADE_MODE_OPTIONS,
   TRADE_QUALITY_OPTIONS,
-  COMPLIANCE_OPTIONS
+  COMPLIANCE_OPTIONS,
+  NOTE_CATEGORY_OPTIONS
 } from '../../constants/journalOptions';
 
-const ModalWrapper = ({ isOpen, onClose, title, children }) => {
+const ModalWrapper = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl' }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-journal-bg/90 backdrop-blur-md">
@@ -23,7 +24,7 @@ const ModalWrapper = ({ isOpen, onClose, title, children }) => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto journal-glass rounded-3xl border-journal-gold/30 shadow-[0_0_50px_rgba(212,175,55,0.1)] flex flex-col"
+        className={`relative w-full ${maxWidth} max-h-[90vh] overflow-y-auto journal-glass rounded-3xl border-journal-gold/30 shadow-[0_0_50px_rgba(212,175,55,0.1)] flex flex-col`}
       >
         <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-white/5 bg-journal-bg/80 backdrop-blur-md">
           <h2 className="text-xl font-black text-white uppercase tracking-widest">{title}</h2>
@@ -36,6 +37,18 @@ const ModalWrapper = ({ isOpen, onClose, title, children }) => {
         </div>
       </motion.div>
     </div>
+  );
+};
+
+export const FullTextModal = ({ isOpen, onClose, title, content }) => {
+  return (
+    <ModalWrapper isOpen={isOpen} onClose={onClose} title={title} maxWidth="max-w-md">
+      <div className="space-y-4">
+        <p className="text-sm font-medium leading-relaxed text-slate-300 whitespace-pre-wrap selection:bg-journal-gold selection:text-journal-bg">
+          {content}
+        </p>
+      </div>
+    </ModalWrapper>
   );
 };
 
@@ -545,8 +558,15 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
 
 
 export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, existingTags = [] }) => {
+  const getLocalDate = (d = new Date()) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().slice(0, 10),
+    date: getLocalDate(),
     image: null,
     imageUrl: '',
     tags: [],
@@ -559,9 +579,12 @@ export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, exi
 
   useEffect(() => {
     if (editingSnapshot && isOpen) {
+      const d = (editingSnapshot.jsDate?.toDate ? editingSnapshot.jsDate.toDate() : new Date(editingSnapshot.jsDate || editingSnapshot.date));
+      const dateStr = isNaN(d.getTime()) ? getLocalDate() : getLocalDate(d);
+
       setFormData({
         ...editingSnapshot,
-        date: editingSnapshot.date || new Date().toISOString().slice(0, 10),
+        date: dateStr,
         image: null,
         imageUrl: editingSnapshot.imageUrl || '',
         tags: editingSnapshot.tags || [],
@@ -573,7 +596,7 @@ export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, exi
       });
     } else if (!editingSnapshot && isOpen) {
       setFormData({
-        date: new Date().toISOString().slice(0, 10),
+        date: getLocalDate(),
         image: null,
         imageUrl: '',
         tags: [],
@@ -680,17 +703,59 @@ export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, exi
 };
 
 
-export const AddNoteModal = ({ isOpen, onClose, onSave }) => {
+export const AddNoteModal = ({ isOpen, onClose, onSave, editingNote }) => {
+  const getLocalDate = (d = new Date()) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().slice(0, 10),
-    title: '',
+    date: getLocalDate(),
     content: '',
-    category: 'General',
+    category: 'Observation\'s',
     isPinned: false
   });
 
+  useEffect(() => {
+    if (editingNote && isOpen) {
+      const d = (editingNote.jsDate?.toDate ? editingNote.jsDate.toDate() : new Date(editingNote.jsDate || editingNote.date));
+      const dateStr = isNaN(d.getTime()) ? getLocalDate() : getLocalDate(d);
+
+      setFormData({
+        ...editingNote,
+        date: dateStr,
+        content: editingNote.content || '',
+        category: editingNote.category || 'Observation\'s',
+        isPinned: !!editingNote.isPinned
+      });
+    } else if (!editingNote && isOpen) {
+      setFormData({
+        date: getLocalDate(),
+        content: '',
+        category: 'Observation\'s',
+        isPinned: false
+      });
+    }
+  }, [editingNote, isOpen]);
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(formData);
+      onClose();
+    } catch (error) {
+      console.error('Error saving note:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Terminal Journal Entry">
+    <ModalWrapper isOpen={isOpen} onClose={onClose} title={editingNote ? "Refine Journal Entry" : "Terminal Journal Entry"}>
        <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div className="flex flex-col gap-2">
@@ -700,14 +765,9 @@ export const AddNoteModal = ({ isOpen, onClose, onSave }) => {
              <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Category</label>
                 <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none">
-                   {['General', 'Psychology', 'Review', 'Rulebook', 'Plan'].map(c => <option key={c} value={c}>{c}</option>)}
+                   {NOTE_CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
              </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-             <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Entry Subject</label>
-             <input type="text" placeholder="Note Title..." value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50" />
           </div>
 
           <div className="flex flex-col gap-2">
@@ -725,10 +785,11 @@ export const AddNoteModal = ({ isOpen, onClose, onSave }) => {
 
           <div className="pt-6 border-t border-white/5">
             <button 
-              onClick={() => { onSave(formData); onClose(); }}
-              className="w-full py-4 bg-journal-gold text-journal-bg rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
+              disabled={isSaving}
+              onClick={handleSave}
+              className="w-full py-4 bg-journal-gold text-journal-bg rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
             >
-              Lock Entry
+              {isSaving ? 'Locking Entry...' : 'Lock Entry'}
             </button>
           </div>
        </div>

@@ -25,3 +25,10 @@ export const SNAPSHOT_COLUMNS = [
   { key: 'compliance', label: 'Compliance Matrix', type: 'custom', align: 'center' },
   { key: 'metadata', label: 'Metadata / Tags', type: 'array' }
 ];
+
+export const NOTES_COLUMNS = [
+  { key: 'date', label: 'Entry Date', type: 'date', sticky: true },
+  { key: 'isPinned', label: 'Status', type: 'cat', align: 'center' },
+  { key: 'category', label: 'Category', type: 'cat' },
+  { key: 'content', label: 'Content Preview', type: 'text' }
+];
