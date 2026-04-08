@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, Check, ChevronDown, Plus, Trash2, IndianRupee, History } from 'lucide-react';
+import { X, Upload, Check, ChevronDown, Plus, Trash2, IndianRupee, History, Target } from 'lucide-react';
 import { 
   MARKET_OPTIONS,
   TRADE_STATUS_OPTIONS, 
@@ -47,6 +47,73 @@ export const FullTextModal = ({ isOpen, onClose, title, content }) => {
         <p className="text-sm font-medium leading-relaxed text-slate-300 whitespace-pre-wrap selection:bg-journal-gold selection:text-journal-bg">
           {content}
         </p>
+      </div>
+    </ModalWrapper>
+  );
+};
+
+export const AddGoalModal = ({ isOpen, onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // Default 30 days
+    amount: ''
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!formData.startDate || !formData.endDate || !formData.amount) return;
+    setIsSaving(true);
+    try {
+      await onSave({
+        ...formData,
+        amount: parseFloat(formData.amount),
+        status: 'active'
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error saving goal:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Set New Performance Objective" maxWidth="max-w-md">
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Start Date</label>
+            <input type="date" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Target Date</label>
+            <input type="date" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Profit Target (INR)</label>
+          <div className="relative">
+            <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+            <input 
+              type="number" 
+              placeholder="e.g. 50000"
+              value={formData.amount} 
+              onChange={e => setFormData({...formData, amount: e.target.value})} 
+              className="w-full bg-slate-950/50 border border-slate-800 rounded-xl pl-11 pr-4 py-4 text-sm font-black text-white outline-none focus:border-journal-gold/50" 
+            />
+          </div>
+          <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">Your progress will be tracked automatically across all trades in this period.</p>
+        </div>
+
+        <button 
+          onClick={handleSave}
+          disabled={isSaving || !formData.amount}
+          className="w-full py-4 bg-journal-gold text-journal-bg rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
+        >
+          <Target size={16} />
+          {isSaving ? 'Establishing Objective...' : 'Initialize Performance Goal'}
+        </button>
       </div>
     </ModalWrapper>
   );

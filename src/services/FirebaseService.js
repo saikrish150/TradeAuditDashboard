@@ -120,7 +120,7 @@ export const firebaseService = {
    * Listen to daily snapshots
    */
   subscribeToSnapshots(onData) {
-    const q = query(collection(db, 'dailySnapshots'), orderBy('date', 'desc'));
+    const q = query(collection(db, 'dailySnapshots'), orderBy('jsDate', 'desc'));
     return onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => {
         const data = doc.data();
