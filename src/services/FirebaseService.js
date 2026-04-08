@@ -1,6 +1,7 @@
 import { 
   collection, query, orderBy, onSnapshot, getDocs, 
-  doc, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp 
+  doc, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp,
+  limit
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -9,7 +10,7 @@ export const firebaseService = {
    * Listen to trades collection and transform for the UI
    */
   subscribeToTrades(onData) {
-    const q = query(collection(db, 'trades'), orderBy('date', 'desc'));
+    const q = query(collection(db, 'trades'), orderBy('date', 'desc'), limit(200));
     return onSnapshot(q, (snapshot) => {
       const trades = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -60,7 +61,7 @@ export const firebaseService = {
    * Check if any data exists (to show/hide migration hub)
    */
   async hasData() {
-    const q = query(collection(db, 'trades'));
+    const q = query(collection(db, 'trades'), limit(1));
     const snapshot = await getDocs(q);
     return !snapshot.empty;
   },
@@ -120,7 +121,7 @@ export const firebaseService = {
    * Listen to daily snapshots
    */
   subscribeToSnapshots(onData) {
-    const q = query(collection(db, 'dailySnapshots'), orderBy('jsDate', 'desc'));
+    const q = query(collection(db, 'dailySnapshots'), orderBy('date', 'desc'), limit(100));
     return onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -167,7 +168,7 @@ export const firebaseService = {
    * Listen to notes
    */
   subscribeToNotes(onData) {
-    const q = query(collection(db, 'notes'), orderBy('date', 'desc'));
+    const q = query(collection(db, 'notes'), orderBy('date', 'desc'), limit(100));
     return onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -214,7 +215,7 @@ export const firebaseService = {
    * Listen to goals
    */
   subscribeToGoals(onData) {
-    const q = query(collection(db, 'goals'), orderBy('startDate', 'desc'));
+    const q = query(collection(db, 'goals'), orderBy('startDate', 'desc'), limit(50));
     return onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => {
         const data = doc.data();

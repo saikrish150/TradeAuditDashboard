@@ -95,7 +95,7 @@ const MobileNav = ({ activeSection, setActiveSection }) => {
   const tabs = [
     { id: 'alerts', label: 'Alerts', icon: Signal },
     { id: 'journal', label: 'Journal', icon: History },
-    { id: 'audit', label: 'Audit', icon: ShieldCheck }
+    { id: 'audit', label: 'Dashboard', icon: ShieldCheck }
   ];
 
   return (
@@ -575,7 +575,7 @@ const App = () => {
                 <CandlestickChart className="text-white" size={20} />
               </div>
               <div>
-                <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic leading-none">Trade<span className="text-indigo-500">Audit</span></h1>
+                <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic leading-none">Trader<span className="text-indigo-500"> Dashboard</span></h1>
                 <p className="text-slate-500 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] mt-1">Terminal v5.1.0</p>
               </div>
             </div>
@@ -594,7 +594,7 @@ const App = () => {
               {[
                 { id: 'alerts', label: 'Alerts', icon: Signal },
                 { id: 'journal', label: 'Trading Journal', icon: History },
-                { id: 'audit', label: 'Trade Audit', icon: ShieldCheck }
+                { id: 'audit', label: 'Dashboard', icon: ShieldCheck }
               ].map((tab) => (
                 <button
                   key={tab.id}
