@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
-import { firebaseService } from '../../services/firebaseService';
-import { storage } from '../../lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { X, CheckCircle2, XCircle } from 'lucide-react';
+import { supabaseService, normalizeRow } from '../../services/supabaseService';
 
 // Journal Sub-components
 import ActionBar from './ActionBar';
@@ -17,14 +15,21 @@ import CalendarSection from './CalendarSection';
 import { AddTradeModal, AddSnapshotModal, AddNoteModal } from './JournalModals';
 import { SNAPSHOT_TAG_OPTIONS, NOTE_CATEGORY_OPTIONS } from '../../constants/journalOptions';
 import { TRADE_SCHEMA_MAP, SNAPSHOT_SCHEMA_MAP, NOTE_SCHEMA_MAP } from '../../constants/fieldMappings';
+import { formatToGMT530 } from '../../constants/formDefaults';
 
-const TradingJournal = ({ liveRate }) => {
+const TradingJournal = ({ 
+  liveRate, user, trades, snapshots, notes, goals, isFullHistory, setIsFullHistory,
+  setRawTrades, setRawSnapshots, setNotes, setGoals
+}) => {
   const [activeTab, setActiveTab] = useState('trades'); // trades, snapshots, calendar, notes
-  const [trades, setTrades] = useState([]);
-  const [snapshots, setSnapshots] = useState([]);
-  const [notes, setNotes] = useState([]);
-  const [isFullHistory, setIsFullHistory] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Controlled by App now
+
+  // Toast State
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   // Modal States
   const [showTradeModal, setShowTradeModal] = useState(false);
@@ -35,18 +40,7 @@ const TradingJournal = ({ liveRate }) => {
   const [editingNote, setEditingNote] = useState(null);
   const [viewerImage, setViewerImage] = useState(null);
 
-  useEffect(() => {
-    const unsubTrades = firebaseService.subscribeToTrades(setTrades, isFullHistory ? null : 1000);
-    const unsubSnapshots = firebaseService.subscribeToSnapshots(setSnapshots);
-    const unsubNotes = firebaseService.subscribeToNotes(setNotes);
-    
-    setLoading(false);
-    return () => {
-      unsubTrades();
-      unsubSnapshots();
-      unsubNotes();
-    };
-  }, [isFullHistory]);
+  // No local state subscriptions anymore, handled by App.jsx
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -72,99 +66,162 @@ const TradingJournal = ({ liveRate }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Image Upload Helper
-  const uploadImage = async (file, path) => {
-    if (!file) return null;
-    try {
-      const storageRef = ref(storage, `${path}/${Date.now()}_${file.name}`);
-      const snapshot = await uploadBytes(storageRef, file);
-      return await getDownloadURL(snapshot.ref);
-    } catch (err) {
-      console.error("Image upload failed:", err);
-      return null;
-    }
+  // Helper to handle service calls with userId
+  const performAction = async (action, ...args) => {
+    if (!user?.id) throw new Error("IDENTIFICATION_REQUIRED: No active session found.");
+    return await action(user.id, ...args);
   };
 
   const handleSaveTrade = async (data) => {
     let screenshotUrl = data.chartScreenshotUrl || null;
-    if (data.screenshot) {
-      screenshotUrl = await uploadImage(data.screenshot, 'trade_charts');
-    }
+    try {
+      if (data.screenshot) {
+        screenshotUrl = await performAction(supabaseService.uploadImage, data.screenshot, 'trades');
+      }
 
-    // Map UI Form keys to DB Schema Keys
-    const tradeRecord = {
-      market: data.market,
-      direction: data.direction,
-      isWin: data.isWin === 'WIN',
-      pl: parseFloat(data.pl) || 0,
-       // Use Schema Maps for non-matching keys
-      [TRADE_SCHEMA_MAP.rr]: data.rr,
-      [TRADE_SCHEMA_MAP.reason]: data.reason,
-      [TRADE_SCHEMA_MAP.learning]: data.learning,
-      [TRADE_SCHEMA_MAP.setups]: data.setups,
-      [TRADE_SCHEMA_MAP.lossReasons]: data.lossReasons,
-      [TRADE_SCHEMA_MAP.emotions]: data.emotions,
-      [TRADE_SCHEMA_MAP.positionSize]: parseFloat(data.positionSize) || 0,
-      [TRADE_SCHEMA_MAP.tradeQuality]: data.tradeQuality,
-      [TRADE_SCHEMA_MAP.tradeStatus]: data.tradeStatus,
-      [TRADE_SCHEMA_MAP.positionType]: data.positionType,
-      [TRADE_SCHEMA_MAP.tradeMode]: data.tradeMode,
-      chartScreenshotUrls: screenshotUrl ? [screenshotUrl] : (data.chartScreenshotUrl ? [data.chartScreenshotUrl] : []),
-      jsDate: new Date(data.date),
-      fullDate: new Date(data.date).toDateString(),
-      year: new Date(data.date).getFullYear().toString(),
-      month: new Date(data.date).toLocaleString('default', { month: 'long' }),
-      category: data.market === 'Indian' ? 'Indian' : 'Other'
-    };
+      const tradeRecord = {
+        [TRADE_SCHEMA_MAP.market]: data.market,
+        [TRADE_SCHEMA_MAP.direction]: data.direction,
+        [TRADE_SCHEMA_MAP.isWin]: data.isWin === 'WIN' ? 'WIN' : 'LOSS',
+        [TRADE_SCHEMA_MAP.winFlag]: data.isWin === 'WIN' ? 1 : 0,
+        [TRADE_SCHEMA_MAP.pl]: data.pl.toString(),
+        [TRADE_SCHEMA_MAP.rr]: data.rr,
+        [TRADE_SCHEMA_MAP.reason]: data.reason,
+        [TRADE_SCHEMA_MAP.learning]: data.learning,
+        [TRADE_SCHEMA_MAP.strategy]: data.strategy,
+        [TRADE_SCHEMA_MAP.setups]: Array.isArray(data.setups) ? data.setups.join(', ') : data.setups,
+        [TRADE_SCHEMA_MAP.lossReasons]: Array.isArray(data.lossReasons) ? data.lossReasons.join(', ') : data.lossReasons,
+        [TRADE_SCHEMA_MAP.emotions]: data.emotions,
+        [TRADE_SCHEMA_MAP.positionSize]: data.positionSize.toString(),
+        [TRADE_SCHEMA_MAP.tradeQuality]: data.tradeQuality,
+        [TRADE_SCHEMA_MAP.tradeStatus]: data.tradeStatus,
+        [TRADE_SCHEMA_MAP.positionType]: data.positionType,
+        [TRADE_SCHEMA_MAP.tradeMode]: data.tradeMode,
+        [TRADE_SCHEMA_MAP.chartScreenshotUrl]: screenshotUrl,
+        [TRADE_SCHEMA_MAP.date]: formatToGMT530(data.date)
+      };
 
-    if (editingTrade) {
-      await firebaseService.updateTrade(editingTrade.id, tradeRecord);
+      if (editingTrade) {
+        const updatedRaw = await performAction(supabaseService.updateTrade, editingTrade.id, tradeRecord);
+        const normalized = normalizeRow(updatedRaw || { ...tradeRecord, id: editingTrade.id });
+        setRawTrades(prev => prev.map(t => t.id === editingTrade.id ? normalized : t));
+        showToast('Trade record updated successfully', 'success');
+      } else {
+        const newRaw = await performAction(supabaseService.addTrade, tradeRecord);
+        const normalized = normalizeRow(newRaw || { ...tradeRecord, id: Date.now() });
+        setRawTrades(prev => [normalized, ...prev]);
+        showToast('Trade record saved instantly', 'success');
+      }
+      setShowTradeModal(false);
       setEditingTrade(null);
-    } else {
-      await firebaseService.addTrade(tradeRecord);
+    } catch (err) {
+      showToast('Terminal Save Error: ' + err.message, 'error');
     }
   };
 
   const handleSaveSnapshot = async (data) => {
     let imageUrl = data.imageUrl || null;
-    if (data.image) {
-      imageUrl = await uploadImage(data.image, 'daily_snapshots');
-    }
+    try {
+      if (data.image) {
+        imageUrl = await performAction(supabaseService.uploadImage, data.image, 'daily-snapshots');
+      }
 
-    const snapshotRecord = {
-      [SNAPSHOT_SCHEMA_MAP.date]: data.date,
-      [SNAPSHOT_SCHEMA_MAP.imageUrl]: imageUrl,
-      [SNAPSHOT_SCHEMA_MAP.tags]: data.tags,
-      [SNAPSHOT_SCHEMA_MAP.noOfTrades]: parseInt(data.noOfTrades) || 0,
-      [SNAPSHOT_SCHEMA_MAP.rulesFollowed]: !!data.rulesFollowed,
-      [SNAPSHOT_SCHEMA_MAP.emotionsInControl]: !!data.emotionsInControl,
-      [SNAPSHOT_SCHEMA_MAP.setupFollowed]: !!data.setupFollowed,
-      [SNAPSHOT_SCHEMA_MAP.setup]: data.setup || '',
-      jsDate: new Date(data.date)
-    };
+      const snapshotRecord = {
+        "Name": data.name || `Snapshot ${data.date}`,
+        [SNAPSHOT_SCHEMA_MAP.date]: formatToGMT530(data.date),
+        [SNAPSHOT_SCHEMA_MAP.imageUrl]: imageUrl,
+        [SNAPSHOT_SCHEMA_MAP.tags]: Array.isArray(data.tags) ? data.tags.join(', ') : data.tags,
+        [SNAPSHOT_SCHEMA_MAP.noOfTrades]: data.noOfTrades?.toString(),
+        [SNAPSHOT_SCHEMA_MAP.rulesFollowed]: data.rulesFollowed ? 'Yes' : 'No',
+        [SNAPSHOT_SCHEMA_MAP.emotionsInControl]: data.emotionsInControl ? 'Yes' : 'No',
+        [SNAPSHOT_SCHEMA_MAP.setup]: data.snapshotSetup ? 'Yes' : 'No',
+        [SNAPSHOT_SCHEMA_MAP.progress]: `${Math.round((( (data.rulesFollowed?1:0) + (data.emotionsInControl?1:0) + (data.snapshotSetup?1:0) ) / 3) * 100)}%`
+      };
 
-    if (editingSnapshot) {
-      await firebaseService.updateSnapshot(editingSnapshot.id, snapshotRecord);
+      if (editingSnapshot) {
+        const updated = await performAction(supabaseService.updateSnapshot, editingSnapshot.id, snapshotRecord);
+        const normalized = normalizeRow(updated || { ...snapshotRecord, id: editingSnapshot.id });
+        setRawSnapshots(prev => prev.map(s => s.id === editingSnapshot.id ? normalized : s));
+        showToast('Snapshot updated successfully', 'success');
+      } else {
+        const newSnap = await performAction(supabaseService.addSnapshot, snapshotRecord);
+        const normalized = normalizeRow(newSnap || { ...snapshotRecord, id: Date.now() });
+        setRawSnapshots(prev => [normalized, ...prev]);
+        showToast('Snapshot locked successfully', 'success');
+      }
+      setShowSnapshotModal(false);
       setEditingSnapshot(null);
-    } else {
-      await firebaseService.addSnapshot(snapshotRecord);
+    } catch (err) {
+      showToast('Snapshot Sync Failed: ' + err.message, 'error');
     }
   };
 
   const handleSaveNote = async (data) => {
     const noteData = {
-      [NOTE_SCHEMA_MAP.date]: data.date,
+      "Name": data.title || `Note ${data.date}`,
+      [NOTE_SCHEMA_MAP.date]: formatToGMT530(data.date),
       [NOTE_SCHEMA_MAP.content]: data.content,
       [NOTE_SCHEMA_MAP.category]: data.category,
-      [NOTE_SCHEMA_MAP.isPinned]: !!data.isPinned,
-      jsDate: new Date(data.date)
+      [NOTE_SCHEMA_MAP.isPinned]: data.isPinned ? 'true' : 'false',
+      [NOTE_SCHEMA_MAP.source]: data.source || ''
     };
 
-    if (editingNote) {
-      await firebaseService.updateNote(editingNote.id, noteData);
+    try {
+      if (editingNote) {
+        const updated = await performAction(supabaseService.updateNote, editingNote.id, noteData);
+        const normalized = normalizeRow(updated || { ...noteData, id: editingNote.id });
+        setNotes(prev => prev.map(n => n.id === editingNote.id ? normalized : n));
+        showToast('Note updated successfully', 'success');
+      } else {
+        const newNote = await performAction(supabaseService.addNote, noteData);
+        const normalized = normalizeRow(newNote || { ...noteData, id: Date.now() });
+        setNotes(prev => [normalized, ...prev]);
+        showToast('Note archived successfully', 'success');
+      }
+      setShowNoteModal(false);
       setEditingNote(null);
-    } else {
-      await firebaseService.addNote(noteData);
+    } catch (err) {
+      showToast('Note Archive Failed: ' + err.message, 'error');
+    }
+  };
+
+  const handleDeleteNote = async (id) => {
+    if (window.confirm("DELETE NOTE?")) {
+      try {
+        await performAction(supabaseService.deleteNote, id);
+        setNotes(prev => prev.filter(n => n.id !== id));
+        showToast('Note deleted successfully', 'success');
+      } catch (err) {
+        showToast('Purge Failure: ' + err.message, 'error');
+      }
+    }
+  };
+
+  const handleSaveGoal = async (data) => {
+    try {
+      if (data.id) {
+        const updated = await performAction(supabaseService.updateGoal, data.id, data);
+        setGoals(prev => prev.map(g => g.id === data.id ? (updated || data) : g));
+        showToast('Objective updated successfully', 'success');
+      } else {
+        const newGoal = await performAction(supabaseService.addGoal, data);
+        setGoals(prev => [newGoal || data, ...prev]);
+        showToast('Objective set successfully', 'success');
+      }
+    } catch (err) {
+      showToast('Goal Sync Failed: ' + err.message, 'error');
+    }
+  };
+
+  const handleDeleteGoal = async (id) => {
+    if (window.confirm("DELETE PERFORMANCE OBJECTIVE?")) {
+      try {
+        await performAction(supabaseService.deleteGoal, id);
+        setGoals(prev => prev.filter(g => g.id !== id));
+        showToast('Objective deleted successfully', 'success');
+      } catch (err) {
+        showToast('Goal Purge Failed: ' + err.message, 'error');
+      }
     }
   };
 
@@ -175,19 +232,25 @@ const TradingJournal = ({ liveRate }) => {
 
   const handleDeleteTrade = async (id) => {
     if (confirm('Are you sure you want to delete this trade record? This action cannot be undone.')) {
-      await firebaseService.deleteTrade(id);
+      try {
+        await performAction(supabaseService.deleteTrade, id);
+        setRawTrades(prev => prev.filter(t => t.id !== id));
+        showToast('Trade record permanently deleted', 'success');
+      } catch (err) {
+        showToast('Trade deletion failed: ' + err.message, 'error');
+      }
     }
   };
 
   const handleDeleteSnapshot = async (id) => {
     if (confirm('Are you sure you want to delete this snapshot? This will remove your EOD analysis record permanently.')) {
-      await firebaseService.deleteSnapshot(id);
-    }
-  };
-
-  const handleDeleteNote = async (id) => {
-    if (confirm('Are you sure you want to delete this journal entry? This will permanently remove it from your archive.')) {
-      await firebaseService.deleteNote(id);
+      try {
+        await performAction(supabaseService.deleteSnapshot, id);
+        setRawSnapshots(prev => prev.filter(s => s.id !== id));
+        showToast('Snapshot permanently deleted', 'success');
+      } catch (err) {
+        showToast('Snapshot deletion failed: ' + err.message, 'error');
+      }
     }
   };
 
@@ -200,6 +263,18 @@ const TradingJournal = ({ liveRate }) => {
 
   return (
     <div className="animate-in fade-in duration-700">
+      {/* Dynamic Toast Notifications */}
+      {toast && (
+        <div className={`fixed bottom-10 right-10 z-[300] px-6 py-4 rounded-2xl border backdrop-blur-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-right-10 fade-in duration-300 ${
+          toast.type === 'success' 
+            ? 'bg-slate-900/90 border-journal-gold/50 text-journal-gold shadow-[0_0_30px_rgba(212,175,55,0.15)]' 
+            : 'bg-rose-950/90 border-rose-500/50 text-rose-400 shadow-[0_0_30px_rgba(244,63,94,0.15)]'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
+          <span className="text-xs font-black uppercase tracking-widest">{toast.message}</span>
+        </div>
+      )}
+
       <ActionBar 
         onAddTrade={() => setShowTradeModal(true)} 
         onAddSnapshot={() => setShowSnapshotModal(true)} 
@@ -208,7 +283,12 @@ const TradingJournal = ({ liveRate }) => {
 
       <div className="max-w-7xl mx-auto px-4 pb-20">
         <PerformanceSection trades={trades} />
-        <GoalTracking trades={trades} />
+        <GoalTracking 
+          trades={trades} 
+          goals={goals}
+          onSaveGoal={handleSaveGoal}
+          onDeleteGoal={handleDeleteGoal}
+        />
         <HabitTracker snapshots={snapshots} />
 
         <div className="flex justify-center gap-4 mb-8">

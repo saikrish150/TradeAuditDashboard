@@ -68,7 +68,11 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
   }, [noteFilters]);
 
   // Helper: Normalize date for comparison
-  const getComparisonDate = (dateStr) => {
+  const getComparisonDate = (item) => {
+    if (!item) return null;
+    if (item.jsDate instanceof Date) return item.jsDate;
+    
+    const dateStr = item.fullDate || item.date || item.Date;
     if (!dateStr) return null;
     const d = new Date(dateStr);
     if (!isNaN(d.getTime())) return d;
@@ -86,10 +90,20 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
   // Combined Filtering Logic
   const processedTrades = useMemo(() => {
     return trades.filter(t => {
-      const matchEmotion = galleryFilters.emotion === 'All' || String(t.emotion || t.emotions) === galleryFilters.emotion;
-      const matchQuality = galleryFilters.quality === 'All' || String(t.tradeQuality || t.quality) === galleryFilters.quality;
-      const matchMarket = galleryFilters.market === 'All' || String(t.market) === galleryFilters.market;
-      const matchSetup = galleryFilters.setup === 'All' || String(t.setup).includes(galleryFilters.setup);
+      const tEmotion = String(t.emotion || t.emotions || 'All').toLowerCase().trim();
+      const fEmotion = galleryFilters.emotion.toLowerCase().trim();
+      const matchEmotion = galleryFilters.emotion === 'All' || tEmotion.includes(fEmotion);
+      
+      const tQuality = String(t.tradeQuality || t.quality || 'All').toLowerCase().trim();
+      const fQuality = galleryFilters.quality.toLowerCase().trim();
+      const matchQuality = galleryFilters.quality === 'All' || tQuality === fQuality;
+      
+      const tMarket = String(t.market || 'All').toLowerCase().trim();
+      const fMarket = galleryFilters.market.toLowerCase().trim();
+      const matchMarket = galleryFilters.market === 'All' || tMarket.includes(fMarket);
+      
+      const fSetup = galleryFilters.setup.toLowerCase().trim();
+      const matchSetup = galleryFilters.setup === 'All' || String(t.setup || '').toLowerCase().includes(fSetup);
       
       const tradeReason = t.reasonForTrade || t.TradeReason || t.reason || '';
       const matchSearch = galleryFilters.search === '' || 
@@ -99,7 +113,7 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
       
       // Custom Date Range logic
       let matchDate = true;
-      const tDate = getComparisonDate(t.fullDate || t.date);
+      const tDate = getComparisonDate(t);
       if (tDate) {
         if (galleryFilters.startDate) {
           const start = new Date(galleryFilters.startDate);
@@ -152,7 +166,7 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
         String(s.title || '').toLowerCase().includes(galleryFilters.search.toLowerCase());
       
       let matchDate = true;
-      const sDate = getComparisonDate(s.date);
+      const sDate = getComparisonDate(s);
       if (sDate) {
         if (galleryFilters.startDate) {
           const start = new Date(galleryFilters.startDate);
@@ -171,14 +185,14 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
   }, [snapshots, galleryFilters.search, galleryFilters.startDate, galleryFilters.endDate]);
 
   const snapshotsWithVisuals = useMemo(() => {
-    const list = processedSnapshots.filter(s => s.screenshotUrl || s.imageUrl || s.url || (s.screenshots && s.screenshots.length > 0));
+    const list = processedSnapshots.filter(s => (s.screenshotUrl || s.imageUrl || s.url || (s.screenshots && s.screenshots.length > 0)));
     
     // Apply Gallery Sort (Snapshots only support date sort)
     if (gallerySort.startsWith('pl')) return list; // Skip P&L sort for snapshots
 
     return [...list].sort((a, b) => {
-      const aDate = getComparisonDate(a.date)?.getTime() || 0;
-      const bDate = getComparisonDate(b.date)?.getTime() || 0;
+      const aDate = getComparisonDate(a)?.getTime() || 0;
+      const bDate = getComparisonDate(b)?.getTime() || 0;
       return gallerySort === 'date-desc' ? bDate - aDate : aDate - bDate;
     });
   }, [processedSnapshots, gallerySort]);
@@ -225,32 +239,52 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
   }, [lightbox, allGalleryLinks]);
 
   const processedNotes = useMemo(() => {
+    if (!notes || !Array.isArray(notes)) return [];
+    
     return notes.filter(n => {
-      const matchSearch = noteFilters.search === '' || 
-        String(n.content).toLowerCase().includes(noteFilters.search.toLowerCase());
-      const matchCategory = noteFilters.category === 'All' || n.category === noteFilters.category;
+      if (!n) return false;
+      const content = String(n.content || n.Note || '');
+      const category = String(n.category || n.Select || '');
+      
+      const matchSearch = String(noteFilters.search || '') === '' || 
+        content.toLowerCase().includes(String(noteFilters.search || '').toLowerCase());
+      
+      const filterCat = String(noteFilters.category || 'All').toLowerCase().trim();
+      const matchCategory = filterCat === 'all' || category.toLowerCase().includes(filterCat);
+      
       return matchSearch && matchCategory;
     });
   }, [notes, noteFilters]);
 
   // Insights Segregation
   const insightColumns = useMemo(() => {
-    const columns = {
-      mistakes: processedNotes.filter(n => n.category === 'Most Repeated Mistakes'),
-      observations: processedNotes.filter(n => n.category === "Observation's"),
-      learnings: processedNotes.filter(n => n.category === 'Important Learnings'),
-      other: processedNotes.filter(n => !["Observation's", 'Important Learnings', 'Most Repeated Mistakes'].includes(n.category))
+    const getClean = (v) => {
+      if (typeof v === 'object' && v !== null) v = v.value || v.label || JSON.stringify(v);
+      return String(v || '').toLowerCase().trim();
     };
-    return columns;
+
+    return {
+      mistakes: processedNotes.filter(n => {
+        const cat = getClean(n.category || n.Select || '');
+        return cat.includes('mistake');
+      }),
+      mistakes: processedNotes.filter(n => String(n.category || '').toLowerCase().includes('mistake')),
+      learnings: processedNotes.filter(n => String(n.category || '').toLowerCase().includes('learning')),
+      observations: processedNotes.filter(n => {
+        const cat = String(n.category || '').toLowerCase();
+        return !cat.includes('mistake') && !cat.includes('learning');
+      })
+    };
   }, [processedNotes]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
           <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase leading-none">Review Terminal</h2>
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mt-2">Visual Performance Audit & Psychological Insights</p>
+          <div className="flex items-center gap-4 mt-2">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Visual Performance Audit & Psychological Insights</p>
+          </div>
         </div>
       </div>
 
@@ -306,7 +340,7 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
               <div className="space-y-4">
                 {insightColumns.mistakes.map((note, i) => (
                   <motion.div 
-                    key={note.id}
+                    key={note.id || `mistake-${i}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
@@ -315,11 +349,11 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
                       <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-3xl rounded-full -mr-12 -mt-12 group-hover:bg-rose-500/10 transition-colors" />
                       <div className="flex justify-between items-start mb-4 relative z-10">
                         <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
-                          <Clock size={10} /> {String(note.date)}
+                          <Clock size={10} /> {String(note.date || note.Date || '-')}
                         </p>
-                        <Badge color="rose">Critical Leakage</Badge>
+                        <Badge color="rose">{note.category || note.Select || 'Mistake'}</Badge>
                       </div>
-                      <p className="text-[13px] text-slate-200 leading-relaxed font-bold italic relative z-10">"{note.content}"</p>
+                      <p className="text-[13px] text-slate-200 leading-relaxed font-bold italic relative z-10">"{note.content || note.Note || 'Empty Note'}"</p>
                       <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
                         <span className="text-[8px] font-black uppercase tracking-tighter text-rose-500/50">Urgent Fix Required</span>
                         <ArrowDownRight size={14} className="text-rose-500/30" />
@@ -342,7 +376,7 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
               <div className="space-y-4">
                 {insightColumns.observations.map((note, i) => (
                   <motion.div 
-                    key={note.id}
+                    key={note.id || `obs-${i}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
@@ -351,11 +385,11 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
                       <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-3xl rounded-full -mr-12 -mt-12 group-hover:bg-indigo-500/10 transition-colors" />
                       <div className="flex justify-between items-start mb-4 relative z-10">
                         <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
-                          <Clock size={10} /> {String(note.date)}
+                          <Clock size={10} /> {String(note.date || note.Date || '-')}
                         </p>
-                        <Badge color="indigo">Core Observation</Badge>
+                        <Badge color="indigo">{note.category || note.Select || 'Observation'}</Badge>
                       </div>
-                      <p className="text-[13px] text-slate-200 leading-relaxed font-medium relative z-10">{note.content}</p>
+                      <p className="text-[13px] text-slate-200 leading-relaxed font-medium relative z-10">{note.content || note.Note || 'Empty Note'}</p>
                       <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
                         <span className="text-[8px] font-black uppercase tracking-tighter text-indigo-500/50">Execution Context</span>
                         <ArrowUpRight size={14} className="text-indigo-500/30" />
@@ -366,7 +400,6 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
                 {insightColumns.observations.length === 0 && <p className="text-[10px] text-slate-700 font-bold uppercase text-center py-10">No observations</p>}
               </div>
             </div>
-
             {/* Learnings: The Wisdom Hub */}
             <div className="lg:col-span-1 space-y-4">
               <div className="flex items-center gap-2 px-2 mb-2 group">
@@ -378,7 +411,7 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
               <div className="space-y-4">
                 {insightColumns.learnings.map((note, i) => (
                   <motion.div 
-                    key={note.id}
+                    key={note.id || `learning-${i}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
@@ -387,18 +420,18 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
                       <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-3xl rounded-full -mr-12 -mt-12 group-hover:bg-emerald-500/10 transition-colors" />
                       <div className="flex justify-between items-start mb-4 relative z-10">
                         <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
-                          <Clock size={10} /> {String(note.date)}
+                          <Clock size={10} /> {String(note.date || note.Date || '-')}
                         </p>
-                        <Badge color="emerald">New Rule</Badge>
+                        <Badge color="emerald">{note.category || note.Select || 'Learning'}</Badge>
                       </div>
-                      <p className="text-[13px] text-slate-100 leading-relaxed font-black uppercase tracking-tight relative z-10">{note.content}</p>
+                      <p className="text-[13px] text-slate-100 leading-relaxed font-black uppercase tracking-tight relative z-10">{note.content || note.Note || 'Empty Note'}</p>
                       <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
                         <span className="text-[8px] font-black uppercase tracking-tighter text-emerald-500/50">Edge Documentation</span>
                         <Check size={14} className="text-emerald-500/30" />
                       </div>
                     </Card>
                   </motion.div>
-                )) }
+                ))}
                 {insightColumns.learnings.length === 0 && <p className="text-[10px] text-slate-700 font-bold uppercase text-center py-10">No wisdom noted</p>}
               </div>
             </div>
@@ -640,7 +673,6 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  const idx = allGalleryLinks.indexOf(lightbox);
                   if (idx > 0) setLightbox(allGalleryLinks[idx - 1]);
                   else if (idx === 0) setLightbox(allGalleryLinks[allGalleryLinks.length - 1]);
                 }}

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShieldCheck, Smile, Target, Tag, Edit3, Trash2, 
   ImageIcon, Calendar, BarChart3, ChevronLeft, ChevronRight, Search, 
-  Filter, ArrowUpDown, X
+  Filter, ArrowUpDown, X, CheckCircle2, XCircle
 } from 'lucide-react';
 import { SNAPSHOT_COLUMNS } from '../../constants/journalColumns';
 import { COMPLIANCE_OPTIONS } from '../../constants/journalOptions';
@@ -31,15 +31,7 @@ const SnapshotSection = ({ snapshots = [], onEditSnapshot, onDeleteSnapshot, onV
 
   const getVal = (s, key) => {
     if (!s) return '';
-    switch(key) {
-      case 'date': return s.date;
-      case 'visual': return s.imageUrl;
-      case 'volume': return s.noOfTrades;
-      case 'compliance': return { rules: s.rulesFollowed, eq: s.emotionsInControl, system: s.setupFollowed };
-      case 'metadata': return s.tags || [];
-      case 'yield': return s.progress || s.winRate;
-      default: return s[key] || '';
-    }
+    return s[key] || '';
   };
 
   const getUniqueValues = (key) => {
@@ -361,68 +353,94 @@ const SnapshotSection = ({ snapshots = [], onEditSnapshot, onDeleteSnapshot, onV
                   animate={{ opacity: 1 }}
                   className="hover:bg-white/[0.02] transition-colors group"
                 >
-                  <td className="sticky left-0 z-10 bg-journal-bg/80 backdrop-blur-md px-6 py-4 border-b border-white/[0.02]">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-500">
-                        <Calendar size={14} />
-                      </div>
-                      <span className="text-[10px] font-black text-white uppercase tracking-widest whitespace-nowrap">
-                        {s.date?.toDateString ? s.date.toDateString() : s.date}
-                      </span>
-                    </div>
-                  </td>
-                  
-                  <td className="px-6 py-4">
-                    <div 
-                      onClick={() => onViewImage(s.imageUrl)}
-                      className="relative w-12 h-8 rounded-lg overflow-hidden border border-slate-800 group-hover:border-journal-gold/50 cursor-pointer transition-all"
-                    >
-                      {s.imageUrl ? (
-                        <img src={s.imageUrl} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-slate-950 flex items-center justify-center text-slate-800">
-                          <ImageIcon size={14} />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-journal-bg/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <ImageIcon size={12} className="text-white" />
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="px-6 py-4 text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-950 border border-slate-800">
-                      <BarChart3 size={10} className="text-journal-gold" />
-                      <span className="text-[10px] font-black text-white">{s.noOfTrades || 0}</span>
-                    </div>
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-center gap-4">
-                      {COMPLIANCE_OPTIONS.map(opt => {
-                        const Icon = opt.key === 'rulesFollowed' ? ShieldCheck : (opt.key === 'emotionsInControl' ? Smile : Target);
-                        const isActive = !!s[opt.key];
-                        const colorClass = opt.key === 'rulesFollowed' ? 'text-emerald-400' : (opt.key === 'emotionsInControl' ? 'text-indigo-400' : 'text-journal-gold');
-                        
+                  {SNAPSHOT_COLUMNS.map(col => {
+                    const val = s[col.key];
+                    const renderCell = () => {
+                      if (col.type === 'date') {
+                         return (
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-500">
+                                <Calendar size={14} />
+                              </div>
+                              <span className="text-[10px] font-black text-white uppercase tracking-widest whitespace-nowrap">
+                                {val ? new Date(val).toDateString() : '-'}
+                              </span>
+                            </div>
+                         );
+                      }
+                      if (col.type === 'image') {
                         return (
-                          <div key={opt.key} className={`flex flex-col items-center gap-1 ${isActive ? colorClass : 'text-slate-800'}`}>
-                            <Icon size={14} />
-                            <span className="text-[6px] font-black uppercase tracking-tighter">{opt.shortLabel}</span>
+                          <div 
+                            onClick={(e) => { e.stopPropagation(); onViewImage(val); }}
+                            className="relative w-12 h-8 rounded-lg overflow-hidden border border-slate-800 group-hover:border-journal-gold/50 cursor-pointer transition-all"
+                          >
+                            {val ? <img src={val} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-950 flex items-center justify-center text-slate-800"><ImageIcon size={14} /></div>}
                           </div>
                         );
-                      })}
-                    </div>
-                  </td>
+                      }
+                      if (col.key === 'noOfTrades') {
+                        return (
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-950 border border-slate-800">
+                            <BarChart3 size={10} className="text-journal-gold" />
+                            <span className="text-[10px] font-black text-white">{val || 0}</span>
+                          </div>
+                        );
+                      }
+                      if (col.type === 'array') {
+                         const arr = Array.isArray(val) ? val : (val ? val.split(', ') : []);
+                         return (
+                            <div className="flex flex-wrap gap-1.5 max-w-[180px]">
+                              {arr.map(t => <span key={t} className="px-2 py-0.5 rounded-md bg-white/[0.03] text-[8px] font-black uppercase text-slate-500 border border-white/5 hover:border-journal-gold/30">#{t}</span>)}
+                            </div>
+                         );
+                      }
+                      if (col.key === 'rulesFollowed' || col.key === 'emotionsInControl' || col.key === 'setup') {
+                        const isYes = val === 'Yes';
+                        return (
+                          <div className={`flex items-center gap-2 px-2 py-1 rounded-lg border w-fit ${isYes ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                            {isYes ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                            <span className="text-[9px] font-black uppercase tracking-tighter">{val}</span>
+                          </div>
+                        );
+                      }
 
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1.5 max-w-[180px]">
-                      {s.tags?.length > 0 ? s.tags.map(t => (
-                        <span key={t} className="px-2 py-0.5 rounded-md bg-white/[0.03] text-[8px] font-black uppercase text-slate-500 border border-white/5 hover:border-journal-gold/30 hover:text-slate-300 transition-all cursor-default">
-                          #{t}
-                        </span>
-                      )) : <span className="text-[9px] text-slate-700 italic">No Tags</span>}
-                    </div>
-                  </td>
+                      if (col.key === 'progress') {
+                        const numVal = parseInt(val) || 0;
+                        const getColor = (v) => {
+                          if (v >= 100) return 'from-journal-gold to-amber-400';
+                          if (v >= 66) return 'from-emerald-400 to-emerald-600';
+                          if (v >= 33) return 'from-orange-400 to-orange-600';
+                          return 'from-rose-500 to-rose-700';
+                        };
+                        return (
+                          <div className="w-32 space-y-2">
+                             <div className="flex items-center justify-between">
+                                <span className={`text-[10px] font-black italic ${numVal === 100 ? 'text-journal-gold' : 'text-slate-400'}`}>{val}</span>
+                                {numVal === 100 && <span className="text-[8px] font-black text-journal-gold uppercase tracking-tighter">Perfect</span>}
+                             </div>
+                             <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-white/5 p-[1px]">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${numVal}%` }}
+                                  className={`h-full rounded-full bg-gradient-to-r ${getColor(numVal)} shadow-[0_0_10px_rgba(212,175,55,0.2)]`}
+                                />
+                             </div>
+                          </div>
+                        );
+                      }
+                      
+                      return <span className="text-[10px] font-bold text-slate-200">{String(val || '-')}</span>;
+                    };
+
+                    return (
+                      <td 
+                        key={col.key} 
+                        className={`px-6 py-4 border-b border-white/[0.02] ${col.sticky ? 'sticky left-0 z-10 bg-journal-bg/80 backdrop-blur-md' : ''} ${col.align === 'center' ? 'text-center' : ''}`}
+                      >
+                        {renderCell()}
+                      </td>
+                    );
+                  })}
 
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1 translate-x-2 opacity-0 group-hover:opacity-100 transition-all">
@@ -441,7 +459,8 @@ const SnapshotSection = ({ snapshots = [], onEditSnapshot, onDeleteSnapshot, onV
                     </div>
                   </td>
                 </motion.tr>
-              )) : (
+              ))
+ : (
                 <tr>
                   <td colSpan={SNAPSHOT_COLUMNS.length + 1} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center gap-4">

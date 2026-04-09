@@ -15,7 +15,11 @@ import {
   COMPLIANCE_OPTIONS,
   NOTE_CATEGORY_OPTIONS
 } from '../../constants/journalOptions';
-import { FIELD_ALIASES } from '../../constants/fieldMappings';
+import { 
+  DEFAULT_TRADE_FORM, mapTradeToForm, 
+  DEFAULT_SNAPSHOT_FORM, mapSnapshotToForm, 
+  DEFAULT_NOTE_FORM, mapNoteToForm 
+} from '../../constants/formDefaults';
 
 const ModalWrapper = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl' }) => {
   if (!isOpen) return null;
@@ -84,11 +88,11 @@ export const AddGoalModal = ({ isOpen, onClose, onSave }) => {
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Start Date</label>
-            <input type="date" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
+            <input type="date" value={formData.startDate || ''} onChange={e => setFormData({...formData, startDate: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Target Date</label>
-            <input type="date" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
+            <input type="date" value={formData.endDate || ''} onChange={e => setFormData({...formData, endDate: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
           </div>
         </div>
 
@@ -98,8 +102,9 @@ export const AddGoalModal = ({ isOpen, onClose, onSave }) => {
             <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
             <input 
               type="number" 
+              onWheel={(e) => e.target.blur()} 
               placeholder="e.g. 50000"
-              value={formData.amount} 
+              value={formData.amount || ''} 
               onChange={e => setFormData({...formData, amount: e.target.value})} 
               className="w-full bg-slate-950/50 border border-slate-800 rounded-xl pl-11 pr-4 py-4 text-sm font-black text-white outline-none focus:border-journal-gold/50" 
             />
@@ -124,9 +129,10 @@ const MultiSelect = ({ label, options, selected, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   
   const toggleOption = (opt) => {
-    const newSelected = selected.includes(opt) 
-      ? selected.filter(s => s !== opt) 
-      : [...selected, opt];
+    const safeSelected = Array.isArray(selected) ? selected : [];
+    const newSelected = safeSelected.includes(opt) 
+      ? safeSelected.filter(s => s !== opt) 
+      : [...safeSelected, opt];
     onChange(newSelected);
   };
 
@@ -149,7 +155,7 @@ const MultiSelect = ({ label, options, selected, onChange }) => {
         onClick={() => setIsOpen(!isOpen)}
         className="min-h-[44px] bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-2 flex flex-wrap gap-2 cursor-pointer hover:border-journal-gold/30 transition-all"
       >
-        {selected?.length > 0 ? (
+        {Array.isArray(selected) && selected.length > 0 ? (
           selected.map(s => (
             <span key={s} className="px-2 py-0.5 rounded bg-journal-gold/10 text-journal-gold text-[10px] font-bold uppercase tracking-tighter flex items-center gap-1">
               {s} <X size={10} className="cursor-pointer" onClick={(e) => { e.stopPropagation(); toggleOption(s); }} />
@@ -240,25 +246,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
     if (!showRateInput) setCustomRate(liveRate);
   }, [liveRate]);
 
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().slice(0, 16),
-    market: '',
-    direction: 'LONG',
-    isWin: 'WIN',
-    pl: '',
-    rr: '',
-    screenshot: null,
-    reason: '',
-    learning: '',
-    setups: [],
-    lossReasons: [],
-    emotions: 'Clam',
-    positionSize: '',
-    tradeQuality: 'A++',
-    tradeStatus: 'Netural',
-    positionType: 'Intraday',
-    tradeMode: 'Buying'
-  });
+  const [formData, setFormData] = useState(DEFAULT_TRADE_FORM);
 
   useEffect(() => {
     const val = parseFloat(formData.pl);
@@ -269,66 +257,9 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
 
   useEffect(() => {
     if (editingTrade && isOpen) {
-      // Smart mapping helper to handle aliased data from migration
-      const getSmartVal = (key) => {
-        const variants = FIELD_ALIASES[key] || [key];
-        
-        // Check core data
-        for (const v of variants) {
-          if (editingTrade[v] !== undefined && editingTrade[v] !== '') return editingTrade[v];
-        }
-
-        // Check originalData fallback
-        if (editingTrade.originalData) {
-          for (const v of variants) {
-            if (editingTrade.originalData[v] !== undefined && editingTrade.originalData[v] !== '') return editingTrade.originalData[v];
-          }
-        }
-        return '';
-      };
-
-      setFormData({
-        date: editingTrade.jsDate ? new Date(editingTrade.jsDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
-        market: getSmartVal('market'),
-        direction: (getSmartVal('direction') || 'LONG').toUpperCase().includes('LONG') ? 'LONG' : (String(getSmartVal('direction')).toUpperCase().includes('SHORT') ? 'SHORT' : 'OBSERVE'),
-        isWin: (editingTrade.isWin === true || String(getSmartVal('isWin')).toUpperCase() === 'WIN') ? 'WIN' : 'LOSS',
-        pl: editingTrade.pl?.toString() || '',
-        rr: getSmartVal('rr'),
-        screenshot: null,
-        reason: getSmartVal('reason'),
-        learning: getSmartVal('learning'),
-        setups: Array.isArray(editingTrade.setups) ? editingTrade.setups : (editingTrade.setup ? [editingTrade.setup] : []),
-        lossReasons: Array.isArray(editingTrade.lossReasons) ? editingTrade.lossReasons : (getSmartVal('lossReason') ? [getSmartVal('lossReason')] : []),
-        emotions: getSmartVal('emotion') || 'Calm',
-        positionSize: getSmartVal('lots'),
-        tradeQuality: getSmartVal('quality') || 'A',
-        tradeStatus: getSmartVal('status') || 'Neutral',
-        positionType: getSmartVal('positionType') || 'Intraday',
-        tradeMode: getSmartVal('tradeMode') || 'Buying',
-        chartScreenshotUrl: getSmartVal('chartScreenshotUrl')
-      });
+      setFormData(mapTradeToForm(editingTrade));
     } else if (!editingTrade && isOpen) {
-      // Reset form for new entry - ensuring no field is undefined
-      setFormData({
-        date: new Date().toISOString().slice(0, 16),
-        market: '',
-        direction: 'LONG',
-        isWin: 'WIN',
-        pl: '',
-        rr: '',
-        screenshot: null,
-        reason: '',
-        learning: '',
-        setups: [],
-        lossReasons: [],
-        emotions: 'Calm',
-        positionSize: '',
-        tradeQuality: 'A',
-        tradeStatus: 'Neutral',
-        positionType: 'Intraday',
-        tradeMode: 'Buying',
-        chartScreenshotUrl: ''
-      });
+      setFormData(DEFAULT_TRADE_FORM);
     }
   }, [editingTrade, isOpen]);
 
@@ -361,7 +292,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
             <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Execution Date & Time</label>
             <input 
               type="datetime-local" 
-              value={formData.date}
+              value={formData.date || ''}
               onChange={e => setFormData({...formData, date: e.target.value})}
               className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 transition-all [color-scheme:dark]"
             />
@@ -370,7 +301,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
           <SingleSelect 
             label="Market / Symbol"
             options={Array.from(new Set([...MARKET_OPTIONS, ...uniqueValues('market')]))}
-            value={formData.market}
+            value={formData.market || ''}
             onChange={val => setFormData({...formData, market: val})}
           />
 
@@ -407,7 +338,8 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
                     <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded px-1">
                       <input 
                         type="number" 
-                        value={customRate} 
+                        onWheel={(e) => e.target.blur()} 
+                        value={customRate || ''} 
                         onChange={e => setCustomRate(parseFloat(e.target.value))}
                         className="w-12 bg-transparent text-[9px] text-white outline-none font-bold"
                       />
@@ -439,7 +371,9 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
               </div>
               <input 
                 type="number" 
-                value={formData.pl}
+                step="any"
+                onWheel={(e) => e.target.blur()} 
+                value={formData.pl || ''}
                 onChange={e => setFormData({...formData, pl: e.target.value})}
                 placeholder="0.00"
                 className={`w-full bg-slate-950/50 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 ${formData.pl < 0 ? 'text-journal-red' : (formData.pl > 0 ? 'text-emerald-400' : '')}`}
@@ -484,7 +418,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
           <div className="flex flex-col gap-2">
              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Reason For Trade</label>
              <textarea 
-               value={formData.reason}
+               value={formData.reason || ''}
                onChange={e => setFormData({...formData, reason: e.target.value})}
                className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-medium text-slate-300 outline-none focus:border-journal-gold/50 h-24 resize-none"
                placeholder="Logic behind entry..."
@@ -493,7 +427,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
           <div className="flex flex-col gap-2">
              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Key Learning / Reflection</label>
              <textarea 
-               value={formData.learning}
+               value={formData.learning || ''}
                onChange={e => setFormData({...formData, learning: e.target.value})}
                className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-medium text-slate-300 outline-none focus:border-journal-gold/50 h-24 resize-none"
                placeholder="Mistakes or wins..."
@@ -507,7 +441,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
              <MultiSelect 
                label="Aligned Setups" 
                options={SETUP_OPTIONS}
-               selected={formData.setups}
+               selected={formData.setups || []}
                onChange={val => setFormData({...formData, setups: val})}
              />
            </div>
@@ -517,7 +451,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Taken RR</label>
                 <input 
                   type="text" 
-                  value={formData.rr}
+                  value={formData.rr || ''}
                   onChange={e => setFormData({...formData, rr: e.target.value})}
                   placeholder="1:2.5"
                   className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 h-[42px]"
@@ -531,7 +465,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
           <MultiSelect 
             label="Loss Reasons" 
             options={LOSS_REASON_OPTIONS}
-            selected={formData.lossReasons}
+            selected={formData.lossReasons || []}
             onChange={val => setFormData({...formData, lossReasons: val})}
           />
         )}
@@ -540,27 +474,27 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
            <div className="flex flex-col gap-2 text-center lg:text-left">
               <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Position Size</label>
-              <input type="number" value={formData.positionSize} onChange={e => setFormData({...formData, positionSize: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none" placeholder="Lots" />
+              <input type="number" step="any" onWheel={(e) => e.target.blur()} value={formData.positionSize || ''} onChange={e => setFormData({...formData, positionSize: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none" placeholder="Lots" />
            </div>
            
            <SingleSelect 
              label="Trade Quality"
              options={TRADE_QUALITY_OPTIONS}
-             value={formData.tradeQuality}
+             value={formData.tradeQuality || ''}
              onChange={val => setFormData({...formData, tradeQuality: val})}
            />
 
            <SingleSelect 
              label="Trade Status"
              options={TRADE_STATUS_OPTIONS}
-             value={formData.tradeStatus}
+             value={formData.tradeStatus || ''}
              onChange={val => setFormData({...formData, tradeStatus: val})}
            />
 
            <SingleSelect 
              label="Emotions"
              options={EMOTION_OPTIONS}
-             value={formData.emotions}
+             value={formData.emotions || ''}
              onChange={val => setFormData({...formData, emotions: val})}
            />
 
@@ -629,54 +563,13 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
 
 
 export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, existingTags = [] }) => {
-  const getLocalDate = (d = new Date()) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const [formData, setFormData] = useState({
-    date: getLocalDate(),
-    image: null,
-    imageUrl: '',
-    tags: [],
-    noOfTrades: '',
-    rulesFollowed: true,
-    emotionsInControl: true,
-    setupFollowed: true,
-    setup: ''
-  });
+  const [formData, setFormData] = useState(DEFAULT_SNAPSHOT_FORM);
 
   useEffect(() => {
     if (editingSnapshot && isOpen) {
-      const d = (editingSnapshot.jsDate?.toDate ? editingSnapshot.jsDate.toDate() : new Date(editingSnapshot.jsDate || editingSnapshot.date));
-      const dateStr = isNaN(d.getTime()) ? getLocalDate() : getLocalDate(d);
-
-      setFormData({
-        ...editingSnapshot,
-        date: dateStr,
-        image: null,
-        imageUrl: editingSnapshot.imageUrl || '',
-        tags: editingSnapshot.tags || [],
-        noOfTrades: editingSnapshot.noOfTrades || '',
-        rulesFollowed: !!editingSnapshot.rulesFollowed,
-        emotionsInControl: !!editingSnapshot.emotionsInControl,
-        setupFollowed: !!editingSnapshot.setupFollowed,
-        setup: editingSnapshot.setup || ''
-      });
+      setFormData(mapSnapshotToForm(editingSnapshot));
     } else if (!editingSnapshot && isOpen) {
-      setFormData({
-        date: getLocalDate(),
-        image: null,
-        imageUrl: '',
-        tags: [],
-        noOfTrades: '',
-        rulesFollowed: true,
-        emotionsInControl: true,
-        setupFollowed: true,
-        setup: ''
-      });
+      setFormData(DEFAULT_SNAPSHOT_FORM);
     }
   }, [editingSnapshot, isOpen]);
 
@@ -700,18 +593,38 @@ export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, exi
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                <div className="flex flex-col gap-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Snapshot Date</label>
-                  <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
+                  <input type="date" value={formData.date || ''} onChange={e => setFormData({...formData, date: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
                </div>
-               <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Execution Volume</label>
-                  <input type="number" placeholder="No. of Trades" value={formData.noOfTrades} onChange={e => setFormData({...formData, noOfTrades: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50" />
-               </div>
+                <div className="flex flex-col gap-2">
+                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Execution Volume</label>
+                   <div className="flex items-center gap-2">
+                      <div className="flex bg-slate-900/50 border border-slate-800 rounded-xl p-1 shrink-0">
+                        {[1, 2, 3, 4, 5].map(num => (
+                          <button
+                            key={num}
+                            onClick={() => setFormData({...formData, noOfTrades: num.toString()})}
+                            className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${formData.noOfTrades === num.toString() ? 'bg-journal-gold text-journal-bg shadow-lg shadow-journal-gold/20' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+                          >
+                            {num}
+                          </button>
+                        ))}
+                      </div>
+                      <input 
+                        type="number" 
+                        onWheel={(e) => e.target.blur()} 
+                        placeholder="Qty" 
+                        value={formData.noOfTrades || ''} 
+                        onChange={e => setFormData({...formData, noOfTrades: e.target.value})} 
+                        className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50" 
+                      />
+                   </div>
+                </div>
              </div>
 
              <MultiSelect 
                 label="Metadata Tags" 
                 options={existingTags}
-                selected={formData.tags}
+                selected={formData.tags || []}
                 onChange={val => setFormData({...formData, tags: val})}
              />
 
@@ -748,10 +661,10 @@ export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, exi
              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Rule Compliance Checklist</label>
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {COMPLIANCE_OPTIONS.map(item => (
-                  <label key={item.key} className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${formData[item.key] ? 'bg-journal-gold/5 border-journal-gold/40 text-journal-gold' : 'bg-slate-950/30 border-slate-800 text-slate-500'}`}>
+                  <label key={item.key} className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${!!formData[item.key] ? 'bg-journal-gold/5 border-journal-gold/40 text-journal-gold' : 'bg-slate-950/30 border-slate-800 text-slate-500'}`}>
                      <span className="text-[10px] font-black uppercase italic tracking-widest">{item.label}</span>
-                     <input type="checkbox" checked={formData[item.key]} onChange={e => setFormData({...formData, [item.key]: e.target.checked})} className="hidden" />
-                     {formData[item.key] ? <Check size={16} /> : <Plus size={16} />}
+                     <input type="checkbox" checked={!!formData[item.key]} onChange={e => setFormData({...formData, [item.key]: e.target.checked})} className="hidden" />
+                     {!!formData[item.key] ? <Check size={16} /> : <Plus size={16} />}
                   </label>
                 ))}
              </div>
@@ -775,39 +688,13 @@ export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, exi
 
 
 export const AddNoteModal = ({ isOpen, onClose, onSave, editingNote }) => {
-  const getLocalDate = (d = new Date()) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const [formData, setFormData] = useState({
-    date: getLocalDate(),
-    content: '',
-    category: 'Observation\'s',
-    isPinned: false
-  });
+  const [formData, setFormData] = useState(DEFAULT_NOTE_FORM);
 
   useEffect(() => {
     if (editingNote && isOpen) {
-      const d = (editingNote.jsDate?.toDate ? editingNote.jsDate.toDate() : new Date(editingNote.jsDate || editingNote.date));
-      const dateStr = isNaN(d.getTime()) ? getLocalDate() : getLocalDate(d);
-
-      setFormData({
-        ...editingNote,
-        date: dateStr,
-        content: editingNote.content || '',
-        category: editingNote.category || 'Observation\'s',
-        isPinned: !!editingNote.isPinned
-      });
+      setFormData(mapNoteToForm(editingNote));
     } else if (!editingNote && isOpen) {
-      setFormData({
-        date: getLocalDate(),
-        content: '',
-        category: 'Observation\'s',
-        isPinned: false
-      });
+      setFormData(DEFAULT_NOTE_FORM);
     }
   }, [editingNote, isOpen]);
 
@@ -831,11 +718,11 @@ export const AddNoteModal = ({ isOpen, onClose, onSave, editingNote }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Entry Date</label>
-                <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
+                <input type="date" value={formData.date || ''} onChange={e => setFormData({...formData, date: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
              </div>
              <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Category</label>
-                <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none">
+                <select value={formData.category || ''} onChange={e => setFormData({...formData, category: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none">
                    {NOTE_CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
              </div>

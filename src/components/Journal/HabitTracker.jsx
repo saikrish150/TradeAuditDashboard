@@ -27,8 +27,8 @@ const HabitTracker = ({ snapshots = [] }) => {
 
   const sortedSnapshots = useMemo(() => {
     return [...snapshots].sort((a, b) => {
-      const dateA = a.jsDate?.toDate ? a.jsDate.toDate() : new Date(a.jsDate || a.date);
-      const dateB = b.jsDate?.toDate ? b.jsDate.toDate() : new Date(b.jsDate || b.date);
+      const dateA = a.jsDate || new Date(a.date);
+      const dateB = b.jsDate || new Date(b.date);
       return dateB - dateA;
     });
   }, [snapshots]);
@@ -37,7 +37,7 @@ const HabitTracker = ({ snapshots = [] }) => {
   const streak = useMemo(() => {
     let currentStreak = 0;
     for (const s of sortedSnapshots) {
-      if (s.rulesFollowed && s.emotionsInControl && s.setupFollowed) {
+      if (s.rulesFollowedBool && s.emotionsInControlBool && s.setupFollowedBool) {
         currentStreak++;
       } else {
         break;
@@ -53,15 +53,15 @@ const HabitTracker = ({ snapshots = [] }) => {
     const cutoff = new Date(now.setDate(now.getDate() - days));
     
     const recent = sortedSnapshots.filter(s => {
-      const d = s.jsDate?.toDate ? s.jsDate.toDate() : new Date(s.jsDate || s.date);
+      const d = s.jsDate || new Date(s.date);
       return d >= cutoff;
     });
     const denominator = recent.length || 1;
 
     return {
-      ruleRate: Math.round((recent.filter(s => s.rulesFollowed).length / denominator) * 100),
-      emotionRate: Math.round((recent.filter(s => s.emotionsInControl).length / denominator) * 100),
-      setupRate: Math.round((recent.filter(s => s.setupFollowed).length / denominator) * 100),
+      ruleRate: Math.round((recent.filter(s => s.rulesFollowedBool).length / denominator) * 100),
+      emotionRate: Math.round((recent.filter(s => s.emotionsInControlBool).length / denominator) * 100),
+      setupRate: Math.round((recent.filter(s => s.setupFollowedBool).length / denominator) * 100),
       count: recent.length
     };
   }, [sortedSnapshots, timeframe]);
@@ -69,9 +69,9 @@ const HabitTracker = ({ snapshots = [] }) => {
   // Discipline Rank based on Global Consistency
   const averageAllTime = useMemo(() => {
     if (!sortedSnapshots.length) return 0;
-    const rules = sortedSnapshots.filter(s => s.rulesFollowed).length;
-    const emotions = sortedSnapshots.filter(s => s.emotionsInControl).length;
-    const system = sortedSnapshots.filter(s => s.setupFollowed).length;
+    const rules = sortedSnapshots.filter(s => s.rulesFollowedBool).length;
+    const emotions = sortedSnapshots.filter(s => s.emotionsInControlBool).length;
+    const system = sortedSnapshots.filter(s => s.setupFollowedBool).length;
     return Math.round(((rules + emotions + system) / (sortedSnapshots.length * 3)) * 100);
   }, [sortedSnapshots]);
 
@@ -199,9 +199,9 @@ const HabitTracker = ({ snapshots = [] }) => {
                   const s = sortedSnapshots[i];
                   let count = 0;
                   if (s) {
-                    if (s.rulesFollowed) count++;
-                    if (s.emotionsInControl) count++;
-                    if (s.setupFollowed) count++;
+                    if (s.rulesFollowedBool) count++;
+                    if (s.emotionsInControlBool) count++;
+                    if (s.setupFollowedBool) count++;
                   }
                   
                   const getColor = () => {

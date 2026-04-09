@@ -5,7 +5,7 @@ import {
   ArrowUpDown, ExternalLink, ImageIcon, CheckCircle, XCircle, Plus, X, Trash2
 } from 'lucide-react';
 import { JOURNAL_COLUMNS } from '../../constants/journalColumns';
-import { FIELD_ALIASES } from '../../constants/fieldMappings';
+import { DB_FIELDS } from '../../constants/fieldMappings';
 import { formatCurrency } from '../../utils';
 import { FullTextModal } from './JournalModals';
 
@@ -36,33 +36,10 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
 
   const columns = JOURNAL_COLUMNS;
 
-  // Helper to get trade value with alias support
-  const getVal = (trade, key) => {
-    if (!trade) return '';
-    const aliases = FIELD_ALIASES;
-
-    if (aliases[key]) {
-      for (const alias of aliases[key]) {
-        const val = trade[alias];
-        const isPL = key === 'pl';
-        
-        // If it's P&L, don't stop at default 0 if there might be a better value in originalData
-        if (val !== undefined && val !== '' && !(isPL && parseFloat(val) === 0)) return val;
-        
-        // Fallback to originalData from migration
-        if (trade.originalData && trade.originalData[alias] !== undefined && trade.originalData[alias] !== '') {
-          const oVal = trade.originalData[alias];
-          if (!(isPL && parseFloat(oVal?.toString().replace(/[₹,]/g, '')) === 0)) return oVal;
-        }
-      }
-    }
-    const directVal = trade[key];
-    if (directVal !== undefined && directVal !== '') return directVal;
-    
-    // Final fallback to originalData for the key itself
-    if (trade.originalData && trade.originalData[key] !== undefined) return trade.originalData[key];
-    
-    return '';
+  // Helper to get trade value directly from literal keys
+  const getVal = (s, key) => {
+    if (!s) return '';
+    return s[key] || '';
   };
 
   const getUniqueValues = (field) => {
@@ -450,77 +427,64 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                 layout
                 className="hover:bg-white/[0.02] transition-colors group"
               >
+                {columns.map(col => {
+                  const val = trade[col.key];
+                  
+                  // Specialized Rendering based on Column Type
+                  const renderCell = () => {
+                    if (col.type === 'date') {
+                      return <span className="text-[10px] font-bold text-slate-300">{val ? new Date(val).toDateString() : '-'}</span>;
+                    }
+                    if (col.key === 'W/L' || col.key === 'isWin') {
+                      const isWin = val === 'WIN' || trade.isWin === true;
+                      return (
+                        <span className={`text-[9px] font-black uppercase tracking-widest ${isWin ? 'text-emerald-400' : 'text-journal-red'}`}>
+                          {val || (isWin ? 'WIN' : 'LOSS')}
+                        </span>
+                      );
+                    }
+                    if (col.key === 'pl') {
+                      const numVal = parseFloat(val?.toString().replace(/[₹,]/g, '')) || 0;
+                      return (
+                        <span className={`text-[11px] font-black tabular-nums ${numVal >= 0 ? 'text-emerald-400' : 'text-journal-red'}`}>
+                          {formatCurrency(numVal)}
+                        </span>
+                      );
+                    }
+                    if (col.key === 'chartScreenshotUrl' || col.key === 'imageUrl') {
+                      return val ? (
+                        <div 
+                          onClick={(e) => { e.stopPropagation(); onViewImage(val); }}
+                          className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-800 hover:border-journal-gold/50 transition-all cursor-pointer"
+                        >
+                          <img src={val} className="w-full h-full object-cover" />
+                        </div>
+                      ) : '-';
+                    }
+                    if (col.type === 'array') {
+                      const arr = Array.isArray(val) ? val : (val ? val.split(', ') : []);
+                      return (
+                        <div className="flex flex-wrap gap-1 max-w-[150px]">
+                          {arr.map(s => <span key={s} className="px-1 py-0.5 rounded bg-white/[0.05] border border-white/5 text-[8px] font-bold text-slate-300 uppercase">{s}</span>)}
+                        </div>
+                      );
+                    }
+                    
+                    // Default Text Cell
+                    return <span className="text-[10px] font-bold text-slate-200">{String(val || '-')}</span>;
+                  };
 
-                <td className="sticky left-0 z-10 bg-journal-bg/80 backdrop-blur-md px-6 py-4 font-black text-[11px] text-white tracking-widest uppercase italic group-hover:bg-white/[0.05]">
-                  {trade.market}
-                </td>
-                <td className="px-6 py-4 text-[10px] font-bold text-slate-300 whitespace-nowrap">{trade.fullDate}</td>
-                <td className={`px-6 py-4 text-[9px] font-black uppercase tracking-widest ${
-                  (trade.isWin === true || String(trade.isWin).toUpperCase() === 'WIN') ? 'text-emerald-400' : 'text-journal-red'
-                }`}>
-                  {trade.isWin === true || String(trade.isWin).toUpperCase() === 'WIN' ? 'WIN' : 'LOSS'}
-                </td>
-                <td className={`px-6 py-4 text-[11px] font-black tabular-nums ${parseFloat(getVal(trade, 'pl')) >= 0 ? 'text-emerald-400' : 'text-journal-red'}`}>
-                  {formatCurrency(getVal(trade, 'pl'))}
-                </td>
-                <td className="px-6 py-4 text-[10px] font-bold text-slate-200 tabular-nums">
-                  {getVal(trade, 'rr') || '-'}
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${['LONG', 'B'].includes(String(trade.direction).toUpperCase()) ? 'text-indigo-400 bg-indigo-500/10' : 'text-orange-400 bg-orange-500/10'}`}>
-                    {trade.direction}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-[10px] font-bold text-slate-200">{getVal(trade, 'emotion')}</td>
-                <td 
-                  onClick={() => setViewingText({ title: 'Loss Reasons / Logic', content: Array.isArray(getVal(trade, 'reason')) ? getVal(trade, 'reason').join(', ') : getVal(trade, 'reason') })}
-                  className="px-6 py-4 text-[10px] font-medium text-slate-400 truncate max-w-[150px] cursor-pointer hover:text-white transition-colors"
-                >
-                  {Array.isArray(getVal(trade, 'reason')) ? getVal(trade, 'reason').join(', ') : getVal(trade, 'reason')}
-                </td>
-                <td 
-                  onClick={() => setViewingText({ title: 'Reason For Trade', content: getVal(trade, 'reasonForTrade') })}
-                  className="px-6 py-4 text-[10px] font-medium text-slate-300 truncate max-w-[150px] cursor-pointer hover:text-white transition-colors"
-                >
-                  {getVal(trade, 'reasonForTrade')}
-                </td>
-                <td 
-                  onClick={() => setViewingText({ title: 'Key Learning / Reflection', content: getVal(trade, 'learning') })}
-                  className="px-6 py-4 text-[10px] font-medium text-slate-200 italic truncate max-w-[200px] cursor-pointer hover:text-white transition-colors"
-                >
-                   {getVal(trade, 'learning')}
-                </td>
-                <td className="px-6 py-4 text-[11px] font-bold text-slate-200">{getVal(trade, 'lots')}</td>
-                <td className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">{trade.positionType || trade.type || '-'}</td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-wrap gap-1 max-w-[150px]">
-                    {trade.setups?.map(s => (
-                      <span key={s} className="px-1 py-0.5 rounded bg-white/[0.05] border border-white/5 text-[8px] font-bold text-slate-300 uppercase">{s}</span>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="text-[10px] font-black italic text-journal-gold">{getVal(trade, 'quality')}</span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="text-[9px] font-bold uppercase text-slate-300 bg-slate-800/50 px-2 py-1 rounded">{getVal(trade, 'status')}</span>
-                </td>
-                <td className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">
-                  {getVal(trade, 'tradeMode')}
-                </td>
-                <td className="px-6 py-4">
-                   {getVal(trade, 'chartScreenshotUrl') ? (
-                     <div 
-                       onClick={() => onViewImage(getVal(trade, 'chartScreenshotUrl'))}
-                       className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-800 hover:border-journal-gold/50 transition-all cursor-pointer"
-                     >
-                       <img src={getVal(trade, 'chartScreenshotUrl')} className="w-full h-full object-cover" />
-                       <div className="absolute inset-0 bg-journal-bg/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                         <ImageIcon size={12} className="text-white" />
-                       </div>
-                     </div>
-                   ) : <span className="text-slate-700">-</span>}
-                </td>
+                  return (
+                    <td 
+                      key={col.key}
+                      onClick={() => (col.type === 'text' || col.key.includes('Reason')) && setViewingText({ title: col.label, content: val })}
+                      className={`px-6 py-4 truncate max-w-[200px] ${col.sticky ? 'sticky left-0 z-10 bg-journal-bg/80 backdrop-blur-md group-hover:bg-white/[0.05]' : ''} ${(col.type === 'text' || col.key.includes('Reason')) ? 'cursor-pointer hover:text-white' : ''}`}
+                    >
+                      {renderCell()}
+                    </td>
+                  );
+                })}
+                
                 <td className="px-6 py-4 text-right">
                   <button
                     onClick={() => onEditTrade(trade)}

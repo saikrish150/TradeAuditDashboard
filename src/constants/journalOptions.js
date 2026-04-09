@@ -41,7 +41,7 @@ export const TRADE_QUALITY_OPTIONS = ['A++', 'A', 'Bad'];
 export const COMPLIANCE_OPTIONS = [
   { key: 'rulesFollowed', label: 'All Rules Followed', shortLabel: 'Rules' },
   { key: 'emotionsInControl', label: 'Emotions in Control', shortLabel: 'EQ' },
-  { key: 'setupFollowed', label: 'Taken only setup', shortLabel: 'System' }
+  { key: 'snapshotSetup', label: 'Taken only setup', shortLabel: 'System' }
 ];
 
 export const SNAPSHOT_TAG_OPTIONS = [

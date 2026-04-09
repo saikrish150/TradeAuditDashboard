@@ -1,97 +1,101 @@
 /**
- * FIELD_ALIASES: A centralized registry of all known database field names.
- * This handles variations from different data sources (Notion, CSVs, Manual Entry).
- * Used primarily for READING and NORMALIZING data for the UI.
+ * DB_FIELDS: The single source of truth for column names in Supabase.
+ * These match your database EXACTLY (including spaces and spelling).
  */
-export const FIELD_ALIASES = {
-  pl: ['pl', 'P/L', 'P & L', 'Profit/Loss', 'Net P&L', 'Amount', 'Profit'],
-  rr: ['rr', 'Taken RR', 'TakenRR', 'RR', 'rr_ratio'],
-  lots: ['lots', 'positionSize', 'Position Size(Lots)', 'Quantity'],
-  reason: ['reasonForTrade', 'Reson For Trade', 'logic', 'reason', 'TradeReason'],
-  learning: ['learning', 'Learning ', 'Lesson'],
-  emotion: ['emotion', 'emotions', 'Emotions', 'Psychology'],
-  quality: ['quality', 'tradeQuality', 'Trade Quality', 'Grade'],
-  status: ['status', 'tradeStatus', 'Trade Status'],
-  market: ['market', 'Market', 'Symbol', 'Ticker'],
-  direction: ['direction', 'Direction', 'Type'],
-  isWin: ['isWin', 'W/L', 'Result', 'Outcome'],
-  setup: ['setup', 'setups', 'Setup', 'Strategy'],
-  lossReason: ['lossReason', 'lossReasons', 'LOSS REASON '],
-  date: [
-    'date', 'Date', 'fullDate', 'Date Added', 
-    'Created time', 'Last edited time', 'Trade Date', 
-    'Execution Time', 'Timestamp', 'Created At', 'createdAt'
-  ],
-  positionType: ['positionType', 'Position Type', 'Trade Type'],
-  tradeMode: ['tradeMode', 'Trade Mode', 'Trading Mode', 'Trade mode (Buying/Selling)'],
-  chartScreenshotUrl: ['chartScreenshotUrl', 'screenshotUrl', 'Chart Screenshot', 'Screenshot', 'ImageUrl', 'url', 'Image'],
-  noOfTrades: ['noOfTrades', 'No of trades', 'Execution Volume', 'Volume', 'tradesCount'],
-  rulesFollowed: ['rulesFollowed', 'Rules Followed', 'Compliance', 'isCompliant'],
-  emotionsInControl: ['emotionsInControl', 'Emotions in Control ', 'Psychology Status'],
-  progress: ['progress', 'Progress', 'Daily Progress'],
-  content: ['content', 'Note', 'Content', 'Description'],
-  category: ['category', 'Select', 'Category', 'type'],
-  source: ['source', 'Source ', 'Link', 'Reference']
+export const DB_FIELDS = {
+  // Trade Columns
+  date: 'Date',
+  market: 'Market',
+  isWin: 'W/L',
+  winFlag: 'Win Flag',
+  pl: 'P/L',
+  rr: 'Taken RR',
+  reason: 'Reson For Trade',
+  learning: 'Learning ',
+  strategy: 'Strategy',
+  setups: 'Setups align with trade',
+  lossReason: 'LOSS REASON ',
+  emotions: 'Emotions',
+  positionSize: 'Position Size(Lots)',
+  tradeQuality: 'Trade Quality',
+  tradeStatus: 'Trade Status',
+  positionType: 'Position Type',
+  direction: 'Direction',
+  tradeMode: 'Trade mode (Buying/Selling)',
+  chartScreenshotUrl: 'Chart Screenshot',
+
+  // Snapshot Columns
+  dateAdded: 'Date Added',
+  snapshotImage: 'Image',
+  snapshotTags: 'Tags',
+  noOfTrades: 'No of trades',
+  rulesFollowed: 'Rules Followed',
+  emotionsInControl: 'Emotions in Control ',
+  snapshotSetup: 'Setup',
+  progress: 'Progress',
+
+  // Note Columns
+  noteDate: 'Date',
+  noteContent: 'Note',
+  noteCategory: 'Select',
+  notePinned: 'Pin',
+  noteSource: 'Source ',
+
+  // Goal Columns
+  goalStart: 'startDate',
+  goalEnd: 'endDate',
+  goalAmount: 'amount',
+  goalStatus: 'status'
 };
 
 /**
- * TRADE_SCHEMA_MAP: Defines the "Strict Schema" for WRITE operations.
- * Maps UI form keys to the intended final Database column names.
+ * [COMPATIBILITY MAPS]
+ * These are used for legacy support during writes.
  */
 export const TRADE_SCHEMA_MAP = {
-  date: 'date',
-  market: 'market',
-  direction: 'direction',
-  isWin: 'isWin',
-  pl: 'pl',
-  rr: 'rr',
-  reason: 'reasonForTrade',
-  learning: 'learning',
-  setups: 'setups',
-  lossReasons: 'lossReasons',
-  emotions: 'emotion',
-  positionSize: 'positionSize',
-  tradeQuality: 'tradeQuality',
-  tradeStatus: 'tradeStatus',
-  positionType: 'positionType',
-  tradeMode: 'tradeMode',
-  chartScreenshotUrl: 'chartScreenshotUrls' // Saved as array in DB
+  date: DB_FIELDS.date,
+  market: DB_FIELDS.market,
+  isWin: DB_FIELDS.isWin,
+  winFlag: DB_FIELDS.winFlag,
+  pl: DB_FIELDS.pl,
+  rr: DB_FIELDS.rr,
+  reason: DB_FIELDS.reason,
+  learning: DB_FIELDS.learning,
+  strategy: DB_FIELDS.strategy,
+  setups: DB_FIELDS.setups,
+  lossReasons: DB_FIELDS.lossReason,
+  emotions: DB_FIELDS.emotions,
+  positionSize: DB_FIELDS.positionSize,
+  tradeQuality: DB_FIELDS.tradeQuality,
+  tradeStatus: DB_FIELDS.tradeStatus,
+  positionType: DB_FIELDS.positionType,
+  direction: DB_FIELDS.direction,
+  tradeMode: DB_FIELDS.tradeMode,
+  chartScreenshotUrl: DB_FIELDS.chartScreenshotUrl
 };
 
-/**
- * SNAPSHOT_SCHEMA_MAP: Standard schema for Daily Performance Snapshots
- */
 export const SNAPSHOT_SCHEMA_MAP = {
-  date: 'date',
-  imageUrl: 'imageUrl',
-  tags: 'tags',
-  noOfTrades: 'noOfTrades',
-  rulesFollowed: 'rulesFollowed',
-  emotionsInControl: 'emotionsInControl',
-  setupFollowed: 'setupFollowed',
-  setup: 'setup',
-  progress: 'progress'
+  date: DB_FIELDS.dateAdded,
+  imageUrl: DB_FIELDS.snapshotImage,
+  tags: DB_FIELDS.snapshotTags,
+  noOfTrades: DB_FIELDS.noOfTrades,
+  rulesFollowed: DB_FIELDS.rulesFollowed,
+  emotionsInControl: DB_FIELDS.emotionsInControl,
+  setup: DB_FIELDS.snapshotSetup,
+  progress: DB_FIELDS.progress
 };
 
-/**
- * NOTE_SCHEMA_MAP: Standard schema for Psychology entries
- */
 export const NOTE_SCHEMA_MAP = {
-  date: 'date',
-  content: 'content',
-  category: 'category',
-  isPinned: 'isPinned',
-  source: 'source',
-  createdAt: 'createdAt',
-  lastEditedAt: 'lastEditedAt'
+  date: DB_FIELDS.noteDate,
+  content: DB_FIELDS.noteContent,
+  category: DB_FIELDS.noteCategory,
+  isPinned: DB_FIELDS.notePinned,
+  source: DB_FIELDS.noteSource
 };
 
-/**
- * GOAL_SCHEMA_MAP: Standard schema for Objective tracking
- */
 export const GOAL_SCHEMA_MAP = {
-  startDate: 'startDate',
-  endDate: 'endDate',
-  amount: 'amount',
-  status: 'status'
+  startDate: DB_FIELDS.goalStart,
+  endDate: DB_FIELDS.goalEnd,
+  amount: DB_FIELDS.goalAmount,
+  status: DB_FIELDS.goalStatus
 };

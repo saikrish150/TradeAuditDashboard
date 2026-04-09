@@ -16,7 +16,7 @@ import {
   Compass, BarChartHorizontal, CalendarRange, Signal, BarChart3, IndianRupee,
   Terminal, AlertCircle, Lightbulb, ListChecks, CheckSquare,
   ArrowRightCircle, Sparkles as SparklesIcon,
-  Smile, Play, ShieldAlert
+  Smile, Play, ShieldAlert, LogOut
 } from 'lucide-react';
 
 import Card from './components/Card';
@@ -26,7 +26,8 @@ import ScoreBar from './components/ScoreBar';
 import DonutCenter from './components/DonutCenter';
 import CustomTooltip from './components/CustomTooltip';
 import { AlertsView } from './components/AlertsView';
-import { firebaseService } from './services/firebaseService';
+import { supabaseService } from './services/supabaseService';
+import { authService } from './services/authService';
 import AuthShield from './components/AuthShield';
 import TradingJournal from './components/Journal/TradingJournal';
 import ReviewTab from './components/Journal/ReviewTab';
@@ -183,9 +184,30 @@ const TradeArchiveCarousel = ({ images }) => {
 const App = () => {
   const [activeSection, setActiveSection] = useState('journal');
   const [activeTab, setActiveTab] = useState('performance');
-  const [rawTrades, setRawTrades] = useState([]);
-  const [rawSnapshots, setRawSnapshots] = useState([]);
-  const [notes, setNotes] = useState([]);
+  const [rawTrades, setRawTrades] = useState(() => {
+    try {
+      const cached = localStorage.getItem('tr_trades_v7');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [rawSnapshots, setRawSnapshots] = useState(() => {
+    try {
+      const cached = localStorage.getItem('tr_snapshots_v7');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [notes, setNotes] = useState(() => {
+    try {
+      const cached = localStorage.getItem('tr_notes_v7');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [goals, setGoals] = useState(() => {
+    try {
+      const cached = localStorage.getItem('tr_goals_v7');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
 
   // Filter States
   const [availableYears, setAvailableYears] = useState(['All']);
@@ -200,7 +222,7 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  const [datePreset, setDatePreset] = useState('CurrentMonth');
+  const [datePreset, setDatePreset] = useState('All');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -211,43 +233,72 @@ const App = () => {
 
   const [isFullHistory, setIsFullHistory] = useState(false);
 
+  const [user, setUser] = useState(null);
+
   useEffect(() => {
-    // Check if user needs to migrate
-    firebaseService.hasData().then(hasData => {
-      setLoading(false);
+    // 1. Establish User Session
+    authService.getSession().then(session => {
+      setUser(session?.user || null);
     });
 
-    // Subscribe to live data
-    const unsubscribe = firebaseService.subscribeToTrades((trades) => {
-      setRawTrades(trades);
-      setLoading(false);
-      if (trades.length > 0) {
-        
-        const yearsFound = Array.from(new Set(trades.map(t => t.year))).sort();
-        setAvailableYears(['All', ...yearsFound]);
-      }
-    }, isFullHistory ? null : 1000);
+    const authSub = authService.onAuthStateChange((_event, session) => {
+      const newUser = session?.user || null;
+      setUser(prev => (prev?.id === newUser?.id) ? prev : newUser);
+    });
 
-    // Fetch live Forex rate
+    // 2. Fetch live Forex rate
     exchangeRateService.getUsdToInrRate().then(rate => {
       setLiveRate(rate);
       console.log(`[Forex] Live USD/INR Rate Synced: ${rate}`);
     });
 
-    const unsubSnapshots = firebaseService.subscribeToSnapshots(setRawSnapshots);
-    const unsubNotes = firebaseService.subscribeToNotes(setNotes);
+    return () => {
+      if (authSub) authSub.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Soft loading: Only show spinner if we have NO data yet
+    if (rawTrades.length === 0) {
+      setLoading(true);
+    }
+
+    // Subscribe to live data via Supabase with Full History awareness
+    const subTrades = supabaseService.subscribeToTrades(user.id, (newData) => {
+      // Logic for newData can be either a full set (initial) or a functional update (real-time)
+      setRawTrades(newData);
+      setLoading(false);
+    }, isFullHistory);
+
+    const subSnapshots = supabaseService.subscribeToSnapshots(user.id, setRawSnapshots, isFullHistory);
+    const subNotes = supabaseService.subscribeToNotes(user.id, setNotes, isFullHistory);
+    const subGoals = supabaseService.subscribeToGoals(user.id, setGoals);
 
     return () => {
-      unsubscribe();
-      unsubSnapshots();
-      unsubNotes();
+      subTrades();
+      subSnapshots();
+      subNotes();
+      subGoals();
     };
-  }, [isFullHistory]);
+  }, [user, isFullHistory]);
+
+  // Handle Local Persistence
+  useEffect(() => {
+    localStorage.setItem('tr_trades_v7', JSON.stringify(rawTrades));
+    localStorage.setItem('tr_snapshots_v7', JSON.stringify(rawSnapshots));
+    localStorage.setItem('tr_notes_v7', JSON.stringify(notes));
+    localStorage.setItem('tr_goals_v7', JSON.stringify(goals));
+  }, [rawTrades, rawSnapshots, notes, goals]);
 
   // Logic to trigger full history expansion
   useEffect(() => {
+    if (isFullHistory) return; // Already in full mode
+    
     const isGlobalAll = datePreset === 'All' && selectedYear === 'All' && selectedMonth === 'All' && selectedCategory === 'All' && selectedAsset === 'All';
-    if (isGlobalAll && !isFullHistory) {
+    if (isGlobalAll) {
+      console.log("[Optimization] Triggering Full History Fetch based on Filters.");
       setIsFullHistory(true);
     }
   }, [datePreset, selectedYear, selectedMonth, selectedCategory, selectedAsset]);
@@ -256,8 +307,8 @@ const App = () => {
     if (!rawTrades.length) return;
 
     const now = new Date();
-    const curMonthName = now.toLocaleString('default', { month: 'long', timeZone: 'UTC' });
-    const curYearName = now.getUTCFullYear().toString();
+    const curMonthName = now.toLocaleString('default', { month: 'long' });
+    const curYearName = now.getFullYear().toString();
 
     const timeFiltered = rawTrades.filter(t => {
       if (datePreset === 'CurrentMonth') {
@@ -413,10 +464,11 @@ const App = () => {
         winCount++; winTotal += tPL; currentLosingStreak = 0; currentWinningStreak++;
         if (currentWinningStreak > maxWinningStreak) maxWinningStreak = currentWinningStreak;
       } else if (isActuallyLoss) {
-        lossTotal += Math.abs(tPL); const reasonKey = t.lossReason || t.lossReasons?.[0] || t.reason || "Unspecified Error";
+        lossTotal += Math.abs(tPL); 
+        const reasonKey = t.lossReason || "Unspecified Error";
         if (!errorMap[reasonKey]) errorMap[reasonKey] = { impact: 0, count: 0 };
         errorMap[reasonKey].impact += tPL; errorMap[reasonKey].count += 1;
-        if (String(t.emotions || t.emotion).toLowerCase().includes('revenge')) revengeLoss += Math.abs(tPL);
+        if (String(t.emotion || '').toLowerCase().includes('revenge')) revengeLoss += Math.abs(tPL);
         currentWinningStreak = 0; currentLosingStreak++;
         if (currentLosingStreak > maxLosingStreak) maxLosingStreak = currentLosingStreak;
       }
@@ -583,6 +635,7 @@ const App = () => {
     };
   }, [rawTrades, rawSnapshots, notes, selectedYear, selectedMonth, selectedDay, selectedCategory, selectedAsset, datePreset, startDate, endDate]);
 
+  // Debugging & Analytics
   const { 
     metrics = {}, scores = {}, hierarchical = {}, activeMonths = [], barData = [], 
     maxDayAbsVal = 1, bestPeriod = ['', {}], worstPeriod = ['', {}], 
@@ -654,7 +707,17 @@ const App = () => {
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic leading-none">Trader<span className="text-indigo-500"> Terminal</span></h1>
-                <p className="text-slate-500 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] mt-1">Terminal v5.1.0</p>
+                <div className="flex items-center gap-3 mt-1">
+                  <p className="text-slate-500 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em]">Terminal v5.1.0</p>
+                  <div className="w-1 h-1 bg-slate-800 rounded-full" />
+                  <button 
+                    onClick={() => authService.signOut()}
+                    className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-slate-600 hover:text-rose-500 transition-all flex items-center gap-1.5 group/logout"
+                  >
+                    <LogOut size={10} className="group-hover/logout:-translate-x-0.5 transition-transform" />
+                    Disconnect Terminal
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -789,7 +852,7 @@ const App = () => {
             <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
               <Hash size={12} className="text-slate-500 ml-2" />
               <select value={selectedAsset} onChange={(e) => setSelectedAsset(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                {(availableAssets || []).map(a => <option className="bg-slate-900" key={a} value={a}>{a === 'All' ? 'Asset: All' : a}</option>)}
+                {(availableAssets || []).map((a, idx) => <option className="bg-slate-900" key={`${a}-${idx}`} value={a}>{a === 'All' ? 'Asset: All' : a}</option>)}
               </select>
             </div>
             {datePreset === 'All' && (
@@ -797,13 +860,13 @@ const App = () => {
                 <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
                   <Filter size={12} className="text-slate-500 ml-2" />
                   <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                    {(availableYears || []).map(y => <option className="bg-slate-900" key={y} value={y}>{y === 'All' ? 'Year: All' : y}</option>)}
+                    {(availableYears || []).map((y, idx) => <option className="bg-slate-900" key={`${y}-${idx}`} value={y}>{y === 'All' ? 'Year: All' : y}</option>)}
                   </select>
                 </div>
                 <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
                   <CalendarDays size={12} className="text-slate-500 ml-2" />
                   <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                    {(availableMonths || []).map(m => <option className="bg-slate-900" key={m} value={m}>{m === 'All' ? 'Month: All' : m}</option>)}
+                    {(availableMonths || []).map((m, idx) => <option className="bg-slate-900" key={`${m}-${idx}`} value={m}>{m === 'All' ? 'Month: All' : m}</option>)}
                   </select>
                 </div>
               </>
@@ -844,9 +907,20 @@ const App = () => {
              )}
  
              {activeSection === 'journal' && (
-               <TradingJournal 
-                 liveRate={liveRate} 
-               />
+                <TradingJournal 
+                  liveRate={liveRate} 
+                  user={user}
+                  trades={rawTrades}
+                  snapshots={rawSnapshots}
+                  notes={notes}
+                  goals={goals}
+                  isFullHistory={isFullHistory}
+                  setIsFullHistory={setIsFullHistory}
+                  setRawTrades={setRawTrades}
+                  setRawSnapshots={setRawSnapshots}
+                  setNotes={setNotes}
+                  setGoals={setGoals}
+                />
              )}
  
              {activeSection === 'audit' && (
@@ -874,9 +948,9 @@ const App = () => {
 
                   {activeTab === 'review' && (
                     <ReviewTab 
-                      trades={trades} 
-                      snapshots={snapshots} 
-                      notes={filteredNotes} 
+                      trades={rawTrades} 
+                      snapshots={rawSnapshots} 
+                      notes={notes} 
                     />
                   )}
 
@@ -1184,7 +1258,15 @@ const App = () => {
                         <DonutCenter value={qualityStats.reduce((acc, curr) => acc + curr.pl, 0)} />
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                           <PieChart>
-                            <Pie data={qualityStats} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`} labelLine={{ stroke: COLORS.white }}>
+                            <Pie 
+                              data={qualityStats} 
+                              innerRadius={70} 
+                              outerRadius={100} 
+                              paddingAngle={5} 
+                              dataKey="absImpact" 
+                              label={({ name, pl }) => pl !== 0 ? `${String(name)}: ${formatCurrency(pl)}` : ''} 
+                              labelLine={{ stroke: COLORS.white }}
+                            >
                               {qualityStats.map((entry, index) => <Cell key={index} fill={COLORS.qualityPalette[index % COLORS.qualityPalette.length]} />)}
                             </Pie>
                             <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }} itemStyle={{ color: '#ffffff' }} labelStyle={{ color: '#94a3b8', fontWeight: 'bold' }} formatter={(val, name, props) => [`${formatCurrency(props.payload.pl)}`, String(props.payload.name)]} />
@@ -1250,7 +1332,14 @@ const App = () => {
                         <DonutCenter value={outcomeDist.reduce((acc, curr) => acc + (curr.pl || 0), 0)} />
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                           <PieChart>
-                            <Pie data={outcomeDist} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
+                            <Pie 
+                              data={outcomeDist} 
+                              innerRadius={70} 
+                              outerRadius={100} 
+                              paddingAngle={5} 
+                              dataKey="value" 
+                              label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl || 0)}`}
+                            >
                               {outcomeDist.map((e, idx) => <Cell key={idx} fill={e.color} />)}
                             </Pie>
                             <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }} itemStyle={{ color: '#ffffff' }} labelStyle={{ color: '#94a3b8', fontWeight: 'bold' }} formatter={(val, name, props) => [`${formatCurrency(props.payload.pl)}`, String(props.payload.name)]} />

@@ -1,34 +1,36 @@
 export const JOURNAL_COLUMNS = [
-  { key: 'market', label: 'market', type: 'cat', sticky: true },
-  { key: 'date', label: 'date', type: 'date' },
-  { key: 'isWin', label: 'isWin', type: 'cat' },
-  { key: 'pl', label: 'pl', type: 'num' },
+  { key: 'date', label: 'Date', type: 'date', sticky: true },
+  { key: 'market', label: 'Market', type: 'cat' },
+  { key: 'isWin', label: 'W/L', type: 'cat' },
+  { key: 'pl', label: 'P/L', type: 'num' },
+  { key: 'direction', label: 'Direction', type: 'cat' },
+  { key: 'reason', label: 'Reson For Trade', type: 'cat' },
+  { key: 'lossReason', label: 'LOSS REASON ', type: 'array' },
+  { key: 'learning', label: 'Learning ', type: 'text' },
+  { key: 'setups', label: 'Setups align with trade', type: 'array' },
+  { key: 'emotions', label: 'Emotions', type: 'array' },
+  { key: 'chartScreenshotUrl', label: 'Chart Screenshot', type: 'text' },
   { key: 'rr', label: 'Taken RR', type: 'text' },
-  { key: 'direction', label: 'direction', type: 'cat' },
-  { key: 'emotion', label: 'emotions', type: 'array' },
-  { key: 'reason', label: 'lossReason', type: 'array' },
-  { key: 'reasonForTrade', label: 'TradeReason', type: 'cat' },
-  { key: 'learning', label: 'learning', type: 'text' },
-  { key: 'lots', label: 'positionSize', type: 'num' },
-  { key: 'positionType', label: 'positionType', type: 'cat' },
-  { key: 'setups', label: 'setups', type: 'array' },
-  { key: 'quality', label: 'tradeQuality', type: 'cat' },
-  { key: 'status', label: 'tradeStatus', type: 'cat' },
-  { key: 'tradeMode', label: 'tradeMode', type: 'cat' },
-  { key: 'chartScreenshotUrl', label: 'Screenshot', type: 'text' }
+  { key: 'positionType', label: 'Position Type', type: 'cat' },
+  { key: 'tradeQuality', label: 'Trade Quality', type: 'cat' },
+  { key: 'tradeStatus', label: 'Trade Status', type: 'cat' },
+  { key: 'tradeMode', label: 'Trade mode (Buying/Selling)', type: 'cat' }
 ];
 
 export const SNAPSHOT_COLUMNS = [
-  { key: 'date', label: 'Snapshot Date', type: 'date', sticky: true },
-  { key: 'visual', label: 'Visual Artifact', type: 'image' },
-  { key: 'volume', label: 'Execution Volume', type: 'num', align: 'center' },
-  { key: 'compliance', label: 'Compliance Matrix', type: 'custom', align: 'center' },
-  { key: 'metadata', label: 'Metadata / Tags', type: 'array' }
+  { key: 'date', label: 'Date Added', type: 'date', sticky: true },
+  { key: 'imageUrl', label: 'Image', type: 'image' },
+  { key: 'noOfTrades', label: 'No of trades', type: 'num' },
+  { key: 'tags', label: 'Tags', type: 'array' },
+  { key: 'emotionsInControl', label: 'Emotions in Control ', type: 'cat' },
+  { key: 'rulesFollowed', label: 'Rules Followed', type: 'cat' },
+  { key: 'setup', label: 'Setup Followed', type: 'cat' },
+  { key: 'progress', label: 'Progress', type: 'text' }
 ];
 
 export const NOTES_COLUMNS = [
-  { key: 'date', label: 'Entry Date', type: 'date', sticky: true },
-  { key: 'isPinned', label: 'Status', type: 'cat', align: 'center' },
-  { key: 'category', label: 'Category', type: 'cat' },
-  { key: 'content', label: 'Content Preview', type: 'text' }
+  { key: 'date', label: 'Date', type: 'date', sticky: true },
+  { key: 'pinned', label: 'Pin', type: 'cat' },
+  { key: 'content', label: 'Note', type: 'text' },
+  { key: 'category', label: 'Tags', type: 'cat' }
 ];

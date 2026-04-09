@@ -1,34 +1,23 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Calendar, Plus, TrendingUp, History, ChevronDown, Trash2 } from 'lucide-react';
-import { firebaseService } from '../../services/firebaseService';
 import { formatCurrency } from '../../utils';
 import { AddGoalModal } from './JournalModals';
 
-const GoalTracking = ({ trades }) => {
-  const [goals, setGoals] = useState([]);
-  const [loading, setLoading] = useState(true);
+const GoalTracking = ({ trades, goals = [], onSaveGoal, onDeleteGoal }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
-  useEffect(() => {
-    const unsubscribe = firebaseService.subscribeToGoals((data) => {
-      setGoals(data);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
   const handleSaveGoal = async (goalData) => {
     try {
-      await firebaseService.updateGoal(null, goalData);
+      await onSaveGoal(goalData);
     } catch (err) {
       console.error("Failed to save goal:", err);
     }
   };
 
   const currentGoal = useMemo(() => {
-    return goals.find(g => g.status === 'active') || goals[0];
+    return goals.find(g => g.status === 'active') || (goals.length > 0 ? goals[0] : null);
   }, [goals]);
 
   const progressData = useMemo(() => {
@@ -50,7 +39,7 @@ const GoalTracking = ({ trades }) => {
 
   const handleDeleteGoal = async (id) => {
     if (confirm('Delete this historical goal record?')) {
-      await firebaseService.deleteGoal(id);
+      await onDeleteGoal(id);
     }
   };
 

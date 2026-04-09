@@ -34,13 +34,7 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
 
   const getVal = (n, key) => {
     if (!n) return '';
-    switch(key) {
-      case 'date': return n.date;
-      case 'isPinned': return n.isPinned ? 'Pinned' : 'Regular';
-      case 'category': return n.category;
-      case 'content': return n.content;
-      default: return n[key] || '';
-    }
+    return n[key] || '';
   };
 
   const getUniqueValues = (key) => {
@@ -136,6 +130,9 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
       if (sortConfig.key === 'date') {
         aVal = a.jsDate || new Date(a.date);
         bVal = b.jsDate || new Date(b.date);
+      } else if (sortConfig.key === 'pinned') {
+        aVal = !!a.pinned ? 1 : 0;
+        bVal = !!b.pinned ? 1 : 0;
       }
 
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -304,70 +301,97 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.03]">
-              {currentNotes.length > 0 ? currentNotes.map((n, idx) => (
-                <motion.tr 
-                  key={n.id || idx}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className={`hover:bg-white/[0.02] transition-colors group ${n.isPinned ? 'bg-journal-gold/[0.02]' : ''}`}
-                >
-                  <td className="sticky left-0 z-10 bg-journal-bg/80 backdrop-blur-md px-6 py-4 border-b border-white/[0.02]">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg border transition-all ${n.isPinned ? 'bg-journal-gold/10 border-journal-gold/30 text-journal-gold' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
-                        <Calendar size={14} />
-                      </div>
-                      <span className="text-[10px] font-black text-white uppercase tracking-widest whitespace-nowrap">
-                        {n.date}
-                      </span>
-                    </div>
-                  </td>
-                  
-                  <td className="px-6 py-4 text-center">
-                    {n.isPinned ? (
-                      <Pin size={14} className="text-journal-gold animate-pulse mx-auto" />
-                    ) : (
-                      <StickyNote size={14} className="text-slate-800 mx-auto" />
-                    )}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-md text-[8px] font-black uppercase border transition-all ${
-                      n.category === 'Psychology' ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' :
-                      n.category === 'Review' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
-                      n.category === 'Rulebook' ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' :
-                      'bg-white/5 border-white/10 text-slate-400'
-                    }`}>
-                      {n.category}
-                    </span>
-                  </td>
-
-                  <td 
-                    onClick={() => setViewingText({ title: `${n.category} Entry - ${n.date}`, content: n.content })}
-                    className="px-6 py-4 cursor-pointer group/content"
+              {currentNotes.length > 0 ? currentNotes.map((n, idx) => {
+                const isPinned = n.pinned === true;
+                return (
+                  <motion.tr 
+                    key={n.id || idx}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className={`hover:bg-white/[0.02] transition-colors group ${isPinned ? 'bg-journal-gold/[0.02]' : ''}`}
                   >
-                    <p className="text-[10px] font-medium text-slate-500 line-clamp-1 max-w-[450px] group-hover/content:text-slate-300 transition-colors">
-                      {n.content}
-                    </p>
-                  </td>
+                  {NOTES_COLUMNS.map(col => {
+                    const val = n[col.key];
+                    const renderCell = () => {
+                      if (col.key === 'pinned') {
+                         return (
+                            <div className="flex justify-center">
+                              <Pin 
+                                size={14} 
+                                className={`transition-all ${val ? 'text-journal-gold fill-journal-gold rotate-45' : 'text-slate-800'}`} 
+                              />
+                            </div>
+                         );
+                      }
 
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1 translate-x-2 opacity-0 group-hover:opacity-100 transition-all">
-                      <button 
-                        onClick={() => onEditNote(n)}
-                        className="p-2 rounded-lg text-slate-600 hover:text-journal-gold hover:bg-journal-gold/5 transition-all"
+                      if (col.key === 'category' && val) {
+                         const colorMap = {
+                            "Observation's": "bg-indigo-500/10 border-indigo-500/30 text-indigo-400",
+                            "Important Learnings": "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+                            "Most Repeated Mistakes": "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                         };
+                         const styles = colorMap[val] || "bg-white/5 border-white/10 text-slate-400";
+                         return (
+                            <span className={`px-2 py-1 rounded-md border text-[9px] font-black uppercase tracking-tighter whitespace-nowrap transition-all ${styles}`}>
+                              {val}
+                            </span>
+                         );
+                      }
+
+                      if (col.type === 'date') {
+                           return (
+                              <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg border transition-all ${n.pinned ? 'bg-journal-gold/10 border-journal-gold/30 text-journal-gold' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
+                                  <Calendar size={14} />
+                                </div>
+                                <span className="text-[10px] font-black text-white uppercase tracking-widest whitespace-nowrap">
+                                  {val ? new Date(val).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '-'}
+                                </span>
+                              </div>
+                           );
+                      }
+                      if (col.key === 'content') {
+                         return (
+                            <p className="text-[10px] font-medium text-slate-500 line-clamp-1 max-w-[450px] group-hover:text-slate-300 transition-colors">
+                              {val || '-'}
+                            </p>
+                         );
+                      }
+
+                      return <span className="text-[10px] font-bold text-slate-200">{String(val || '-')}</span>;
+                    };
+
+                    return (
+                      <td 
+                        key={col.key} 
+                        onClick={() => col.key === 'content' && setViewingText({ title: `${n.category || 'Journal'} Entry - ${n.date}`, content: val })}
+                        className={`px-6 py-4 border-b border-white/[0.02] ${col.sticky ? 'sticky left-0 z-10 bg-journal-bg/80 backdrop-blur-md' : ''} ${col.align === 'center' ? 'text-center' : ''} ${col.key === 'content' ? 'cursor-pointer' : ''}`}
                       >
-                        <Edit3 size={14} />
-                      </button>
-                      <button 
-                        onClick={() => onDeleteNote(n.id)}
-                        className="p-2 rounded-lg text-slate-600 hover:text-red-500 hover:bg-red-500/5 transition-all"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </motion.tr>
-              )) : (
+                        {renderCell()}
+                      </td>
+                    );
+                  })}
+  
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1 translate-x-2 opacity-0 group-hover:opacity-100 transition-all">
+                        <button 
+                          onClick={() => onEditNote(n)}
+                          className="p-2 rounded-lg text-slate-600 hover:text-journal-gold hover:bg-journal-gold/5 transition-all"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button 
+                          onClick={() => onDeleteNote(n.id)}
+                          className="p-2 rounded-lg text-slate-600 hover:text-red-500 hover:bg-red-500/5 transition-all"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                );
+              })
+ : (
                 <tr>
                   <td colSpan={NOTES_COLUMNS.length + 1} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center gap-4">

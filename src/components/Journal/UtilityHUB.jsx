@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Calculator as CalcIcon, Download, X, FileText, LayoutDashboard, Share2 } from 'lucide-react';
 import { exportToCSV } from '../../utils/csvUtility';
-import { firebaseService } from '../../services/firebaseService';
 import GlobalCalculator from './GlobalCalculator';
 
 const UtilityHub = ({ trades = [], snapshots = [], notes = [] }) => {
@@ -11,29 +10,24 @@ const UtilityHub = ({ trades = [], snapshots = [], notes = [] }) => {
 
   const handleExportAll = async () => {
     try {
-      console.log("[Backup] Initiating full database fetch...");
+      console.log("[Backup] Initiating user data export...");
       
-      // Fetch fresh, unlimited data from Firebase
-      const allTrades = await firebaseService.getAllTrades();
-      const allSnapshots = await firebaseService.getAllSnapshots();
-      const allNotes = await firebaseService.getAllNotes();
+      console.log(`[Backup] Exporting isolated data: ${trades.length} Trades, ${snapshots.length} Snapshots, ${notes.length} Notes`);
 
-      console.log(`[Backup] Success! Fetched: ${allTrades.length} Trades, ${allSnapshots.length} Snapshots, ${allNotes.length} Notes`);
-
-      // Trigger separate downloads
-      exportToCSV(allTrades, 'Full_Trades_Backup');
+      // Trigger separate downloads for the currently isolated user data
+      exportToCSV(trades, 'My_Trades_Isolated');
       
       setTimeout(() => {
-        exportToCSV(allSnapshots, 'Full_Snapshots_Backup');
+        exportToCSV(snapshots, 'My_Snapshots_Isolated');
       }, 500);
 
       setTimeout(() => {
-        exportToCSV(allNotes, 'Full_Notes_Backup');
+        exportToCSV(notes, 'My_Notes_Isolated');
       }, 1000);
       
     } catch (error) {
       console.error("[Backup] Export failed:", error);
-      alert("Backup failed. Check console for details.");
+      alert("Export failed. Check console for details.");
     } finally {
       setIsOpen(false);
     }
