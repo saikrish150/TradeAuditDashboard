@@ -15,6 +15,7 @@ import {
   COMPLIANCE_OPTIONS,
   NOTE_CATEGORY_OPTIONS
 } from '../../constants/journalOptions';
+import { FIELD_ALIASES } from '../../constants/fieldMappings';
 
 const ModalWrapper = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl' }) => {
   if (!isOpen) return null;
@@ -269,15 +270,18 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
   useEffect(() => {
     if (editingTrade && isOpen) {
       // Smart mapping helper to handle aliased data from migration
-      const getSmartVal = (key, aliases = []) => {
-        if (editingTrade[key] !== undefined && editingTrade[key] !== '') return editingTrade[key];
-        for (const alias of aliases) {
-          if (editingTrade[alias] !== undefined && editingTrade[alias] !== '') return editingTrade[alias];
+      const getSmartVal = (key) => {
+        const variants = FIELD_ALIASES[key] || [key];
+        
+        // Check core data
+        for (const v of variants) {
+          if (editingTrade[v] !== undefined && editingTrade[v] !== '') return editingTrade[v];
         }
+
+        // Check originalData fallback
         if (editingTrade.originalData) {
-          if (editingTrade.originalData[key] !== undefined && editingTrade.originalData[key] !== '') return editingTrade.originalData[key];
-          for (const alias of aliases) {
-            if (editingTrade.originalData[alias] !== undefined && editingTrade.originalData[alias] !== '') return editingTrade.originalData[alias];
+          for (const v of variants) {
+            if (editingTrade.originalData[v] !== undefined && editingTrade.originalData[v] !== '') return editingTrade.originalData[v];
           }
         }
         return '';
@@ -285,23 +289,23 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
 
       setFormData({
         date: editingTrade.jsDate ? new Date(editingTrade.jsDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
-        market: getSmartVal('market', ['Market']),
-        direction: (getSmartVal('direction', ['Direction']) || 'LONG').toUpperCase().includes('LONG') ? 'LONG' : (getSmartVal('direction').toUpperCase().includes('SHORT') ? 'SHORT' : 'OBSERVE'),
-        isWin: (editingTrade.isWin === true || String(getSmartVal('isWin', ['W/L'])).toUpperCase() === 'WIN') ? 'WIN' : 'LOSS',
+        market: getSmartVal('market'),
+        direction: (getSmartVal('direction') || 'LONG').toUpperCase().includes('LONG') ? 'LONG' : (String(getSmartVal('direction')).toUpperCase().includes('SHORT') ? 'SHORT' : 'OBSERVE'),
+        isWin: (editingTrade.isWin === true || String(getSmartVal('isWin')).toUpperCase() === 'WIN') ? 'WIN' : 'LOSS',
         pl: editingTrade.pl?.toString() || '',
-        rr: getSmartVal('rr', ['Taken RR', 'RR']),
+        rr: getSmartVal('rr'),
         screenshot: null,
-        reason: getSmartVal('reason', ['reasonForTrade', 'Reson For Trade', 'logic']),
-        learning: getSmartVal('learning', ['Learning ']),
-        setups: Array.isArray(editingTrade.setups) ? editingTrade.setups : [],
-        lossReasons: Array.isArray(editingTrade.lossReasons) ? editingTrade.lossReasons : (getSmartVal('lossReason', ['lossReasons', 'LOSS REASON ']) ? [getSmartVal('lossReason', ['lossReasons', 'LOSS REASON '])] : []),
-        emotions: getSmartVal('emotions', ['Emotions', 'emotion']) || 'Calm',
-        positionSize: getSmartVal('positionSize', ['Position Size(Lots)', 'lots']),
-        tradeQuality: getSmartVal('tradeQuality', ['Trade Quality', 'quality']) || 'A',
-        tradeStatus: getSmartVal('tradeStatus', ['Trade Status', 'status']) || 'Neutral',
-        positionType: getSmartVal('positionType', ['Position Type']) || 'Intraday',
-        tradeMode: getSmartVal('tradeMode', ['Trade mode (Buying/Selling)']) || 'Buying',
-        chartScreenshotUrl: getSmartVal('chartScreenshotUrl', ['screenshotUrl', 'chartScreenshotUrl', 'Chart Screenshot'])
+        reason: getSmartVal('reason'),
+        learning: getSmartVal('learning'),
+        setups: Array.isArray(editingTrade.setups) ? editingTrade.setups : (editingTrade.setup ? [editingTrade.setup] : []),
+        lossReasons: Array.isArray(editingTrade.lossReasons) ? editingTrade.lossReasons : (getSmartVal('lossReason') ? [getSmartVal('lossReason')] : []),
+        emotions: getSmartVal('emotion') || 'Calm',
+        positionSize: getSmartVal('lots'),
+        tradeQuality: getSmartVal('quality') || 'A',
+        tradeStatus: getSmartVal('status') || 'Neutral',
+        positionType: getSmartVal('positionType') || 'Intraday',
+        tradeMode: getSmartVal('tradeMode') || 'Buying',
+        chartScreenshotUrl: getSmartVal('chartScreenshotUrl')
       });
     } else if (!editingTrade && isOpen) {
       // Reset form for new entry - ensuring no field is undefined
@@ -863,44 +867,4 @@ export const AddNoteModal = ({ isOpen, onClose, onSave, editingNote }) => {
     </ModalWrapper>
   );
 };
-export const DataInspectorModal = ({ isOpen, onClose, trades }) => {
-  const [copied, setCopied] = React.useState(false);
-  const data = JSON.stringify(trades, null, 2);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(data);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Institutional Data Inspector">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            Complete Dataset ({trades.length} Records) Raw JSON
-          </p>
-          <button 
-            onClick={handleCopy}
-            className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${copied ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'}`}
-          >
-            {copied ? 'Copied to Clipboard' : 'Copy Full Dataset'}
-          </button>
-        </div>
-        
-        <div className="relative group">
-          <div className="absolute inset-0 bg-journal-gold/5 blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-500 rounded-3xl" />
-          <pre className="relative w-full h-[60vh] bg-slate-950/80 border border-slate-800 rounded-2xl p-6 overflow-auto custom-scrollbar text-[10px] font-mono text-cyan-400/90 leading-relaxed shadow-inner">
-            {data}
-          </pre>
-        </div>
-
-        <div className="p-4 bg-journal-gold/5 border border-journal-gold/20 rounded-2xl">
-          <p className="text-[9px] font-bold text-journal-gold uppercase tracking-widest leading-relaxed">
-            Instruction: Copy this JSON block and paste it into the chat terminal. This allows me to analyze your specific "Trade Status" and "Market" strings to ensure the UI handles them correctly.
-          </p>
-        </div>
-      </div>
-    </ModalWrapper>
-  );
-};
+// Removed DataInspectorModal

@@ -4,6 +4,7 @@ import {
   limit
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { FIELD_ALIASES } from '../constants/fieldMappings';
 
 export const firebaseService = {
   /**
@@ -29,26 +30,83 @@ export const firebaseService = {
         : [data.chartScreenshotUrl];
     }
 
+    // Resolve P&L defensivly (Self-Healing)
+    let resolvePL = data.pl;
+    if (resolvePL === undefined || resolvePL === '' || parseFloat(resolvePL) === 0) {
+      for (const v of (FIELD_ALIASES.pl || [])) {
+        if (data[v] !== undefined && data[v] !== '' && parseFloat(data[v]) !== 0) {
+          resolvePL = data[v];
+          break;
+        }
+      }
+    }
+    const cleanPL = resolvePL?.toString()?.replace(/[₹,]/g, '').trim() || '0';
+    const finalPL = parseFloat(cleanPL) || 0;
+
+    // Resolve Date defensivly
+    let rawDate = data.date;
+    if (!rawDate) {
+      for (const v of (FIELD_ALIASES.date || [])) {
+        if (data[v]) {
+          rawDate = data[v];
+          break;
+        }
+      }
+    }
+    const jsDate = rawDate?.toDate ? rawDate.toDate() : new Date(rawDate || Date.now());
+
+    // Resolve Screenshots defensivly
+    let screenshotsArr = [];
+    if (Array.isArray(data.chartScreenshotUrls)) {
+      screenshotsArr = data.chartScreenshotUrls;
+    } else {
+      const variants = FIELD_ALIASES.chartScreenshotUrl || [];
+      for (const v of variants) {
+        if (data[v]) {
+          const val = data[v];
+          screenshotsArr = Array.isArray(val) ? val : (val.includes(',') ? val.split(',').map(s => s.trim()) : [val]);
+          break;
+        }
+      }
+    }
+
+    // Resolve Lots defensivly
+    let resolveLots = 0;
+    for (const v of (FIELD_ALIASES.lots || [])) {
+      if (data[v]) {
+        resolveLots = parseFloat(data[v]) || 0;
+        break;
+      }
+    }
+
     return {
       id: doc.id,
       ...data,
-      dayNum: jsDate.getDate(),
+      date: jsDate.toDateString(),
       fullDate: jsDate.toDateString(),
       jsDate: jsDate,
       month: jsDate.toLocaleString('default', { month: 'long' }),
       year: jsDate.getFullYear().toString(),
       screenshotUrl: screenshotsArr[0] || null,
       screenshots: screenshotsArr,
-      pl: parseFloat(data.pl) || 0,
-      lots: parseFloat(data.positionSize || data.lots) || 0
+      pl: finalPL,
+      lots: resolveLots
     };
   },
 
   /**
-   * Listen to trades collection (Limited for UI Performance)
+   * Listen to trades collection
+   * @param {Function} onData Callback
+   * @param {Number|null} limitCount Optional limit (null for all data)
    */
-  subscribeToTrades(onData) {
-    const q = query(collection(db, 'trades'), orderBy('date', 'desc'), limit(200));
+  subscribeToTrades(onData, limitCount = 1000) {
+    let q;
+    if (limitCount) {
+      q = query(collection(db, 'trades'), orderBy('date', 'desc'), limit(limitCount));
+    } else {
+      q = query(collection(db, 'trades'), orderBy('date', 'desc'));
+    }
+    
     return onSnapshot(q, (snapshot) => {
       const trades = snapshot.docs.map(doc => this._transformTrade(doc));
       onData(trades);
@@ -129,12 +187,37 @@ export const firebaseService = {
    */
   _transformGeneric(doc) {
     const data = doc.data();
-    let jsDate = data.date?.toDate ? data.date.toDate() : new Date(data.date || Date.now());
+    
+    // Resolve Date defensivly
+    let rawDate = data.date;
+    if (!rawDate) {
+      for (const v of (FIELD_ALIASES.date || [])) {
+        if (data[v]) {
+          rawDate = data[v];
+          break;
+        }
+      }
+    }
+    const jsDate = rawDate?.toDate ? rawDate.toDate() : new Date(rawDate || Date.now());
+    
+    // Normalize screenshots for generic items (Daily Snapshots/Notes)
+    let screenshotsArr = [];
+    const variants = FIELD_ALIASES.chartScreenshotUrl || [];
+    for (const v of variants) {
+      if (data[v]) {
+        const val = data[v];
+        screenshotsArr = Array.isArray(val) ? val : (val.includes(',') ? val.split(',').map(s => s.trim()) : [val]);
+        break;
+      }
+    }
+
     return { 
       id: doc.id, 
       ...data,
       jsDate: jsDate,
-      date: jsDate.toDateString() 
+      date: jsDate.toDateString(),
+      screenshotUrl: screenshotsArr[0] || null,
+      screenshots: screenshotsArr
     };
   },
 

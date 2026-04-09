@@ -5,11 +5,12 @@ import {
   ArrowUpDown, ExternalLink, ImageIcon, CheckCircle, XCircle, Plus, X, Trash2
 } from 'lucide-react';
 import { JOURNAL_COLUMNS } from '../../constants/journalColumns';
+import { FIELD_ALIASES } from '../../constants/fieldMappings';
 import { formatCurrency } from '../../utils';
 import { FullTextModal } from './JournalModals';
 
-const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage }) => {
-  const [activeTab, setActiveTab] = useState('Today');
+const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabChange }) => {
+  const [activeTab, setActiveTab] = useState('This Month');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
@@ -38,22 +39,21 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage }) => {
   // Helper to get trade value with alias support
   const getVal = (trade, key) => {
     if (!trade) return '';
-    const aliases = {
-      'quality': ['tradeQuality', 'quality'],
-      'status': ['tradeStatus', 'status'],
-      'emotion': ['emotions', 'emotion'],
-      'reason': ['lossReasons', 'lossReason', 'reason'], // Check array variant first
-      'lots': ['positionSize', 'lots'],
-      'learning': ['learning', 'Learning '],
-      'reasonForTrade': ['reasonForTrade', 'Reson For Trade', 'reason'],
-      'rr': ['rr', 'Taken RR', 'takenRR']
-    };
+    const aliases = FIELD_ALIASES;
 
     if (aliases[key]) {
       for (const alias of aliases[key]) {
-        if (trade[alias] !== undefined && trade[alias] !== '') return trade[alias];
+        const val = trade[alias];
+        const isPL = key === 'pl';
+        
+        // If it's P&L, don't stop at default 0 if there might be a better value in originalData
+        if (val !== undefined && val !== '' && !(isPL && parseFloat(val) === 0)) return val;
+        
         // Fallback to originalData from migration
-        if (trade.originalData && trade.originalData[alias] !== undefined && trade.originalData[alias] !== '') return trade.originalData[alias];
+        if (trade.originalData && trade.originalData[alias] !== undefined && trade.originalData[alias] !== '') {
+          const oVal = trade.originalData[alias];
+          if (!(isPL && parseFloat(oVal?.toString().replace(/[₹,]/g, '')) === 0)) return oVal;
+        }
       }
     }
     const directVal = trade[key];
@@ -190,8 +190,19 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage }) => {
 
     // Sort
     result.sort((a, b) => {
-      const aVal = a[sortConfig.key];
-      const bVal = b[sortConfig.key];
+      let aVal = a[sortConfig.key];
+      let bVal = b[sortConfig.key];
+      
+      // Chronological Sort for dates (use jsDate instead of string)
+      if (sortConfig.key === 'date') {
+        aVal = a.jsDate instanceof Date ? a.jsDate.getTime() : 0;
+        bVal = b.jsDate instanceof Date ? b.jsDate.getTime() : 0;
+      } else {
+        // Fallback to getVal for alias-based fields if direct access is missing
+        if (aVal === undefined) aVal = getVal(a, sortConfig.key);
+        if (bVal === undefined) bVal = getVal(b, sortConfig.key);
+      }
+
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
@@ -216,7 +227,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage }) => {
 
   // Calculate Total P&L
   const totalPL = useMemo(() => {
-    return processedTrades.reduce((sum, t) => sum + (parseFloat(t.pl) || 0), 0);
+    return processedTrades.reduce((sum, t) => sum + (parseFloat(getVal(t, 'pl')) || 0), 0);
   }, [processedTrades]);
 
   return (
@@ -229,7 +240,11 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage }) => {
             {tabs.map(tab => (
               <button
                 key={tab}
-                onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
+                onClick={() => { 
+                  setActiveTab(tab); 
+                  setCurrentPage(1); 
+                  if (onTabChange) onTabChange(tab);
+                }}
                 className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab
                   ? 'bg-journal-gold text-journal-bg shadow-[0_0_15px_rgba(212,175,55,0.3)]'
                   : 'text-slate-400 hover:text-slate-300'
@@ -445,8 +460,8 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage }) => {
                 }`}>
                   {trade.isWin === true || String(trade.isWin).toUpperCase() === 'WIN' ? 'WIN' : 'LOSS'}
                 </td>
-                <td className={`px-6 py-4 text-[11px] font-black tabular-nums ${trade.pl >= 0 ? 'text-emerald-400' : 'text-journal-red'}`}>
-                  {formatCurrency(trade.pl)}
+                <td className={`px-6 py-4 text-[11px] font-black tabular-nums ${parseFloat(getVal(trade, 'pl')) >= 0 ? 'text-emerald-400' : 'text-journal-red'}`}>
+                  {formatCurrency(getVal(trade, 'pl'))}
                 </td>
                 <td className="px-6 py-4 text-[10px] font-bold text-slate-200 tabular-nums">
                   {getVal(trade, 'rr') || '-'}

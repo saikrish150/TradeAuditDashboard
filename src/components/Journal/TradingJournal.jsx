@@ -14,29 +14,29 @@ import MasterTable from './MasterTable';
 import SnapshotSection from './SnapshotSection';
 import NotesSection from './NotesSection';
 import CalendarSection from './CalendarSection';
-import { AddTradeModal, AddSnapshotModal, AddNoteModal, DataInspectorModal } from './JournalModals';
+import { AddTradeModal, AddSnapshotModal, AddNoteModal } from './JournalModals';
 import { SNAPSHOT_TAG_OPTIONS, NOTE_CATEGORY_OPTIONS } from '../../constants/journalOptions';
-import UtilityHub from './UtilityHub';
+import { TRADE_SCHEMA_MAP, SNAPSHOT_SCHEMA_MAP, NOTE_SCHEMA_MAP } from '../../constants/fieldMappings';
 
-const TradingJournal = ({ liveRate, onOpenMigration }) => {
+const TradingJournal = ({ liveRate }) => {
   const [activeTab, setActiveTab] = useState('trades'); // trades, snapshots, calendar, notes
   const [trades, setTrades] = useState([]);
   const [snapshots, setSnapshots] = useState([]);
   const [notes, setNotes] = useState([]);
+  const [isFullHistory, setIsFullHistory] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Modal States
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [showSnapshotModal, setShowSnapshotModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [showInspector, setShowInspector] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [editingSnapshot, setEditingSnapshot] = useState(null);
   const [editingNote, setEditingNote] = useState(null);
   const [viewerImage, setViewerImage] = useState(null);
 
   useEffect(() => {
-    const unsubTrades = firebaseService.subscribeToTrades(setTrades);
+    const unsubTrades = firebaseService.subscribeToTrades(setTrades, isFullHistory ? null : 1000);
     const unsubSnapshots = firebaseService.subscribeToSnapshots(setSnapshots);
     const unsubNotes = firebaseService.subscribeToNotes(setNotes);
     
@@ -46,7 +46,7 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
       unsubSnapshots();
       unsubNotes();
     };
-  }, []);
+  }, [isFullHistory]);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -91,19 +91,31 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
       screenshotUrl = await uploadImage(data.screenshot, 'trade_charts');
     }
 
+    // Map UI Form keys to DB Schema Keys
     const tradeRecord = {
-      ...data,
+      market: data.market,
+      direction: data.direction,
+      isWin: data.isWin === 'WIN',
       pl: parseFloat(data.pl) || 0,
-      chartScreenshotUrl: screenshotUrl,
-      reasonForTrade: data.reason || data.reasonForTrade || '', // Ensure standardized key
+       // Use Schema Maps for non-matching keys
+      [TRADE_SCHEMA_MAP.rr]: data.rr,
+      [TRADE_SCHEMA_MAP.reason]: data.reason,
+      [TRADE_SCHEMA_MAP.learning]: data.learning,
+      [TRADE_SCHEMA_MAP.setups]: data.setups,
+      [TRADE_SCHEMA_MAP.lossReasons]: data.lossReasons,
+      [TRADE_SCHEMA_MAP.emotions]: data.emotions,
+      [TRADE_SCHEMA_MAP.positionSize]: parseFloat(data.positionSize) || 0,
+      [TRADE_SCHEMA_MAP.tradeQuality]: data.tradeQuality,
+      [TRADE_SCHEMA_MAP.tradeStatus]: data.tradeStatus,
+      [TRADE_SCHEMA_MAP.positionType]: data.positionType,
+      [TRADE_SCHEMA_MAP.tradeMode]: data.tradeMode,
+      chartScreenshotUrls: screenshotUrl ? [screenshotUrl] : (data.chartScreenshotUrl ? [data.chartScreenshotUrl] : []),
       jsDate: new Date(data.date),
       fullDate: new Date(data.date).toDateString(),
       year: new Date(data.date).getFullYear().toString(),
       month: new Date(data.date).toLocaleString('default', { month: 'long' }),
       category: data.market === 'Indian' ? 'Indian' : 'Other'
     };
-
-    delete tradeRecord.screenshot; // Remove local file object
 
     if (editingTrade) {
       await firebaseService.updateTrade(editingTrade.id, tradeRecord);
@@ -120,12 +132,16 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
     }
 
     const snapshotRecord = {
-      ...data,
-      imageUrl,
-      jsDate: new Date(data.date),
-      date: new Date(data.date).toDateString()
+      [SNAPSHOT_SCHEMA_MAP.date]: data.date,
+      [SNAPSHOT_SCHEMA_MAP.imageUrl]: imageUrl,
+      [SNAPSHOT_SCHEMA_MAP.tags]: data.tags,
+      [SNAPSHOT_SCHEMA_MAP.noOfTrades]: parseInt(data.noOfTrades) || 0,
+      [SNAPSHOT_SCHEMA_MAP.rulesFollowed]: !!data.rulesFollowed,
+      [SNAPSHOT_SCHEMA_MAP.emotionsInControl]: !!data.emotionsInControl,
+      [SNAPSHOT_SCHEMA_MAP.setupFollowed]: !!data.setupFollowed,
+      [SNAPSHOT_SCHEMA_MAP.setup]: data.setup || '',
+      jsDate: new Date(data.date)
     };
-    delete snapshotRecord.image;
 
     if (editingSnapshot) {
       await firebaseService.updateSnapshot(editingSnapshot.id, snapshotRecord);
@@ -137,9 +153,11 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
 
   const handleSaveNote = async (data) => {
     const noteData = {
-      ...data,
-      jsDate: new Date(data.date),
-      date: new Date(data.date).toDateString()
+      [NOTE_SCHEMA_MAP.date]: data.date,
+      [NOTE_SCHEMA_MAP.content]: data.content,
+      [NOTE_SCHEMA_MAP.category]: data.category,
+      [NOTE_SCHEMA_MAP.isPinned]: !!data.isPinned,
+      jsDate: new Date(data.date)
     };
 
     if (editingNote) {
@@ -186,8 +204,6 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
         onAddTrade={() => setShowTradeModal(true)} 
         onAddSnapshot={() => setShowSnapshotModal(true)} 
         onAddNote={() => setShowNoteModal(true)} 
-        onOpenInspector={() => setShowInspector(true)}
-        onOpenMigration={onOpenMigration}
       />
 
       <div className="max-w-7xl mx-auto px-4 pb-20">
@@ -219,6 +235,11 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
                 onEditTrade={(t) => { setEditingTrade(t); setShowTradeModal(true); }} 
                 onDeleteTrade={handleDeleteTrade}
                 onViewImage={setViewerImage}
+                onTabChange={(tab) => {
+                  if (tab === 'All Trades' && !isFullHistory) {
+                    setIsFullHistory(true);
+                  }
+                }}
               />
             </motion.div>
           )}
@@ -275,11 +296,6 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
         onSave={handleSaveNote}
         editingNote={editingNote} 
       />
-      <DataInspectorModal
-        isOpen={showInspector}
-        onClose={() => setShowInspector(false)}
-        trades={trades}
-      />
 
       {/* Full-screen Image Viewer */}
       <AnimatePresence>
@@ -313,11 +329,6 @@ const TradingJournal = ({ liveRate, onOpenMigration }) => {
           </motion.div>
         )}
       </AnimatePresence>
-      <UtilityHub 
-        trades={trades} 
-        snapshots={snapshots} 
-        notes={notes} 
-      />
     </div>
   );
 };

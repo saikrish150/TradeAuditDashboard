@@ -209,8 +209,6 @@ const App = () => {
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [liveRate, setLiveRate] = useState(83.5);
 
-  const [isFullHistory, setIsFullHistory] = useState(false);
-
   useEffect(() => {
     // Check if user needs to migrate
     firebaseService.hasData().then(hasData => {
@@ -226,7 +224,7 @@ const App = () => {
         const yearsFound = Array.from(new Set(trades.map(t => t.year))).sort();
         setAvailableYears(['All', ...yearsFound]);
       }
-    }, isFullHistory ? null : 1000);
+    });
 
     // Fetch live Forex rate
     exchangeRateService.getUsdToInrRate().then(rate => {
@@ -242,15 +240,7 @@ const App = () => {
       unsubSnapshots();
       unsubNotes();
     };
-  }, [isFullHistory]);
-
-  // Logic to trigger full history expansion
-  useEffect(() => {
-    const isGlobalAll = datePreset === 'All' && selectedYear === 'All' && selectedMonth === 'All' && selectedCategory === 'All' && selectedAsset === 'All';
-    if (isGlobalAll && !isFullHistory) {
-      setIsFullHistory(true);
-    }
-  }, [datePreset, selectedYear, selectedMonth, selectedCategory, selectedAsset]);
+  }, []);
 
   useEffect(() => {
     if (!rawTrades.length) return;
@@ -294,23 +284,6 @@ const App = () => {
     const now = new Date();
     const curMonthName = now.toLocaleString('default', { month: 'long', timeZone: 'UTC' });
     const curYearName = now.getUTCFullYear().toString();
-
-    const getPL = (t) => {
-      // If there's already a non-zero pl number, use it
-      if (t.pl !== undefined && t.pl !== '' && parseFloat(t.pl) !== 0) return parseFloat(t.pl) || 0;
-      
-      // If pl is 0 or missing, hunt in originalData
-      if (t.originalData) {
-        const variants = ['P/L', 'P & L', 'Profit/Loss', 'Net P&L', 'Amount', 'Profit', 'pl'];
-        for (const v of variants) {
-          if (t.originalData[v] !== undefined && t.originalData[v] !== '' && parseFloat(t.originalData[v]?.toString().replace(/[₹,]/g, '')) !== 0) {
-            const val = t.originalData[v].toString().replace(/[₹,]/g, '').trim();
-            return parseFloat(val) || 0;
-          }
-        }
-      }
-      return parseFloat(t.pl) || 0;
-    };
 
     const filtered = rawTrades.filter(t => {
       // DATE PRESET LOGIC
@@ -356,15 +329,14 @@ const App = () => {
     };
 
     filtered.forEach((t, i) => {
-      const tPL = getPL(t);
-      cumulativePL += tPL; equityArr.push({ id: i, date: t.fullDate, Equity: cumulativePL });
+      cumulativePL += t.pl; equityArr.push({ id: i, date: t.fullDate, Equity: cumulativePL });
       if (cumulativePL > peakEquity) peakEquity = cumulativePL;
       const dd = cumulativePL - peakEquity; if (dd < maxDDValue) maxDDValue = dd;
 
       // Smart Outcome Detection (Raw String vs P&L)
       const rawOutcome = String(t.isWin || 'Neutral').toUpperCase();
-      const isActuallyWin = ['WIN', 'W'].includes(rawOutcome) || (tPL > 0 && !['LOSS', 'L', 'NEUTRAL', 'NETURAL', 'BE', 'BREAK EVEN'].includes(rawOutcome));
-      const isActuallyLoss = ['LOSS', 'L'].includes(rawOutcome) || (tPL < 0 && !['WIN', 'W', 'NEUTRAL', 'NETURAL', 'BE', 'BREAK EVEN', 'RUNNING'].includes(rawOutcome));
+      const isActuallyWin = ['WIN', 'W'].includes(rawOutcome) || (t.pl > 0 && !['LOSS', 'L', 'NEUTRAL', 'NETURAL', 'BE', 'BREAK EVEN'].includes(rawOutcome));
+      const isActuallyLoss = ['LOSS', 'L'].includes(rawOutcome) || (t.pl < 0 && !['WIN', 'W', 'NEUTRAL', 'NETURAL', 'BE', 'BREAK EVEN', 'RUNNING'].includes(rawOutcome));
       const isNeutral = ['NEUTRAL', 'NETURAL', 'BE', 'BREAK EVEN'].includes(rawOutcome);
 
       // Smart Multi-Setup Analysis
@@ -373,7 +345,7 @@ const App = () => {
       setupsToProcess.forEach(sName => {
         const setupKey = String(sName).trim();
         if (!setupAnalysisMap[setupKey]) setupAnalysisMap[setupKey] = { pl: 0, wins: 0, total: 0, winSum: 0, lossSum: 0 };
-        setupAnalysisMap[setupKey].pl += tPL; 
+        setupAnalysisMap[setupKey].pl += t.pl; 
         setupAnalysisMap[setupKey].total += 1;
         if (isActuallyWin) { 
           setupAnalysisMap[setupKey].wins += 1; 
@@ -385,15 +357,15 @@ const App = () => {
 
       const eKey = t.emotions || t.emotion || 'Unspecified';
       if (!emotionalPnlMap[eKey]) emotionalPnlMap[eKey] = { pl: 0, count: 0 };
-      emotionalPnlMap[eKey].pl += tPL; emotionalPnlMap[eKey].count += 1;
+      emotionalPnlMap[eKey].pl += t.pl; emotionalPnlMap[eKey].count += 1;
 
       const qKey = t.tradeQuality || t.quality || 'Unspecified';
       if (!qualityPnlMap[qKey]) qualityPnlMap[qKey] = { pl: 0, count: 0 };
-      qualityPnlMap[qKey].pl += tPL; qualityPnlMap[qKey].count += 1;
+      qualityPnlMap[qKey].pl += t.pl; qualityPnlMap[qKey].count += 1;
 
       const sKey = t.tradeStatus || t.status || 'Unspecified';
       if (!statusPnlMap[sKey]) statusPnlMap[sKey] = { pl: 0, count: 0 };
-      statusPnlMap[sKey].pl += tPL; statusPnlMap[sKey].count += 1;
+      statusPnlMap[sKey].pl += t.pl; statusPnlMap[sKey].count += 1;
 
       const symKey = t.market || 'Unknown';
       if (!symbolSizingMap[symKey]) symbolSizingMap[symKey] = { totalLots: 0, count: 0 };
@@ -405,40 +377,40 @@ const App = () => {
 
       if (weekDayStatsRaw[dayOfWeek]) {
         weekDayStatsRaw[dayOfWeek].total += 1;
-        weekDayStatsRaw[dayOfWeek].pl += tPL;
+        weekDayStatsRaw[dayOfWeek].pl += t.pl;
         if (isActuallyWin) weekDayStatsRaw[dayOfWeek].wins += 1;
       }
 
       if (isActuallyWin) {
-        winCount++; winTotal += tPL; currentLosingStreak = 0; currentWinningStreak++;
+        winCount++; winTotal += t.pl; currentLosingStreak = 0; currentWinningStreak++;
         if (currentWinningStreak > maxWinningStreak) maxWinningStreak = currentWinningStreak;
       } else if (isActuallyLoss) {
-        lossTotal += Math.abs(tPL); const reasonKey = t.lossReason || t.lossReasons?.[0] || t.reason || "Unspecified Error";
+        lossTotal += Math.abs(t.pl); const reasonKey = t.lossReason || t.lossReasons?.[0] || t.reason || "Unspecified Error";
         if (!errorMap[reasonKey]) errorMap[reasonKey] = { impact: 0, count: 0 };
-        errorMap[reasonKey].impact += tPL; errorMap[reasonKey].count += 1;
-        if (String(t.emotions || t.emotion).toLowerCase().includes('revenge')) revengeLoss += Math.abs(tPL);
+        errorMap[reasonKey].impact += t.pl; errorMap[reasonKey].count += 1;
+        if (String(t.emotions || t.emotion).toLowerCase().includes('revenge')) revengeLoss += Math.abs(t.pl);
         currentWinningStreak = 0; currentLosingStreak++;
         if (currentLosingStreak > maxLosingStreak) maxLosingStreak = currentLosingStreak;
       }
 
       if (!yearData[t.year]) yearData[t.year] = { pl: 0, count: 0 };
-      yearData[t.year].pl += tPL; yearData[t.year].count += 1;
+      yearData[t.year].pl += t.pl; yearData[t.year].count += 1;
       const mKey = `${t.month} ${t.year}`;
       activeMonthsSet.add(mKey);
       if (!monthData[mKey]) monthData[mKey] = { pl: 0, count: 0 };
-      monthData[mKey].pl += tPL; monthData[mKey].count += 1;
+      monthData[mKey].pl += t.pl; monthData[mKey].count += 1;
       if (!dayData[t.dayNum]) dayData[t.dayNum] = { pl: 0, count: 0 };
-      dayData[t.dayNum].pl += tPL; dayData[t.dayNum].count += 1;
+      dayData[t.dayNum].pl += t.pl; dayData[t.dayNum].count += 1;
 
       const dateKey = `${t.year}-${String(mIdx + 1).padStart(2, '0')}-${String(t.dayNum).padStart(2, '0')}`;
       if (!dateData[dateKey]) dateData[dateKey] = { pl: 0, count: 0 };
-      dateData[dateKey].pl += tPL; dateData[dateKey].count += 1;
+      dateData[dateKey].pl += t.pl; dateData[dateKey].count += 1;
 
       if (t.learning && t.learning.length > 3) {
         learningVault.push({ 
           date: t.fullDate, 
           text: t.learning, 
-          pl: tPL,
+          pl: t.pl,
           screenshots: t.screenshots || [t.screenshotUrl || t.chartScreenshotUrl].filter(Boolean)
         });
       }
@@ -463,7 +435,7 @@ const App = () => {
     else highlightSource = Object.entries(dayData).map(([d, v]) => [`Day ${d}`, v]);
 
     if (highlightSource.length <= 1) {
-      highlightSource = filtered.map((t, idx) => [`Trade #${idx + 1}`, { pl: getPL(t) }]);
+      highlightSource = filtered.map((t, idx) => [`Trade #${idx + 1}`, { pl: t.pl }]);
     }
 
     const bestPeriod = highlightSource.length > 0 ? highlightSource.reduce((a, b) => a[1].pl > b[1].pl ? a : b) : ['', { pl: 0 }];
@@ -496,8 +468,8 @@ const App = () => {
         narrative += `Trading while feeling "${topEmotion.name}" is your biggest behavioral leak, costing you ${formatCurrency(Math.abs(topEmotion.pl))}.`;
       }
 
-      const worstThreeTrades = filtered.filter(t => getPL(t) < 0).sort((a, b) => getPL(a) - getPL(b)).slice(0, 3);
-      const worstThreeLossSum = worstThreeTrades.reduce((sum, t) => sum + Math.abs(getPL(t)), 0);
+      const worstThreeTrades = filtered.filter(t => t.pl < 0).sort((a, b) => a.pl - b.pl).slice(0, 3);
+      const worstThreeLossSum = worstThreeTrades.reduce((sum, t) => sum + Math.abs(t.pl), 0);
       const whatIfNetPnl = cumulativePL + worstThreeLossSum;
 
       const prioritySteps = [];

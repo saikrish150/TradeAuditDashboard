@@ -8,8 +8,6 @@ const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenInspector, onOp
     { id: 'trade', label: 'Add Trade', icon: Plus, action: onAddTrade, color: 'journal-red' },
     { id: 'snapshot', label: 'Add Snapshot', icon: Camera, action: onAddSnapshot, color: 'journal-gold' },
     { id: 'note', label: 'Add Notes', icon: FileText, action: onAddNote, color: 'white' },
-    { id: 'inspector', label: 'Raw Data', icon: Database, action: onOpenInspector, color: 'cyan' },
-    { id: 'migration', label: 'Cloud Sync', icon: DatabaseZap, action: onOpenMigration, color: 'indigo' },
   ];
 
   return (
