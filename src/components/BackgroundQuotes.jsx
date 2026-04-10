@@ -43,7 +43,7 @@ const BackgroundQuotes = () => {
       style: {
         top: '15%',
         left: '5%',
-        fontSize: 'clamp(2rem, 8vw, 6rem)',
+        fontSize: 'clamp(1rem, 6vw, 4rem)',
         className: 'quote-watermark',
         opacity: 0.03
       }
@@ -54,7 +54,7 @@ const BackgroundQuotes = () => {
       style: {
         top: '65%',
         right: '10%',
-        fontSize: 'clamp(1rem, 3vw, 2rem)',
+        fontSize: 'clamp(0.7rem, 2vw, 1.5rem)',
         className: 'quote-gold font-mono',
         opacity: 0.4
       }
@@ -65,7 +65,7 @@ const BackgroundQuotes = () => {
       style: {
         top: '40%',
         left: '15%',
-        fontSize: 'clamp(1.5rem, 5vw, 3.5rem)',
+        fontSize: 'clamp(1rem, 4vw, 2.5rem)',
         className: 'quote-red',
         opacity: 0.15
       }
@@ -76,7 +76,7 @@ const BackgroundQuotes = () => {
       style: {
         top: '80%',
         left: '20%',
-        fontSize: 'clamp(0.8rem, 2vw, 1.2rem)',
+        fontSize: 'clamp(0.6rem, 1.5vw, 1rem)',
         className: 'quote-purple font-mono tracking-[0.5em]',
         opacity: 0.5
       }

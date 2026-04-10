@@ -291,7 +291,7 @@ const App = () => {
 
   return (
     <AuthShield>
-      <div className={`min-h-screen ${activeSection === 'journal' ? 'bg-[#0B0B0B]' : 'bg-[#020617]'} text-slate-100 font-sans p-4 md:p-8 pb-24 md:pb-8 relative transition-colors duration-1000`}>
+    <div className={`min-h-screen overflow-x-hidden ${activeSection === 'journal' ? 'bg-[#0B0B0B]' : 'bg-[#020617]'} text-slate-100 font-sans p-4 md:p-8 pb-24 md:pb-8 relative transition-colors duration-1000`}>
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuOCIgbnVtT2N0YXZlcz0iMSIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNub2lzZSkiIG9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==')]"></div>
       <LightRaysAndParticles />
       {activeSection === 'journal' && <BackgroundQuotes />}

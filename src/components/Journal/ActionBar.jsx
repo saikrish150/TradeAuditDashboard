@@ -31,8 +31,8 @@ const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenRules }) => {
               ${btn.color === 'white' ? 'text-slate-100 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]' : ''}
             `}
           >
-            <btn.icon size={16} />
-            <span className="hidden sm:inline">{btn.label}</span>
+            <btn.icon size={16} className="shrink-0" />
+            <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-widest truncate">{btn.label}</span>
           </motion.button>
         ))}
       </div>

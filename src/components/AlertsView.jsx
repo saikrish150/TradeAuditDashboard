@@ -286,7 +286,7 @@ export const AlertsView = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
         {/* Chart Column */}
-        <div className="lg:col-span-3 rounded-2xl border border-slate-800/50 bg-[#131722] overflow-hidden shadow-2xl flex flex-col h-[calc(100vh-260px)] min-h-[400px]">
+        <div className="lg:col-span-3 rounded-2xl border border-slate-800/50 bg-[#131722] overflow-hidden shadow-2xl flex flex-col h-[400px] lg:h-[calc(100vh-260px)] min-h-[350px]">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/50 bg-[#1a1e2e]/50 backdrop-blur-md z-10">
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-widest"><LayoutGrid className="w-4 h-4 text-indigo-500" /> {selectedSymbol.name}</span>
@@ -308,7 +308,7 @@ export const AlertsView = () => {
         </div>
         
         {/* Alerts Panel Column */}
-        <div className="lg:col-span-1 rounded-2xl border border-slate-800/50 bg-slate-900/30 backdrop-blur-md p-4 shadow-2xl h-[calc(100vh-260px)] min-h-[400px]">
+        <div className="lg:col-span-1 rounded-2xl border border-slate-800/50 bg-slate-900/30 backdrop-blur-md p-4 shadow-2xl h-[400px] lg:h-[calc(100vh-260px)] min-h-[350px]">
           <AlertsPanel alerts={alerts} onDelete={handleDeleteAlert} />
         </div>
 

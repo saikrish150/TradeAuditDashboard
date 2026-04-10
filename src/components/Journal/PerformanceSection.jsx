@@ -5,6 +5,14 @@ import { TrendingUp, TrendingDown, IndianRupee, Activity, Calendar, Zap, Target 
 import { formatCurrency } from '../../utils';
 
 const PerformanceSection = ({ trades }) => {
+  const [windowWidth, setWindowWidth] = React.useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  React.useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Safe date helper
   const getSafeDate = (d) => {
     if (!d) return new Date();
@@ -39,10 +47,11 @@ const PerformanceSection = ({ trades }) => {
       dailyMap.set(key, current);
     });
 
+    const isMobileView = windowWidth < 768;
     const recentDays = Array.from(dailyMap.values())
       .filter(d => d.pl !== 0 && !isNaN(d.pl))
-      .sort((a, b) => a.date - b.date)
-      .slice(-15);
+      .sort((a, b) => b.date - a.date) // Most Recent First
+      .slice(0, isMobileView ? 7 : 15);
 
     const wins = recentDays.filter(d => d.pl > 0).length;
     const winRate = recentDays.length ? Math.round((wins / recentDays.length) * 100) : 0;
@@ -51,11 +60,15 @@ const PerformanceSection = ({ trades }) => {
     const profitFactor = grossLoss === 0 ? (grossProfit > 0 ? '99+' : '0.00') : (grossProfit / grossLoss).toFixed(2);
 
     return { todayPL, chartData: recentDays, winRate, profitFactor };
-  }, [trades]);
+  }, [trades, windowWidth]);
 
   const CustomLabel = (props) => {
     const { x, y, width, value } = props;
     if (value === undefined || value === null || isNaN(value)) return null;
+    
+    // Hide labels on small mobile screens to prevent text collisions
+    if (typeof window !== 'undefined' && window.innerWidth < 480) return null;
+
     const isPositive = value >= 0;
     return (
       <text 
@@ -79,7 +92,7 @@ const PerformanceSection = ({ trades }) => {
     >
       <div className="flex flex-col lg:flex-row min-h-[180px]">
         {/* Today's Sidebar */}
-        <div className="lg:w-[220px] p-4 ps-10 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-white/5 bg-white/[0.01]">
+        <div className="lg:w-[220px] p-4 ps-6 md:ps-10 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-white/5 bg-white/[0.01]">
            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 ${stats.todayPL >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-500'}`}>
               {stats.todayPL >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
            </div>
@@ -117,10 +130,20 @@ const PerformanceSection = ({ trades }) => {
               </div>
            </div>
 
-           <div className="flex-1 w-full min-h-[100px] relative">
-              <ResponsiveContainer width="100%" height={120}>
-                 <BarChart data={stats.chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+           <div className="flex-1 w-full min-h-[130px] relative">
+              <ResponsiveContainer width="100%" height={150}>
+                  <BarChart data={stats.chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="barWin" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#059669" stopOpacity={0.6} />
+                      </linearGradient>
+                      <linearGradient id="barLoss" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#e11d48" stopOpacity={0.6} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff03" vertical={false} />
                     <XAxis 
                       dataKey="label" 
                       axisLine={false} 
@@ -130,7 +153,7 @@ const PerformanceSection = ({ trades }) => {
                     />
                     <YAxis hide domain={['auto', 'auto']} />
                     <Tooltip 
-                      cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                      cursor={{ fill: 'rgba(212, 175, 55, 0.03)' }}
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
@@ -148,34 +171,22 @@ const PerformanceSection = ({ trades }) => {
                     />
                     <Bar 
                       dataKey="pl" 
-                      radius={[4, 4, 0, 0]}
-                      barSize={32}
+                      radius={[6, 6, 0, 0]}
+                      barSize={windowWidth < 768 ? 40 : 32}
                     >
                       {stats.chartData.map((entry, index) => (
                         <Cell 
                           key={`cell-${index}`} 
-                          fill={entry.pl >= 0 ? '#10b981' : '#f43f5e'} 
-                          fillOpacity={0.8}
-                          className="hover:fill-opacity-100 transition-all duration-300"
+                          fill={entry.pl >= 0 ? 'url(#barWin)' : 'url(#barLoss)'}
+                          className="hover:brightness-125 transition-all duration-300 cursor-pointer"
                         />
                       ))}
                       <LabelList dataKey="pl" content={<CustomLabel />} />
                     </Bar>
-                 </BarChart>
-              </ResponsiveContainer>
-           </div>
-           
-           <div className="mt-4 flex justify-between items-center text-[7px] font-black text-slate-600 uppercase tracking-widest px-2 border-t border-white/5 pt-2">
-              <div className="flex gap-4">
-                 <span>Latest {stats.chartData.length} Sessions</span>
-                 <span className="text-slate-500 italic">Values shown in local currency</span>
-              </div>
-              <div className="flex gap-4">
-                 <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Winning</span>
-                 <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Drawdown</span>
-              </div>
-           </div>
-        </div>
+                  </BarChart>
+               </ResponsiveContainer>
+            </div>
+         </div>
       </div>
     </motion.div>
   );

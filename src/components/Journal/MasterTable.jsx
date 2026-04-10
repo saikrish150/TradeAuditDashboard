@@ -32,7 +32,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [activeFilterPopup]);
-  const itemsPerPage = 50;
+  const itemsPerPage = 15;
 
   const columns = JOURNAL_COLUMNS;
 

@@ -66,7 +66,7 @@ const CalendarSection = ({ trades }) => {
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="journal-glass rounded-2xl p-6 border-journal-gold/10 overflow-hidden">
+    <div className="journal-glass rounded-2xl p-4 sm:p-6 border-journal-gold/10 overflow-hidden">
       <div className="flex items-center justify-between mb-8 px-2">
         <h3 className="text-xs font-black uppercase tracking-[0.3em] text-journal-gold flex items-center gap-2">
           <CalendarIcon size={16} /> {monthName}
@@ -91,7 +91,8 @@ const CalendarSection = ({ trades }) => {
       <div className="grid grid-cols-7 gap-2">
         {weekDays.map(d => (
           <div key={d} className="text-center py-2 text-[9px] font-black uppercase tracking-widest text-slate-600">
-            {d}
+            <span className="hidden sm:inline">{d}</span>
+            <span className="sm:hidden">{d[0]}</span>
           </div>
         ))}
         
@@ -101,7 +102,7 @@ const CalendarSection = ({ trades }) => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className={`
-              relative h-24 rounded-xl border flex flex-col justify-between p-2 transition-all
+              relative h-16 sm:h-24 rounded-lg sm:rounded-xl border flex flex-col justify-between p-1 sm:p-2 transition-all
               ${d.empty ? 'bg-transparent border-transparent' : 'bg-slate-950/40 border-slate-800/50 hover:border-journal-gold/30'}
               ${d.isBest ? 'gold-border-glow bg-journal-gold/[0.03]' : ''}
             `}
@@ -115,10 +116,10 @@ const CalendarSection = ({ trades }) => {
 
                 {d.count > 0 && (
                   <div className="mt-auto">
-                    <p className={`text-[9px] font-black tabular-nums tracking-tighter ${d.pl >= 0 ? 'text-emerald-400' : 'text-journal-red'}`}>
-                      {d.pl >= 0 ? '+' : ''}{formatCurrency(d.pl)}
+                    <p className={`text-[8px] sm:text-[9px] font-black tabular-nums tracking-tighter ${d.pl >= 0 ? 'text-emerald-400' : 'text-journal-red'}`}>
+                      {d.pl >= 0 ? '+' : ''}{formatCurrency(d.pl).split('.')[0]}
                     </p>
-                    <p className="text-[8px] font-bold text-slate-600 uppercase tracking-tighter">{d.count} TRADES</p>
+                    <p className="hidden sm:block text-[8px] font-bold text-slate-600 uppercase tracking-tighter">{d.count} TRADES</p>
                   </div>
                 )}
               </>

@@ -287,7 +287,7 @@ const TradingJournal = ({
         onOpenRules={() => setShowRulesModal(true)}
       />
 
-      <div className="max-w-7xl mx-auto px-4 pb-20">
+      <div className="max-w-7xl mx-auto px-4 pb-20 w-full overflow-hidden">
         <PerformanceSection trades={trades} />
         <GoalTracking 
           trades={trades} 
