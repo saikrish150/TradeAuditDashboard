@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, Check, ChevronDown, Plus, Trash2, IndianRupee, History, Target } from 'lucide-react';
+import { X, Upload, Check, ChevronDown, Plus, Trash2, IndianRupee, History, Target, ShieldAlert } from 'lucide-react';
 import { 
   MARKET_OPTIONS,
   TRADE_STATUS_OPTIONS, 
@@ -88,11 +88,11 @@ export const AddGoalModal = ({ isOpen, onClose, onSave }) => {
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Start Date</label>
-            <input type="date" value={formData.startDate || ''} onChange={e => setFormData({...formData, startDate: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
+            <input type="date" value={formData.startDate || ''} onChange={e => setFormData({...formData, startDate: e.target.value})} onClick={(e) => e.target.showPicker?.()} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Target Date</label>
-            <input type="date" value={formData.endDate || ''} onChange={e => setFormData({...formData, endDate: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
+            <input type="date" value={formData.endDate || ''} onChange={e => setFormData({...formData, endDate: e.target.value})} onClick={(e) => e.target.showPicker?.()} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
           </div>
         </div>
 
@@ -294,6 +294,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
               type="datetime-local" 
               value={formData.date || ''}
               onChange={e => setFormData({...formData, date: e.target.value})}
+              onClick={(e) => e.target.showPicker?.()}
               className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 transition-all [color-scheme:dark]"
             />
           </div>
@@ -593,7 +594,7 @@ export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, exi
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                <div className="flex flex-col gap-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Snapshot Date</label>
-                  <input type="date" value={formData.date || ''} onChange={e => setFormData({...formData, date: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
+                  <input type="date" value={formData.date || ''} onChange={e => setFormData({...formData, date: e.target.value})} onClick={(e) => e.target.showPicker?.()} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
                </div>
                 <div className="flex flex-col gap-2">
                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Execution Volume</label>
@@ -687,6 +688,87 @@ export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, exi
 };
 
 
+import { TRADING_RULES } from '../../constants/tradingRules';
+
+export const TradingRulesModal = ({ isOpen, onClose }) => {
+  const rules = TRADING_RULES;
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemAnim = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0 }
+  };
+
+  return (
+    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Core Trading Discipline Framework" maxWidth="max-w-4xl">
+      <motion.div 
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+      >
+        {rules.map((section, idx) => (
+          <motion.div 
+            key={idx}
+            variants={itemAnim}
+            className={`p-6 rounded-3xl border ${section.border} ${section.bg} backdrop-blur-sm flex flex-col gap-4 relative overflow-hidden group`}
+          >
+            {/* Background Icon Watermark */}
+            <section.icon className="absolute -bottom-4 -right-4 w-32 h-32 opacity-[0.03] group-hover:scale-110 transition-transform duration-700" />
+            
+            <div className="flex items-center gap-3">
+              <div className={`p-2.5 rounded-xl ${section.bg} border ${section.border} ${section.color}`}>
+                <section.icon size={20} />
+              </div>
+              <h3 className={`text-sm font-black uppercase tracking-widest ${section.color}`}>{section.title}</h3>
+            </div>
+
+            <div className="space-y-4">
+              {section.items.map((item, i) => (
+                <div key={i} className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-1 h-1 rounded-full ${section.color} opacity-50`} />
+                    <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider font-mono">{item.label}</span>
+                  </div>
+                  <p className="text-[11px] font-medium text-slate-400 leading-relaxed pl-3 border-l border-white/5">
+                    {item.desc}
+                  </p>
+                  {item.isList && (
+                    <div className="pl-6 space-y-1.5 mt-1 border-l border-white/5">
+                      {item.subItems.map((sub, si) => (
+                        <div key={si} className="flex items-start gap-2">
+                          <span className={`${section.color} mt-1`}><Check size={10} /></span>
+                          <span className="text-[10px] font-bold text-slate-500 italic leading-snug">{sub}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      <div className="mt-8 p-4 bg-white/5 border border-white/10 rounded-2xl">
+        <div className="flex items-center gap-3 text-slate-400">
+          <ShieldAlert size={16} className="text-journal-gold" />
+          <p className="text-[10px] font-black uppercase tracking-widest leading-loose">
+            Discipline is not just a rule, it is the <span className="text-journal-gold">barrier</span> between capital and chaos. Stick to the plan or stay out of the market.
+          </p>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+};
+
 export const AddNoteModal = ({ isOpen, onClose, onSave, editingNote }) => {
   const [formData, setFormData] = useState(DEFAULT_NOTE_FORM);
 
@@ -718,7 +800,7 @@ export const AddNoteModal = ({ isOpen, onClose, onSave, editingNote }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Entry Date</label>
-                <input type="date" value={formData.date || ''} onChange={e => setFormData({...formData, date: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
+                <input type="date" value={formData.date || ''} onChange={e => setFormData({...formData, date: e.target.value})} onClick={(e) => e.target.showPicker?.()} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />
              </div>
              <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Category</label>

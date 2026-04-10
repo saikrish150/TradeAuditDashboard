@@ -285,6 +285,7 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
                                       type="date"
                                       value={customDateRange.start}
                                       onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
+                                      onClick={(e) => e.target.showPicker?.()}
                                       className="w-full bg-slate-950/50 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-white outline-none [color-scheme:dark]"
                                     />
                                   </div>
@@ -294,6 +295,7 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
                                       type="date"
                                       value={customDateRange.end}
                                       onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
+                                      onClick={(e) => e.target.showPicker?.()}
                                       className="w-full bg-slate-950/50 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-white outline-none [color-scheme:dark]"
                                     />
                                   </div>

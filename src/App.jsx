@@ -258,6 +258,15 @@ const App = () => {
     };
   }, []);
 
+  // 3. Smart-Tab Default Filtering: Dashboard defaults to Current Month, Journal to All
+  useEffect(() => {
+    if (activeSection === 'audit') {
+      setDatePreset('CurrentMonth');
+    } else if (activeSection === 'journal') {
+      setDatePreset('All');
+    }
+  }, [activeSection]);
+
   useEffect(() => {
     if (!user) return;
 
@@ -596,7 +605,7 @@ const App = () => {
       learnings: learningVault.sort((a, b) => a.pl - b.pl),
       trades: filtered,
       snapshots: rawSnapshots.filter(s => {
-        const sDate = s.jsDate;
+        const sDate = new Date(s.jsDate);
         if (datePreset === 'CurrentMonth') {
           if (sDate.getMonth() !== now.getMonth() || sDate.getFullYear() !== now.getFullYear()) return false;
         } else if (datePreset !== 'All') {
@@ -615,7 +624,7 @@ const App = () => {
         return true;
       }),
       filteredNotes: notes.filter(n => {
-        const nDate = n.jsDate;
+        const nDate = new Date(n.jsDate);
         if (datePreset === 'CurrentMonth') {
           if (nDate.getMonth() !== now.getMonth() || nDate.getFullYear() !== now.getFullYear()) return false;
         } else if (datePreset !== 'All') {
@@ -837,9 +846,9 @@ const App = () => {
             </div>
             {datePreset === 'Custom' && (
               <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} onClick={(e) => e.target.showPicker?.()} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
                 <span className="text-slate-500 text-[10px]">-</span>
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={(e) => e.target.showPicker?.()} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
               </div>
             )}
             <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
@@ -1059,29 +1068,6 @@ const App = () => {
                        </div>
                      </Motion.div>
 
-                     <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                       <SectionHeader icon={BookOpen} title="Historical Trade Records" sub="Visual Technical Log" />
-                       <Card className="p-6 border border-slate-800/60 bg-slate-900/50">
-                         <div className="max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
-                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                             {learnings.map((l, i) => (
-                               <div key={i} className="p-4 bg-slate-800/20 border border-slate-800/60 rounded-3xl flex flex-col gap-4 hover:border-indigo-500/40 transition-all group">
-                                 <TradeArchiveCarousel images={l.screenshots} />
-                                 <div className="flex justify-between items-start gap-4 px-1">
-                                   <div className="flex-1">
-                                     <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{String(l.date)}</span>
-                                     <p className="text-sm font-medium italic mt-2 text-slate-200">"{String(l.text)}"</p>
-                                   </div>
-                                   <div className={`font-mono font-black text-sm px-3 py-1 rounded-lg bg-slate-900/50 border border-slate-800/50 ${l.pl < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                     {formatCurrency(l.pl)}
-                                   </div>
-                                 </div>
-                               </div>
-                             ))}
-                           </div>
-                         </div>
-                       </Card>
-                     </Motion.div>
 
                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                        <Card className="p-8 border-t border-indigo-500/20 shadow-2xl shadow-indigo-500/10">

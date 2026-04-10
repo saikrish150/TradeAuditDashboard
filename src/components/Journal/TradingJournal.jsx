@@ -12,7 +12,7 @@ import MasterTable from './MasterTable';
 import SnapshotSection from './SnapshotSection';
 import NotesSection from './NotesSection';
 import CalendarSection from './CalendarSection';
-import { AddTradeModal, AddSnapshotModal, AddNoteModal } from './JournalModals';
+import { AddTradeModal, AddSnapshotModal, AddNoteModal, TradingRulesModal } from './JournalModals';
 import { SNAPSHOT_TAG_OPTIONS, NOTE_CATEGORY_OPTIONS } from '../../constants/journalOptions';
 import { TRADE_SCHEMA_MAP, SNAPSHOT_SCHEMA_MAP, NOTE_SCHEMA_MAP } from '../../constants/fieldMappings';
 import { formatToGMT530 } from '../../constants/formDefaults';
@@ -35,6 +35,7 @@ const TradingJournal = ({
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [showSnapshotModal, setShowSnapshotModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [editingSnapshot, setEditingSnapshot] = useState(null);
   const [editingNote, setEditingNote] = useState(null);
@@ -59,6 +60,10 @@ const TradingJournal = ({
       if (e.key.toLowerCase() === 'n') {
         e.preventDefault();
         setShowNoteModal(true);
+      }
+      if (e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        setShowRulesModal(prev => !prev);
       }
     };
 
@@ -279,6 +284,7 @@ const TradingJournal = ({
         onAddTrade={() => setShowTradeModal(true)} 
         onAddSnapshot={() => setShowSnapshotModal(true)} 
         onAddNote={() => setShowNoteModal(true)} 
+        onOpenRules={() => setShowRulesModal(true)}
       />
 
       <div className="max-w-7xl mx-auto px-4 pb-20">
@@ -375,6 +381,10 @@ const TradingJournal = ({
         onClose={() => { setShowNoteModal(false); setEditingNote(null); }} 
         onSave={handleSaveNote}
         editingNote={editingNote} 
+      />
+      <TradingRulesModal 
+        isOpen={showRulesModal}
+        onClose={() => setShowRulesModal(false)}
       />
 
       {/* Full-screen Image Viewer */}

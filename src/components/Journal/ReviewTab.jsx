@@ -592,14 +592,16 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
                       type="date" 
                       value={galleryFilters.startDate}
                       onChange={e => setGalleryFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                      className="bg-transparent text-[9px] font-black uppercase text-slate-300 outline-none cursor-pointer"
+                      onClick={(e) => e.target.showPicker?.()}
+                      className="bg-transparent text-[9px] font-black uppercase text-slate-300 outline-none cursor-pointer [color-scheme:dark]"
                     />
                     <span className="text-slate-600 text-[9px] font-bold">to</span>
                     <input 
                       type="date" 
                       value={galleryFilters.endDate}
                       onChange={e => setGalleryFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                      className="bg-transparent text-[9px] font-black uppercase text-slate-300 outline-none cursor-pointer pr-2"
+                      onClick={(e) => e.target.showPicker?.()}
+                      className="bg-transparent text-[9px] font-black uppercase text-slate-300 outline-none cursor-pointer pr-2 [color-scheme:dark]"
                     />
                   </div>
 

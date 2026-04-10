@@ -61,16 +61,23 @@ Migrate and optimize the standalone trading alert logic into the Trade Audit das
    - Desktop system notifications.
    - Persistence sync to Supabase for cross-platform availability.
 
-## Active Plan: Full-Scale Triple-Table Journal Integration
+## Status: Journal Infrastructure Hardening
 
 ### Objective
-Expand the application into a comprehensive trading workstation by migrating and synchronizing three core data collections from Notion into a unified Firebase ecosystem.
+Finalize the migration from Firebase to Supabase for all primary data collections (Trades, Snapshots, Notes, Goals) to leverage relational integrity and real-time synchronization.
+
+### Accomplishments
+1. **Supabase Migration**: Successfully migrated 4 core tables with relational user-linkage.
+2. **Zero-Opinion Exports**: Implemented a raw database backup system for bit-for-bit data fidelity.
+3. **Smart-Tab Awareness**: Optimized dashboard filtering defaults for performance and history depth.
+4. **UI Hardening**: Global date-picker reliability fix and removal of redundant historical sections.
+
+## Active Plan: Trading Discipline Framework
+
+### Objective
+Implement the "Trading Rules Reference" system to bridge the gap between analysis and execution discipline.
 
 ### Actionable Steps
-1. **Infrastructure**: Initialized `src/firebase.js` with active project credentials.
-2. **Journal Tab (CRUD)**:
-   - **Trade Log**: Enhanced table with inline edit/delete.
-   - **Performance Reflection**: Daily snapshot grid with image lightboxes.
-   - **Trading Notebook**: Markdown-supported note-taking interface.
-3. **Analytics Integration**: Update charts to consume live data from Firestore, enabling real-time performance tracking.
-4. **Hosting**: Deploy the final full-scale application to Firebase Hosting.
+1. **Discipline UI**: Add a dedicated "Rules" button to the Trading Journal ActionBar.
+2. **Knowledge Hub**: Create a premium modal displaying core Entry, Target, and Stop Loss rules.
+3. **UX Optimization**: Use staggered animations and semantic grouping to make rules easily digestible during live trading.

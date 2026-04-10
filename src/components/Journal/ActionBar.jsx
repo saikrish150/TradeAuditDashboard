@@ -1,13 +1,14 @@
 import React from 'react';
-import { Plus, Camera, FileText, Database, DatabaseZap } from 'lucide-react';
+import { Plus, Camera, FileText, Database, DatabaseZap, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenInspector, onOpenMigration }) => {
+const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenRules }) => {
 
   const buttons = [
     { id: 'trade', label: 'Add Trade', icon: Plus, action: onAddTrade, color: 'journal-red' },
     { id: 'snapshot', label: 'Add Snapshot', icon: Camera, action: onAddSnapshot, color: 'journal-gold' },
     { id: 'note', label: 'Add Notes', icon: FileText, action: onAddNote, color: 'white' },
+    { id: 'rules', label: 'Rules', icon: ShieldCheck, action: onOpenRules, color: 'indigo' },
   ];
 
   return (
