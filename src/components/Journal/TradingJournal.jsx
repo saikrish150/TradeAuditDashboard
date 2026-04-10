@@ -297,7 +297,7 @@ const TradingJournal = ({
         />
         <HabitTracker snapshots={snapshots} />
 
-        <div className="flex justify-center gap-4 mb-8">
+        <div className="flex justify-start md:justify-center gap-4 mb-8 overflow-x-auto scrollbar-hide px-6 min-w-max">
            {[
              { id: 'trades', label: 'Trade Journal' },
              { id: 'snapshots', label: 'EOD Snapshots' },

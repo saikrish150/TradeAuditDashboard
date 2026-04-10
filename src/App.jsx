@@ -673,13 +673,13 @@ const App = () => {
                  {activeTab === 'performance' && (
                    <div className="space-y-6 md:space-y-12">
                      <SectionHeader icon={Briefcase} title="1. Financial Summary" />
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <MetricCard title="Total Trades" value={String(metrics.total || 0)} icon={Hash} />
                   <MetricCard title="Win Rate" value={`${String(metrics.winRate || 0)}%`} icon={TrendingUp} trend="up" />
                   <MetricCard title="Net P&L" value={formatCurrency(metrics.net || 0)} icon={IndianRupee} trend={(metrics.net || 0) >= 0 ? "up" : "down"} size="large" />
                   <MetricCard title="Profit Factor" value={String(metrics.pf || 0)} icon={BarChart2} />
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <MetricCard title="Avg Win" value={formatCurrency(metrics.avgWin || 0)} icon={ArrowUpRight} trend="up" colorClass="text-emerald-400" />
                   <MetricCard title="Avg Loss" value={formatCurrency(metrics.avgLoss || 0)} icon={ArrowDownRight} trend="down" colorClass="text-rose-400" />
                   <MetricCard title="Highest Win" value={formatCurrency(metrics.maxProfit || 0)} icon={Flame} colorClass="text-emerald-500" />

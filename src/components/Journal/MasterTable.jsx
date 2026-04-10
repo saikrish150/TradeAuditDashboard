@@ -286,9 +286,10 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
 
 
 
-      {/* Table Container with Horizontal Scroll */}
-      <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full text-left border-separate border-spacing-0 min-w-[1800px]">
+      {/* Table Container with Horizontal Scroll & Visual Cue */}
+      <div className="relative group/table">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-separate border-spacing-0 min-w-[1800px]">
           <thead>
             <tr className="bg-slate-950/20">
               {columns.map(col => (
@@ -507,6 +508,9 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
           </tbody>
         </table>
       </div>
+      {/* Right edge scroll shadow cue */}
+      <div className="absolute top-0 right-0 bottom-0 w-12 pointer-events-none bg-gradient-to-l from-slate-950/20 to-transparent opacity-0 group-hover/table:opacity-100 transition-opacity" />
+    </div>
 
       {/* Pagination Footer */}
       <div className="p-4 flex items-center justify-between border-t border-white/5 bg-slate-950/20 rounded-b-2xl">
