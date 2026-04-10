@@ -167,7 +167,7 @@ const TradingJournal = ({
       [NOTE_SCHEMA_MAP.date]: formatToGMT530(data.date),
       [NOTE_SCHEMA_MAP.content]: data.content,
       [NOTE_SCHEMA_MAP.category]: data.category,
-      [NOTE_SCHEMA_MAP.isPinned]: data.isPinned ? 'true' : 'false',
+      [NOTE_SCHEMA_MAP.isPinned]: data.isPinned ? 'Yes' : 'No',
       [NOTE_SCHEMA_MAP.source]: data.source || ''
     };
 

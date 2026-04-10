@@ -24,20 +24,20 @@ import {
 const ModalWrapper = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl' }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-journal-bg/90 backdrop-blur-md">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-2 sm:p-4 bg-journal-bg/95 backdrop-blur-md">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className={`relative w-full ${maxWidth} max-h-[90vh] overflow-y-auto journal-glass rounded-3xl border-journal-gold/30 shadow-[0_0_50px_rgba(212,175,55,0.1)] flex flex-col`}
+        className={`relative w-full ${maxWidth} max-h-[95vh] overflow-y-auto journal-glass rounded-[2rem] border-journal-gold/30 shadow-[0_0_50px_rgba(212,175,55,0.1)] flex flex-col`}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-white/5 bg-journal-bg/80 backdrop-blur-md">
-          <h2 className="text-xl font-black text-white uppercase tracking-widest">{title}</h2>
+        <div className="sticky top-0 z-10 flex items-center justify-between p-4 md:p-6 border-b border-white/5 bg-journal-bg/90 backdrop-blur-md">
+          <h2 className="text-sm md:text-xl font-black text-white uppercase tracking-widest">{title}</h2>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-white/5 text-slate-500 hover:text-white transition-all">
             <X size={20} />
           </button>
         </div>
-        <div className="p-8">
+        <div className="p-4 md:p-8">
           {children}
         </div>
       </motion.div>
@@ -285,8 +285,8 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
 
   return (
     <ModalWrapper isOpen={isOpen} onClose={onClose} title="Execute New Entry Record">
-      <div className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-6 md:space-y-8 pb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
           {/* Execution Date & Time */}
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Execution Date & Time</label>
@@ -415,7 +415,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
 
 
         {/* Text Areas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           <div className="flex flex-col gap-2">
              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Reason For Trade</label>
              <textarea 
@@ -472,10 +472,10 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
         )}
 
         {/* Additional Selects */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-           <div className="flex flex-col gap-2 text-center lg:text-left">
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
+           <div className="flex flex-col gap-2">
               <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Position Size</label>
-              <input type="number" step="any" onWheel={(e) => e.target.blur()} value={formData.positionSize || ''} onChange={e => setFormData({...formData, positionSize: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none" placeholder="Lots" />
+              <input type="number" step="any" onWheel={(e) => e.target.blur()} value={formData.positionSize || ''} onChange={e => setFormData({...formData, positionSize: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-3 text-xs font-bold text-white outline-none" placeholder="Lots" />
            </div>
            
            <SingleSelect 
@@ -590,8 +590,8 @@ export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, exi
 
   return (
     <ModalWrapper isOpen={isOpen} onClose={onClose} title="Log Daily Performance Snapshot">
-       <div className="space-y-8">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+       <div className="space-y-6 md:space-y-8 pb-10">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                <div className="flex flex-col gap-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Snapshot Date</label>
                   <input type="date" value={formData.date || ''} onChange={e => setFormData({...formData, date: e.target.value})} onClick={(e) => e.target.showPicker?.()} className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-journal-gold/50 [color-scheme:dark]" />

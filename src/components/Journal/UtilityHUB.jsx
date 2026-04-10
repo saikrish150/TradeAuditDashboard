@@ -46,7 +46,7 @@ const UtilityHub = ({ user, trades = [], snapshots = [], notes = [] }) => {
 
   return (
     <>
-      <div className="fixed bottom-24 lg:bottom-10 left-6 lg:left-10 z-[500]">
+      <div className="fixed bottom-24 lg:bottom-10 left-6 lg:left-10 z-[50]">
         <div className="relative">
           {/* Sub Icons */}
           <AnimatePresence>

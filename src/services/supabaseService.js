@@ -137,7 +137,7 @@ export const normalizeRow = (row) => {
 // Highly Optimized Column Strings (Based on DB_FIELDS)
 // This ensures we never fetch unnecessary system metadata, saving bandwidth.
 const SRC_COLS = {
-  trades: `id, user_id, "${DB_FIELDS.date}", "${DB_FIELDS.market}", "${DB_FIELDS.direction}", "${DB_FIELDS.isWin}", "${DB_FIELDS.winFlag}", "${DB_FIELDS.pl}", "${DB_FIELDS.rr}", "${DB_FIELDS.reason}", "${DB_FIELDS.learning}", "${DB_FIELDS.strategy}", "${DB_FIELDS.setups}", "${DB_FIELDS.lossReason}", "${DB_FIELDS.emotions}", "${DB_FIELDS.positionSize}", "${DB_FIELDS.tradeQuality}", "${DB_FIELDS.tradeStatus}", "${DB_FIELDS.positionType}", "${DB_FIELDS.tradeMode}", "${DB_FIELDS.chartScreenshotUrl}"`,
+  trades: `id, user_id, "${DB_FIELDS.date}", "${DB_FIELDS.market}", "${DB_FIELDS.direction}", "${DB_FIELDS.isWin}", "${DB_FIELDS.winFlag}", "${DB_FIELDS.pl}", "${DB_FIELDS.rr}", "${DB_FIELDS.reason}", "${DB_FIELDS.learning}", "${DB_FIELDS.strategy}", "${DB_FIELDS.setups}", "${DB_FIELDS.lossReasons}", "${DB_FIELDS.emotions}", "${DB_FIELDS.positionSize}", "${DB_FIELDS.tradeQuality}", "${DB_FIELDS.tradeStatus}", "${DB_FIELDS.positionType}", "${DB_FIELDS.tradeMode}", "${DB_FIELDS.chartScreenshotUrl}"`,
   snapshots: `id, user_id, "${DB_FIELDS.dateAdded}", "${DB_FIELDS.snapshotImage}", "${DB_FIELDS.snapshotTags}", "${DB_FIELDS.noOfTrades}", "${DB_FIELDS.rulesFollowed}", "${DB_FIELDS.emotionsInControl}", "${DB_FIELDS.snapshotSetup}", "${DB_FIELDS.progress}"`,
   notes: `id, user_id, "${DB_FIELDS.noteDate}", "${DB_FIELDS.noteContent}", "${DB_FIELDS.noteCategory}", "${DB_FIELDS.notePinned}", "${DB_FIELDS.noteSource}", "${DB_FIELDS.noteVotes}"`,
   goals: `*` // Goals are usually small, select * is fine here
@@ -341,27 +341,12 @@ export const supabaseService = {
   },
 
   addNote: async (userId, data) => {
-    // Transform boolean to Yes/No for database
-    const dbPayload = {
-      [DB_FIELDS.noteDate]: data.date,
-      [DB_FIELDS.noteContent]: data.content,
-      [DB_FIELDS.noteCategory]: data.category,
-      [DB_FIELDS.notePinned]: data.isPinned ? "Yes" : "No",
-      user_id: userId
-    };
-    const { data: result, error } = await supabase.from('notes').insert([dbPayload]).select();
+    const { data: result, error } = await supabase.from('notes').insert([{ ...data, user_id: userId }]).select();
     if (error) throw error;
     return result?.[0];
   },
   updateNote: async (userId, id, data) => {
-    // Transform boolean to Yes/No for database
-    const dbPayload = {
-      [DB_FIELDS.noteDate]: data.date,
-      [DB_FIELDS.noteContent]: data.content,
-      [DB_FIELDS.noteCategory]: data.category,
-      [DB_FIELDS.notePinned]: data.isPinned ? "Yes" : "No"
-    };
-    const { data: result, error } = await supabase.from('notes').update(dbPayload).eq('id', id).eq('user_id', userId).select();
+    const { data: result, error } = await supabase.from('notes').update(data).eq('id', id).eq('user_id', userId).select();
     if (error) throw error;
     return result?.[0];
   },
