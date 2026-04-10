@@ -129,6 +129,25 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(212, 175, 55, 0.4);
   }
+
+  /* Quote Layer Accents */
+  .quote-purple {
+    color: #a855f7;
+    text-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+  }
+  .quote-gold {
+    color: #eab308;
+    text-shadow: 0 0 20px rgba(234, 179, 8, 0.4);
+  }
+  .quote-red {
+    color: #ef4444;
+    text-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+  }
+  .quote-watermark {
+    color: rgba(255, 255, 255, 0.03);
+    user-select: none;
+    pointer-events: none;
+  }
 }
 
 /* Base scrollbar overrides for a completely integrated look */
