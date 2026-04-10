@@ -95,7 +95,7 @@ const TradingJournal = ({
         [TRADE_SCHEMA_MAP.learning]: data.learning,
         [TRADE_SCHEMA_MAP.strategy]: data.strategy,
         [TRADE_SCHEMA_MAP.setups]: Array.isArray(data.setups) ? data.setups.join(', ') : data.setups,
-        [TRADE_SCHEMA_MAP.lossReasons]: Array.isArray(data.lossReasons) ? data.lossReasons.join(', ') : data.lossReasons,
+        [TRADE_SCHEMA_MAP.lossReason]: Array.isArray(data.lossReason) ? data.lossReason.join(', ') : data.lossReason,
         [TRADE_SCHEMA_MAP.emotions]: data.emotions,
         [TRADE_SCHEMA_MAP.positionSize]: data.positionSize.toString(),
         [TRADE_SCHEMA_MAP.tradeQuality]: data.tradeQuality,

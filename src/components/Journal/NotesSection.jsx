@@ -166,8 +166,8 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
         aVal = a.jsDate || new Date(a.date);
         bVal = b.jsDate || new Date(b.date);
       } else if (sortConfig.key === 'pinned') {
-        aVal = !!a.pinned ? 1 : 0;
-        bVal = !!b.pinned ? 1 : 0;
+        aVal = a.pinned ? 1 : 0;
+        bVal = b.pinned ? 1 : 0;
       }
 
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;

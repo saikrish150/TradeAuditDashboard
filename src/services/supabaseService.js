@@ -63,7 +63,7 @@ export const normalizeRow = (row) => {
   normalized.lots = parseFloat(row[DB_FIELDS.positionSize]) || 0;
   normalized.positionSize = normalized.lots;
   
-  normalized.lossReason = row[DB_FIELDS.lossReason] || 'Unspecified';
+  normalized.lossReason = row[DB_FIELDS.lossReason] || row['LOSS REASON '] || '';
   normalized.strategy = row[DB_FIELDS.strategy] || 'Misc';
   normalized.reason = row[DB_FIELDS.reason] || '';
   normalized.rr = row[DB_FIELDS.rr] || '0';
@@ -137,7 +137,7 @@ export const normalizeRow = (row) => {
 // Highly Optimized Column Strings (Based on DB_FIELDS)
 // This ensures we never fetch unnecessary system metadata, saving bandwidth.
 const SRC_COLS = {
-  trades: `id, user_id, "${DB_FIELDS.date}", "${DB_FIELDS.market}", "${DB_FIELDS.direction}", "${DB_FIELDS.isWin}", "${DB_FIELDS.winFlag}", "${DB_FIELDS.pl}", "${DB_FIELDS.rr}", "${DB_FIELDS.reason}", "${DB_FIELDS.learning}", "${DB_FIELDS.strategy}", "${DB_FIELDS.setups}", "${DB_FIELDS.lossReasons}", "${DB_FIELDS.emotions}", "${DB_FIELDS.positionSize}", "${DB_FIELDS.tradeQuality}", "${DB_FIELDS.tradeStatus}", "${DB_FIELDS.positionType}", "${DB_FIELDS.tradeMode}", "${DB_FIELDS.chartScreenshotUrl}"`,
+  trades: `id, user_id, "${DB_FIELDS.date}", "${DB_FIELDS.market}", "${DB_FIELDS.direction}", "${DB_FIELDS.isWin}", "${DB_FIELDS.winFlag}", "${DB_FIELDS.pl}", "${DB_FIELDS.rr}", "${DB_FIELDS.reason}", "${DB_FIELDS.learning}", "${DB_FIELDS.strategy}", "${DB_FIELDS.setups}", "${DB_FIELDS.lossReason}", "${DB_FIELDS.emotions}", "${DB_FIELDS.positionSize}", "${DB_FIELDS.tradeQuality}", "${DB_FIELDS.tradeStatus}", "${DB_FIELDS.positionType}", "${DB_FIELDS.tradeMode}", "${DB_FIELDS.chartScreenshotUrl}"`,
   snapshots: `id, user_id, "${DB_FIELDS.dateAdded}", "${DB_FIELDS.snapshotImage}", "${DB_FIELDS.snapshotTags}", "${DB_FIELDS.noOfTrades}", "${DB_FIELDS.rulesFollowed}", "${DB_FIELDS.emotionsInControl}", "${DB_FIELDS.snapshotSetup}", "${DB_FIELDS.progress}"`,
   notes: `id, user_id, "${DB_FIELDS.noteDate}", "${DB_FIELDS.noteContent}", "${DB_FIELDS.noteCategory}", "${DB_FIELDS.notePinned}", "${DB_FIELDS.noteSource}", "${DB_FIELDS.noteVotes}"`,
   goals: `*` // Goals are usually small, select * is fine here

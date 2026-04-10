@@ -7,23 +7,32 @@ const getLocalDate = (d = new Date()) => {
   return `${year}-${month}-${day}`;
 };
 
+const getLocalDatetime = (d = new Date()) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const mins = String(d.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${mins}`;
+};
+
 export const formatToGMT530 = (isoString) => {
   if (!isoString) return '';
   const d = new Date(isoString);
   if (isNaN(d.getTime())) return isoString; // Fallback if already formatted
-  
+
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const month = months[d.getMonth()];
   const day = d.getDate();
   const year = d.getFullYear();
   const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
-  
+
   return `${month} ${day}, ${year} ${hours}:${minutes} (GMT+5:30)`;
 };
 
 export const DEFAULT_TRADE_FORM = {
-  date: new Date().toISOString().slice(0, 16),
+  date: getLocalDatetime(),
   market: '',
   direction: 'LONG',
   isWin: 'WIN',
@@ -33,11 +42,11 @@ export const DEFAULT_TRADE_FORM = {
   reason: '',
   learning: '',
   setups: [],
-  lossReasons: [],
+  lossReason: [],
   emotions: 'Calm',
   positionSize: '',
   tradeQuality: 'A',
-  tradeStatus: 'Neutral',
+  tradeStatus: 'StopLoss',
   positionType: 'Intraday',
   tradeMode: 'Buying',
   chartScreenshotUrl: ''
@@ -50,7 +59,7 @@ export const mapTradeToForm = (editingTrade) => {
   };
 
   return {
-    date: editingTrade.jsDate ? new Date(editingTrade.jsDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+    date: editingTrade.jsDate ? getLocalDatetime(new Date(editingTrade.jsDate)) : getLocalDatetime(),
     market: getSmartVal('market'),
     direction: (getSmartVal('direction') || 'LONG').toUpperCase().includes('LONG') ? 'LONG' : (String(getSmartVal('direction')).toUpperCase().includes('SHORT') ? 'SHORT' : 'OBSERVE'),
     isWin: (editingTrade.isWin === true || String(getSmartVal('isWin')).toUpperCase() === 'WIN') ? 'WIN' : 'LOSS',
@@ -60,7 +69,7 @@ export const mapTradeToForm = (editingTrade) => {
     reason: getSmartVal('reason'),
     learning: getSmartVal('learning'),
     setups: Array.isArray(editingTrade.setups) ? editingTrade.setups : (editingTrade[DB_FIELDS.setups] ? String(editingTrade[DB_FIELDS.setups]).split(',').map(s => s.trim()) : []),
-    lossReasons: Array.isArray(editingTrade.lossReasons) ? editingTrade.lossReasons : (editingTrade[DB_FIELDS.lossReason] ? String(editingTrade[DB_FIELDS.lossReason]).split(',').map(s => s.trim()) : []),
+    lossReason: Array.isArray(editingTrade.lossReason) ? editingTrade.lossReason : (editingTrade[DB_FIELDS.lossReason] ? String(editingTrade[DB_FIELDS.lossReason]).split(',').map(s => s.trim()) : []),
     emotions: getSmartVal('emotion') || 'Calm',
     positionSize: getSmartVal('lots') || getSmartVal('positionSize') || '',
     tradeQuality: getSmartVal('quality') || 'A',
