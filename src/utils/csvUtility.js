@@ -1,64 +1,50 @@
 /**
- * Advanced Utility to convert JSON collections to CSV format with "Zero Data Loss" logic.
- * Scans the entire dataset for unique headers and serializes complex objects/arrays.
+ * "Zero-Opinion" CSV Utility
+ * Converts raw JSON data exactly as it is without any whitelisting or normalization.
  */
-
 export const exportToCSV = (data, filename) => {
   if (!data || !data.length) {
     console.warn("[Export] No data provided for CSV generation");
     return;
   }
 
-  // 1. Discover all unique headers across the entire dataset
-  const headerSet = new Set();
-  data.forEach(item => {
-    Object.keys(item).forEach(key => {
-      // Exclude large binary/heavy objects if necessary, but keep all metadata
-      if (typeof item[key] !== 'function') {
-        headerSet.add(key);
-      }
-    });
+  // 1. Chronological Sorting (Detecting Raw Date Columns)
+  const sortedData = [...data].sort((a, b) => {
+    const dateKey = Object.keys(a).find(k => k === 'Date' || k === 'Date Added' || k === 'date');
+    if (dateKey && a[dateKey] && b[dateKey]) {
+      const dateA = new Date(a[dateKey]);
+      const dateB = new Date(b[dateKey]);
+      if (!isNaN(dateA) && !isNaN(dateB)) return dateB - dateA;
+    }
+    return 0;
   });
 
-  // Convert Set to Array and sort for consistency
-  const allHeaders = Array.from(headerSet).sort();
-  
-  // Optional: Move ID to the front for better organization
-  const sortedHeaders = [
-    'id', 
-    ...allHeaders.filter(h => h !== 'id' && h !== 'jsDate')
-  ];
+  // 2. Discover Headers directly from the first object's keys (Raw Database State)
+  const headers = Object.keys(sortedData[0]).filter(key => typeof sortedData[0][key] !== 'function');
 
-  console.log(`[Export] Generating CSV with ${sortedHeaders.length} columns for ${data.length} records.`);
+  console.log(`[Export] Generating Raw CSV with ${headers.length} columns.`);
 
   const csvRows = [];
   
-  // 2. Add Header Row
-  csvRows.push(sortedHeaders.join(','));
+  // 3. Add Header Row
+  csvRows.push(headers.join(','));
 
-  // 3. Process Data Rows
-  for (const row of data) {
-    const values = sortedHeaders.map(header => {
+  // 4. Process Data Rows
+  for (const row of sortedData) {
+    const values = headers.map(header => {
       let val = row[header];
 
       // Handle null/undefined
       if (val === null || val === undefined) return '""';
 
-      // 4. Handle Complex Types (Zero Loss Logic)
-      if (val instanceof Date) {
-        val = val.toISOString();
-      } else if (Array.isArray(val)) {
-        // Flatten arrays (like screenshots or setups) into a semicolon-separated string
-        val = val.map(v => typeof v === 'object' ? JSON.stringify(v) : String(v)).join('; ');
-      } else if (typeof val === 'object') {
-        // Stringify nested objects (like metadata or tags)
+      // 4. Simple Serialization (As It Is)
+      if (typeof val === 'object') {
         val = JSON.stringify(val);
       } else {
         val = String(val);
       }
 
       // 5. Robust CSV Escaping
-      // Escape double quotes by doubling them, and wrap the entire string in double quotes
       const escaped = val.replace(/"/g, '""');
       return `"${escaped}"`;
     });
@@ -66,14 +52,14 @@ export const exportToCSV = (data, filename) => {
     csvRows.push(values.join(','));
   }
 
-  // 6. Generate Blob with UTF-8 BOM (for Excel compatibility with special characters)
+  // 6. Generate Blob with UTF-8 BOM
   const csvContent = '\uFEFF' + csvRows.join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute("download", `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
+  link.setAttribute("download", `${filename}_RAW_${new Date().toISOString().split('T')[0]}.csv`);
   link.style.visibility = 'hidden';
   document.body.appendChild(link);
   link.click();

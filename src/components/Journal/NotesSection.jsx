@@ -9,6 +9,9 @@ import {
 import { NOTES_COLUMNS } from '../../constants/journalColumns';
 import { NOTE_CATEGORY_OPTIONS } from '../../constants/journalOptions';
 import { FullTextModal } from './JournalModals';
+import { supabaseService } from '../../services/supabaseService';
+import { authService } from '../../services/authService';
+import { ChevronUp, Check as CheckIcon } from 'lucide-react';
 
 const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +22,9 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [viewingText, setViewingText] = useState(null);
+  const [isVoting, setIsVoting] = useState(false);
+  const [optimisticVotes, setOptimisticVotes] = useState({}); // { noteId: extraVotes }
+  const [voteFeedback, setVoteFeedback] = useState(null); // noteId of recently voted
   const popoverRef = useRef(null);
 
   // Close popover on outside click
@@ -70,6 +76,35 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
       direction = 'asc';
     }
     setSortConfig({ key, direction });
+  };
+
+  const handleVote = async (noteId, currentVotes) => {
+    // Optimistic Update
+    setOptimisticVotes(prev => ({
+      ...prev,
+      [noteId]: (prev[noteId] || 0) + 1
+    }));
+    setVoteFeedback(noteId);
+    
+    // Clear feedback after 2s
+    setTimeout(() => setVoteFeedback(null), 2000);
+
+    if (isVoting) return;
+    setIsVoting(true);
+    try {
+      const session = await authService.getSession();
+      const user = session?.user;
+      if (!user) return;
+      
+      const newVotes = (currentVotes || 0) + 1 + (optimisticVotes[noteId] || 0);
+      await supabaseService.incrementNoteVotes(user.id, noteId, newVotes);
+    } catch (error) {
+      console.error("Error voting:", error);
+      setOptimisticVotes(prev => ({ ...prev, [noteId]: Math.max(0, (prev[noteId] || 0) - 1) }));
+    } finally {
+      setIsVoting(true);
+      setTimeout(() => setIsVoting(false), 500); 
+    }
   };
 
   const processedNotes = useMemo(() => {
@@ -355,6 +390,64 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
                             <p className="text-[10px] font-medium text-slate-500 line-clamp-1 max-w-[450px] group-hover:text-slate-300 transition-colors">
                               {val || '-'}
                             </p>
+                         );
+                      }
+
+                      if (col.key === 'votes') {
+                         const currentVotes = (val || 0) + (optimisticVotes[n.id] || 0);
+                         return (
+                            <div className="flex items-center gap-2 relative">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleVote(n.id, val);
+                                  }}
+                                  disabled={isVoting && voteFeedback !== n.id}
+                                  className={`w-8 h-8 rounded-lg transition-all active:scale-90 flex items-center justify-center border ${
+                                    voteFeedback === n.id 
+                                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' 
+                                    : 'bg-white/5 hover:bg-journal-gold/20 border-white/10 hover:border-journal-gold/30 text-slate-500 hover:text-journal-gold'
+                                  }`}
+                                >
+                                  <AnimatePresence mode="wait">
+                                    {voteFeedback === n.id ? (
+                                      <motion.div
+                                        key="check"
+                                        initial={{ scale: 0.5, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0.5, opacity: 0 }}
+                                      >
+                                        <CheckIcon size={14} />
+                                      </motion.div>
+                                    ) : (
+                                      <motion.div
+                                        key="up"
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                      >
+                                        <ChevronUp size={16} />
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </button>
+                                <span className={`text-[10px] font-black w-4 text-center ${voteFeedback === n.id ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                  {currentVotes}
+                                </span>
+
+                                {/* Floating +1 Animation */}
+                                <AnimatePresence>
+                                  {voteFeedback === n.id && (
+                                    <motion.div
+                                      initial={{ y: 0, opacity: 1 }}
+                                      animate={{ y: -20, opacity: 0 }}
+                                      exit={{ opacity: 0 }}
+                                      className="absolute -top-4 left-2 text-emerald-400 text-[8px] font-black"
+                                    >
+                                      +1
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                            </div>
                          );
                       }
 

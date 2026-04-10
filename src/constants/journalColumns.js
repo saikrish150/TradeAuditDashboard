@@ -32,5 +32,6 @@ export const NOTES_COLUMNS = [
   { key: 'date', label: 'Date', type: 'date', sticky: true },
   { key: 'pinned', label: 'Pin', type: 'cat' },
   { key: 'content', label: 'Note', type: 'text' },
-  { key: 'category', label: 'Tags', type: 'cat' }
+  { key: 'category', label: 'Tags', type: 'cat' },
+  { key: 'votes', label: 'Votes', type: 'num' }
 ];

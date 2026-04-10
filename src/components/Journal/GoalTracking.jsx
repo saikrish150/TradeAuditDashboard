@@ -60,28 +60,28 @@ const GoalTracking = ({ trades, goals = [], onSaveGoal, onDeleteGoal }) => {
       {/* Hero Active Goal */}
       <motion.div 
         layout
-        className="journal-glass rounded-[2rem] p-10 border-journal-gold/20 relative overflow-hidden group"
+        className="journal-glass rounded-[2rem] p-6 border-journal-gold/20 relative overflow-hidden group"
       >
         {/* Background Accent */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-journal-gold/5 rounded-full blur-3xl group-hover:bg-journal-gold/10 transition-all duration-700" />
         
         {currentGoal ? (
-          <div className="relative z-10 space-y-10">
+          <div className="relative z-10 space-y-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
               <div className="space-y-2">
                 <p className="text-[10px] font-black uppercase text-journal-gold tracking-[0.4em]">Current Objective</p>
                 <div className="flex items-baseline gap-3">
-                  <h2 className="text-5xl font-black text-white tracking-tighter">
+                  <h2 className="text-3xl font-black text-white tracking-tighter">
                     {formatCurrency(progressData.pl)}
                   </h2>
-                  <span className="text-xl font-bold text-slate-600">/ {formatCurrency(currentGoal.amount)}</span>
+                  <span className="text-lg font-bold text-slate-600">/ {formatCurrency(currentGoal.amount)}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-8">
                 <div className="text-center">
                    <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1">Success Rate</p>
-                   <p className="text-5xl font-black text-journal-gold italic glow-text">{progressData.percent}%</p>
+                   <p className="text-3xl font-black text-journal-gold italic glow-text">{progressData.percent}%</p>
                 </div>
                 <div className="h-12 w-px bg-slate-800 hidden md:block" />
                 <div className="text-center">
@@ -110,7 +110,7 @@ const GoalTracking = ({ trades, goals = [], onSaveGoal, onDeleteGoal }) => {
             </div>
 
             {/* History Toggle */}
-            <div className="pt-6 border-t border-white/5 flex justify-center">
+            <div className="pt-4 border-t border-white/5 flex justify-center">
               <button 
                 onClick={() => setShowHistory(!showHistory)}
                 className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-journal-gold transition-all group/h"

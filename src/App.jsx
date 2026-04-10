@@ -31,6 +31,7 @@ import { authService } from './services/authService';
 import AuthShield from './components/AuthShield';
 import TradingJournal from './components/Journal/TradingJournal';
 import ReviewTab from './components/Journal/ReviewTab';
+import UtilityHub from './components/Journal/UtilityHUB';
 import { exchangeRateService } from './services/exchangeRateService';
 import { MONTH_MAP, COLORS, cleanCurrency, formatCurrency, parseCSV, getMarketCategory } from './utils';
 
@@ -1438,8 +1439,9 @@ const App = () => {
        <style>{`.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }`}</style>
        <AnimatePresence>
        </AnimatePresence>
-      </div>
-    </AuthShield>
+      <UtilityHub user={user} trades={rawTrades} snapshots={rawSnapshots} notes={notes} />
+    </div>
+  </AuthShield>
     );
   };
  

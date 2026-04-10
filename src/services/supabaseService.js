@@ -8,6 +8,9 @@ export const normalizeRow = (row) => {
   if (!row) return null;
   const normalized = { ...row }; 
   
+  // Date Normalization (Core field for all exports)
+  normalized.date = row[DB_FIELDS.date] || row[DB_FIELDS.dateAdded] || row[DB_FIELDS.noteDate] || '';
+  
   // Synthesize common UI keys for internal logic (Sorting/Filtering)
   const rawPL = (row[DB_FIELDS.pl] || row.pl)?.toString()?.replace(/[₹,]/g, '');
   normalized.pl = parseFloat(rawPL) || 0;
@@ -68,15 +71,21 @@ export const normalizeRow = (row) => {
   normalized.direction = row[DB_FIELDS.direction] || 'LONG';
   normalized.positionType = row[DB_FIELDS.positionType] || 'Intraday';
   normalized.tradeMode = row[DB_FIELDS.tradeMode] || 'Buying';
+  normalized.winFlag = row[DB_FIELDS.winFlag] || '0';
+  normalized.learning = row[DB_FIELDS.learning] || ''; 
 
   // Note Specific Normalization: Pure raw data pass-through
   normalized.content = row[DB_FIELDS.noteContent] || row.content || '';
   
   // Map the raw 'Select' column value directly to category as requested
   normalized.category = row[DB_FIELDS.noteCategory] || row.category || '';
+  
+  // Votes Normalization
+  normalized.votes = parseInt(row[DB_FIELDS.noteVotes] || row.votes) || 0;
 
   const rawPin = String(row[DB_FIELDS.notePinned] || row.pinned || '').toLowerCase().trim();
   normalized.pinned = rawPin === 'true' || rawPin === 'yes' || rawPin === '1' || row[DB_FIELDS.notePinned] === true;
+  normalized.source = row[DB_FIELDS.noteSource] || '';
   
   // Setup Parsing (Standardized as array for App.jsx)
   const setupStr = row[DB_FIELDS.setups] || row[DB_FIELDS.strategy] || 'Misc';
@@ -128,11 +137,26 @@ export const normalizeRow = (row) => {
 const SRC_COLS = {
   trades: `id, user_id, "${DB_FIELDS.date}", "${DB_FIELDS.market}", "${DB_FIELDS.direction}", "${DB_FIELDS.isWin}", "${DB_FIELDS.winFlag}", "${DB_FIELDS.pl}", "${DB_FIELDS.rr}", "${DB_FIELDS.reason}", "${DB_FIELDS.learning}", "${DB_FIELDS.strategy}", "${DB_FIELDS.setups}", "${DB_FIELDS.lossReason}", "${DB_FIELDS.emotions}", "${DB_FIELDS.positionSize}", "${DB_FIELDS.tradeQuality}", "${DB_FIELDS.tradeStatus}", "${DB_FIELDS.positionType}", "${DB_FIELDS.tradeMode}", "${DB_FIELDS.chartScreenshotUrl}"`,
   snapshots: `id, user_id, "${DB_FIELDS.dateAdded}", "${DB_FIELDS.snapshotImage}", "${DB_FIELDS.snapshotTags}", "${DB_FIELDS.noOfTrades}", "${DB_FIELDS.rulesFollowed}", "${DB_FIELDS.emotionsInControl}", "${DB_FIELDS.snapshotSetup}", "${DB_FIELDS.progress}"`,
-  notes: `id, user_id, "${DB_FIELDS.noteDate}", "${DB_FIELDS.noteContent}", "${DB_FIELDS.noteCategory}", "${DB_FIELDS.notePinned}", "${DB_FIELDS.noteSource}"`,
+  notes: `id, user_id, "${DB_FIELDS.noteDate}", "${DB_FIELDS.noteContent}", "${DB_FIELDS.noteCategory}", "${DB_FIELDS.notePinned}", "${DB_FIELDS.noteSource}", "${DB_FIELDS.noteVotes}"`,
   goals: `*` // Goals are usually small, select * is fine here
 };
 
 export const supabaseService = {
+  /**
+   * PURE RAW FETCH: For Bit-for-Bit Backup (No Normalization)
+   */
+  fetchRawTableData: async (tableName, userId) => {
+    if (!userId) throw new Error("User ID required for raw export.");
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('*')
+      .eq('user_id', userId)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
   /**
    * TRADES: Real-time Subscription with User Isolation
    */
@@ -355,6 +379,21 @@ export const supabaseService = {
   deleteGoal: async (userId, id) => {
     const { error } = await supabase.from('goals').delete().eq('id', id).eq('user_id', userId);
     if (error) throw error;
+  },
+
+  /**
+   * VOTING: Increment/Update votes for a note
+   */
+  incrementNoteVotes: async (userId, noteId, newVotes) => {
+    const { data, error } = await supabase
+      .from('notes')
+      .update({ [DB_FIELDS.noteVotes]: newVotes })
+      .eq('id', noteId)
+      .eq('user_id', userId)
+      .select();
+    
+    if (error) throw error;
+    return data?.[0] ? normalizeRow(data[0]) : null;
   },
 
   /**

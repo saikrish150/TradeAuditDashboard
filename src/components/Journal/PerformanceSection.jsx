@@ -74,13 +74,13 @@ const PerformanceSection = ({ trades }) => {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{ minHeight: '240px' }}
-      className="journal-glass rounded-[5rem] border-white/5 mb-12 overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
+      style={{ minHeight: '180px' }}
+      className="journal-glass rounded-[4rem] border-white/5 mb-8 overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
     >
-      <div className="flex flex-col lg:flex-row min-h-[240px]">
+      <div className="flex flex-col lg:flex-row min-h-[180px]">
         {/* Today's Sidebar */}
-        <div className="lg:w-[220px] p-6 ps-10 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-white/5 bg-white/[0.01]">
-           <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${stats.todayPL >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-500'}`}>
+        <div className="lg:w-[220px] p-4 ps-10 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-white/5 bg-white/[0.01]">
+           <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 ${stats.todayPL >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-500'}`}>
               {stats.todayPL >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
            </div>
            
@@ -96,8 +96,8 @@ const PerformanceSection = ({ trades }) => {
         </div>
 
         {/* Chart Area */}
-        <div className="flex-1 p-6 pe-10 flex flex-col min-h-[240px]">
-           <div className="flex items-center justify-between mb-4">
+        <div className="flex-1 p-4 pe-10 flex flex-col min-h-[180px]">
+           <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
                  <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
                     <Calendar size={12} className="text-journal-gold" />
@@ -117,8 +117,8 @@ const PerformanceSection = ({ trades }) => {
               </div>
            </div>
 
-           <div className="flex-1 w-full min-h-[140px] relative">
-              <ResponsiveContainer width="100%" height={140}>
+           <div className="flex-1 w-full min-h-[100px] relative">
+              <ResponsiveContainer width="100%" height={120}>
                  <BarChart data={stats.chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
                     <XAxis 
@@ -165,7 +165,7 @@ const PerformanceSection = ({ trades }) => {
               </ResponsiveContainer>
            </div>
            
-           <div className="mt-6 flex justify-between items-center text-[7px] font-black text-slate-600 uppercase tracking-widest px-2 border-t border-white/5 pt-4">
+           <div className="mt-4 flex justify-between items-center text-[7px] font-black text-slate-600 uppercase tracking-widest px-2 border-t border-white/5 pt-2">
               <div className="flex gap-4">
                  <span>Latest {stats.chartData.length} Sessions</span>
                  <span className="text-slate-500 italic">Values shown in local currency</span>

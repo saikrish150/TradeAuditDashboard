@@ -40,6 +40,7 @@ export const DB_FIELDS = {
   noteCategory: 'Select',
   notePinned: 'Pin',
   noteSource: 'Source ',
+  noteVotes: 'Votes',
 
   // Goal Columns
   goalStart: 'startDate',
@@ -63,7 +64,7 @@ export const TRADE_SCHEMA_MAP = {
   learning: DB_FIELDS.learning,
   strategy: DB_FIELDS.strategy,
   setups: DB_FIELDS.setups,
-  lossReasons: DB_FIELDS.lossReason,
+  lossReason: DB_FIELDS.lossReason,
   emotions: DB_FIELDS.emotions,
   positionSize: DB_FIELDS.positionSize,
   tradeQuality: DB_FIELDS.tradeQuality,
@@ -89,8 +90,9 @@ export const NOTE_SCHEMA_MAP = {
   date: DB_FIELDS.noteDate,
   content: DB_FIELDS.noteContent,
   category: DB_FIELDS.noteCategory,
-  isPinned: DB_FIELDS.notePinned,
-  source: DB_FIELDS.noteSource
+  pinned: DB_FIELDS.notePinned,
+  source: DB_FIELDS.noteSource,
+  votes: DB_FIELDS.noteVotes,
 };
 
 export const GOAL_SCHEMA_MAP = {

@@ -5,10 +5,13 @@ import {
   ChevronRight, ArrowUpRight, ArrowDownRight,
   TrendingUp, StickyNote, AlertTriangle, Lightbulb,
   Calendar, Clock, Filter, Maximize2, X, Search, Check,
-  ChevronLeft
+  ChevronDown, ChevronLeft
 } from 'lucide-react';
 import { EMOTION_OPTIONS, TRADE_QUALITY_OPTIONS, MARKET_OPTIONS, SETUP_OPTIONS, NOTE_CATEGORY_OPTIONS } from '../../constants/journalOptions';
 import { MONTH_MAP } from '../../utils';
+import { supabaseService } from '../../services/supabaseService';
+import { authService } from '../../services/authService';
+import { ChevronUp } from 'lucide-react';
 
 const Card = ({ children, className = "" }) => (
   <div className={`modern-glass border border-white/10 rounded-[2rem] overflow-hidden ${className}`}>
@@ -36,6 +39,10 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
   const [galleryType, setGalleryType] = useState('trades'); // trades, daily
   const [gallerySort, setGallerySort] = useState('date-desc'); // date-desc, date-asc, pl-desc, pl-asc
   const [lightbox, setLightbox] = useState(null);
+  const [expandedSection, setExpandedSection] = useState('mistakes');
+  const [isVoting, setIsVoting] = useState(false);
+  const [optimisticVotes, setOptimisticVotes] = useState({}); // { noteId: extraVotes }
+  const [voteFeedback, setVoteFeedback] = useState(null); // noteId of recently voted
   
   // Local Filters
   const [noteFilters, setNoteFilters] = useState({
@@ -84,6 +91,36 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
       return !isNaN(fallback.getTime()) ? fallback : null;
     } catch {
       return null;
+    }
+  };
+
+  const handleVote = async (noteId, currentVotes) => {
+    // Optimistic Update
+    setOptimisticVotes(prev => ({
+      ...prev,
+      [noteId]: (prev[noteId] || 0) + 1
+    }));
+    setVoteFeedback(noteId);
+    
+    // Clear feedback after 2s
+    setTimeout(() => setVoteFeedback(null), 2000);
+
+    if (isVoting) return;
+    setIsVoting(true);
+    try {
+      const session = await authService.getSession();
+      const user = session?.user;
+      if (!user) return;
+      
+      const newVotes = (currentVotes || 0) + 1 + (optimisticVotes[noteId] || 0);
+      await supabaseService.incrementNoteVotes(user.id, noteId, newVotes);
+    } catch (error) {
+      console.error("Error voting:", error);
+      // Revert optimistic on error
+      setOptimisticVotes(prev => ({ ...prev, [noteId]: Math.max(0, (prev[noteId] || 0) - 1) }));
+    } finally {
+      setIsVoting(true); // Wait for real-time sync for next vote
+      setTimeout(() => setIsVoting(false), 500); 
     }
   };
 
@@ -263,19 +300,34 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
       return String(v || '').toLowerCase().trim();
     };
 
-    return {
-      mistakes: processedNotes.filter(n => {
-        const cat = getClean(n.category || n.Select || '');
-        return cat.includes('mistake');
-      }),
-      mistakes: processedNotes.filter(n => String(n.category || '').toLowerCase().includes('mistake')),
-      learnings: processedNotes.filter(n => String(n.category || '').toLowerCase().includes('learning')),
-      observations: processedNotes.filter(n => {
-        const cat = String(n.category || '').toLowerCase();
-        return !cat.includes('mistake') && !cat.includes('learning');
-      })
+    const sortNotes = (arr) => {
+      return [...arr].sort((a, b) => {
+        // Use optimistic votes if available
+        const aTotalVotes = (a.votes || 0) + (optimisticVotes[a.id] || 0);
+        const bTotalVotes = (b.votes || 0) + (optimisticVotes[b.id] || 0);
+        
+        const voteDiff = bTotalVotes - aTotalVotes;
+        if (voteDiff !== 0) return voteDiff;
+        
+        const aDate = getComparisonDate(a);
+        const bDate = getComparisonDate(b);
+        return (bDate?.getTime() || 0) - (aDate?.getTime() || 0);
+      });
     };
-  }, [processedNotes]);
+
+    const mistakes = processedNotes.filter(n => String(n.category || '').toLowerCase().includes('mistake'));
+    const learnings = processedNotes.filter(n => String(n.category || '').toLowerCase().includes('learning'));
+    const observations = processedNotes.filter(n => {
+      const cat = String(n.category || '').toLowerCase();
+      return !cat.includes('mistake') && !cat.includes('learning');
+    });
+
+    return {
+      mistakes: sortNotes(mistakes),
+      learnings: sortNotes(learnings),
+      observations: sortNotes(observations)
+    };
+  }, [processedNotes, optimisticVotes]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
@@ -328,113 +380,157 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Mistakes: The Warning Wall */}
-            <div className="lg:col-span-1 space-y-4">
-               <div className="flex items-center gap-2 px-2 mb-2 group">
-                <div className="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-400 group-hover:scale-110 transition-all">
-                  <AlertTriangle size={16} />
-                </div>
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-400/80">Repeated Mistakes</h4>
-              </div>
-              <div className="space-y-4">
-                {insightColumns.mistakes.map((note, i) => (
-                  <motion.div 
-                    key={note.id || `mistake-${i}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
+          <div className="flex flex-col gap-4">
+            {[
+              { id: 'mistakes', label: 'Repeated Mistakes', icon: AlertTriangle, color: 'rose', data: insightColumns.mistakes, accent: 'Urgent Fix Required' },
+              { id: 'learnings', label: 'Trade Wisdom (Learnings)', icon: Lightbulb, color: 'emerald', data: insightColumns.learnings, accent: 'Edge Documentation' },
+              { id: 'observations', label: 'Market Pulse (Observations)', icon: LayoutDashboard, color: 'indigo', data: insightColumns.observations, accent: 'Execution Context' }
+            ].map((section) => (
+              <div key={section.id} className="space-y-4">
+                <button 
+                  onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
+                  className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all ${
+                    expandedSection === section.id 
+                    ? `bg-${section.color}-500/10 border-${section.color}-500/40 shadow-[0_0_20px_rgba(0,0,0,0.2)]` 
+                    : 'bg-white/5 border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-${section.color}-500/20 text-${section.color}-400`}>
+                      <section.icon size={24} />
+                    </div>
+                    <div className="text-left">
+                      <h4 className={`text-[11px] font-black uppercase tracking-[0.2em] ${expandedSection === section.id ? `text-${section.color}-400` : 'text-slate-400'}`}>
+                        {section.label}
+                      </h4>
+                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                        {section.data.length} archived {section.data.length === 1 ? 'entry' : 'entries'}
+                      </p>
+                    </div>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: expandedSection === section.id ? 180 : 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="text-slate-600"
                   >
-                    <Card className="p-6 relative group hover:shadow-[0_0_30px_rgba(244,63,94,0.1)] transition-all border-rose-500/10 hover:border-rose-500/30">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-3xl rounded-full -mr-12 -mt-12 group-hover:bg-rose-500/10 transition-colors" />
-                      <div className="flex justify-between items-start mb-4 relative z-10">
-                        <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
-                          <Clock size={10} /> {String(note.date || note.Date || '-')}
-                        </p>
-                        <Badge color="rose">{note.category || note.Select || 'Mistake'}</Badge>
-                      </div>
-                      <p className="text-[13px] text-slate-200 leading-relaxed font-bold italic relative z-10">"{note.content || note.Note || 'Empty Note'}"</p>
-                      <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
-                        <span className="text-[8px] font-black uppercase tracking-tighter text-rose-500/50">Urgent Fix Required</span>
-                        <ArrowDownRight size={14} className="text-rose-500/30" />
-                      </div>
-                    </Card>
+                    <ChevronDown size={20} />
                   </motion.div>
-                )) }
-                {insightColumns.mistakes.length === 0 && <p className="text-[10px] text-slate-700 font-bold uppercase text-center py-10">No leakage notes</p>}
-              </div>
-            </div>
+                </button>
 
-            {/* Observations: The Market Pulse */}
-            <div className="lg:col-span-1 space-y-4">
-              <div className="flex items-center gap-2 px-2 mb-2 group">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-all">
-                  <LayoutDashboard size={16} />
-                </div>
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400/80">Market Pulse</h4>
-              </div>
-              <div className="space-y-4">
-                {insightColumns.observations.map((note, i) => (
-                  <motion.div 
-                    key={note.id || `obs-${i}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                  >
-                    <Card className="p-6 relative group hover:shadow-[0_0_30px_rgba(99,102,241,0.1)] transition-all border-indigo-500/10 hover:border-indigo-500/30">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-3xl rounded-full -mr-12 -mt-12 group-hover:bg-indigo-500/10 transition-colors" />
-                      <div className="flex justify-between items-start mb-4 relative z-10">
-                        <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
-                          <Clock size={10} /> {String(note.date || note.Date || '-')}
-                        </p>
-                        <Badge color="indigo">{note.category || note.Select || 'Observation'}</Badge>
+                <AnimatePresence>
+                  {expandedSection === section.id && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex flex-col gap-3 pt-2 pb-6">
+                        {section.data.map((note, i) => (
+                          <motion.div 
+                            key={note.id || `${section.id}-${i}`}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                          >
+                            <Card className={`p-5 relative group hover:shadow-[0_0_20px_rgba(0,0,0,0.2)] transition-all border-${section.color}-500/10 hover:border-${section.color}-500/30`}>
+                              <div className={`absolute left-0 top-0 bottom-0 w-1 bg-${section.color}-500/30 group-hover:bg-${section.color}-500 transition-all`} />
+                              
+                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10 w-full">
+                                <div className="flex-1 space-y-2">
+                                  <div className="flex items-center gap-3">
+                                    <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
+                                      <Clock size={10} /> {String(note.date || note.Date || '-')}
+                                    </p>
+                                    <Badge color={section.color}>{note.category || note.Select || 'Entry'}</Badge>
+                                  </div>
+                                  <p className={`text-[13px] text-slate-200 leading-relaxed ${section.id === 'mistakes' ? 'font-bold italic' : section.id === 'learnings' ? 'font-black uppercase tracking-tight text-slate-100' : 'font-medium'}`}>
+                                    {section.id === 'mistakes' && '"'}{note.content || note.Note || 'Empty Note'}{section.id === 'mistakes' && '"'}
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l border-white/5 pt-3 md:pt-0 md:pl-6 shrink-0">
+                                  {/* Vote Button */}
+                                  <div className="flex flex-col items-center relative">
+                                    <button 
+                                      onClick={() => handleVote(note.id, note.votes)}
+                                      disabled={isVoting && voteFeedback !== note.id}
+                                      className={`w-10 h-10 rounded-xl transition-all group/vbtn active:scale-90 flex items-center justify-center border ${
+                                        voteFeedback === note.id 
+                                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' 
+                                        : 'bg-white/5 hover:bg-journal-gold/20 border-white/10 hover:border-journal-gold/30 text-slate-500 hover:text-journal-gold'
+                                      }`}
+                                      title="Upvote Insight"
+                                    >
+                                      <AnimatePresence mode="wait">
+                                        {voteFeedback === note.id ? (
+                                          <motion.div
+                                            key="check"
+                                            initial={{ scale: 0.5, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            exit={{ scale: 0.5, opacity: 0 }}
+                                          >
+                                            <Check size={20} />
+                                          </motion.div>
+                                        ) : (
+                                          <motion.div
+                                            key="up"
+                                            initial={{ scale: 0.8, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            className="group-hover/vbtn:-translate-y-0.5 transition-transform"
+                                          >
+                                            <ChevronUp size={20} />
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </button>
+                                    
+                                    <span className={`text-[10px] font-black mt-1 transition-colors ${voteFeedback === note.id ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                      {(note.votes || 0) + (optimisticVotes[note.id] || 0)}
+                                    </span>
+
+                                    {/* Floating +1 Animation */}
+                                    <AnimatePresence>
+                                      {voteFeedback === note.id && (
+                                        <motion.div
+                                          initial={{ y: 0, opacity: 1 }}
+                                          animate={{ y: -30, opacity: 0 }}
+                                          exit={{ opacity: 0 }}
+                                          className="absolute top-0 text-emerald-400 text-[10px] font-black"
+                                        >
+                                          +1
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
+
+                                  <div className="text-right ml-2">
+                                    <span className={`text-[8px] font-black uppercase tracking-tighter text-${section.color}-500/50 block`}>{section.accent}</span>
+                                    <span className="text-[7px] text-slate-600 font-bold uppercase tracking-widest">Behavioral Anchor</span>
+                                  </div>
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-${section.color}-500/5 text-${section.color}-500/30`}>
+                                    {section.id === 'mistakes' ? <ArrowDownRight size={14} /> : 
+                                     section.id === 'learnings' ? <Check size={14} /> :
+                                     <ArrowUpRight size={14} />}
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          </motion.div>
+                        ))}
+                        {section.data.length === 0 && (
+                          <div className="col-span-full py-12 flex flex-col items-center justify-center gap-3 opacity-30">
+                            <StickyNote size={32} />
+                            <p className="text-[10px] font-black uppercase tracking-widest">No entries archived in this segment</p>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-[13px] text-slate-200 leading-relaxed font-medium relative z-10">{note.content || note.Note || 'Empty Note'}</p>
-                      <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
-                        <span className="text-[8px] font-black uppercase tracking-tighter text-indigo-500/50">Execution Context</span>
-                        <ArrowUpRight size={14} className="text-indigo-500/30" />
-                      </div>
-                    </Card>
-                  </motion.div>
-                )) }
-                {insightColumns.observations.length === 0 && <p className="text-[10px] text-slate-700 font-bold uppercase text-center py-10">No observations</p>}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </div>
-            {/* Learnings: The Wisdom Hub */}
-            <div className="lg:col-span-1 space-y-4">
-              <div className="flex items-center gap-2 px-2 mb-2 group">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-all">
-                  <Lightbulb size={16} />
-                </div>
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/80">Trade Wisdom</h4>
-              </div>
-              <div className="space-y-4">
-                {insightColumns.learnings.map((note, i) => (
-                  <motion.div 
-                    key={note.id || `learning-${i}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                  >
-                    <Card className="p-6 relative group hover:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all border-emerald-500/10 hover:border-emerald-500/30">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-3xl rounded-full -mr-12 -mt-12 group-hover:bg-emerald-500/10 transition-colors" />
-                      <div className="flex justify-between items-start mb-4 relative z-10">
-                        <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
-                          <Clock size={10} /> {String(note.date || note.Date || '-')}
-                        </p>
-                        <Badge color="emerald">{note.category || note.Select || 'Learning'}</Badge>
-                      </div>
-                      <p className="text-[13px] text-slate-100 leading-relaxed font-black uppercase tracking-tight relative z-10">{note.content || note.Note || 'Empty Note'}</p>
-                      <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between relative z-10">
-                        <span className="text-[8px] font-black uppercase tracking-tighter text-emerald-500/50">Edge Documentation</span>
-                        <Check size={14} className="text-emerald-500/30" />
-                      </div>
-                    </Card>
-                  </motion.div>
-                ))}
-                {insightColumns.learnings.length === 0 && <p className="text-[10px] text-slate-700 font-bold uppercase text-center py-10">No wisdom noted</p>}
-              </div>
-            </div>
+            ))}
           </div>
           
           {(insightColumns.mistakes.length + insightColumns.observations.length + insightColumns.learnings.length) === 0 && (

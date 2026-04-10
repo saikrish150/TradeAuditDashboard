@@ -3,32 +3,44 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Calculator as CalcIcon, Download, X, FileText, LayoutDashboard, Share2 } from 'lucide-react';
 import { exportToCSV } from '../../utils/csvUtility';
 import GlobalCalculator from './GlobalCalculator';
+import { supabaseService } from '../../services/supabaseService';
 
-const UtilityHub = ({ trades = [], snapshots = [], notes = [] }) => {
+const UtilityHub = ({ user, trades = [], snapshots = [], notes = [] }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showCalc, setShowCalc] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleExportAll = async () => {
-    try {
-      console.log("[Backup] Initiating user data export...");
-      
-      console.log(`[Backup] Exporting isolated data: ${trades.length} Trades, ${snapshots.length} Snapshots, ${notes.length} Notes`);
+    if (!user?.id) {
+      alert("Terminal Session must be active for raw export.");
+      return;
+    }
 
-      // Trigger separate downloads for the currently isolated user data
-      exportToCSV(trades, 'My_Trades_Isolated');
+    try {
+      setIsDownloading(true);
+      console.log("[Backup] Initiating direct bit-for-bit backend export...");
       
+      // 1. Fetch RAW Trades (All columns, Un-normalized)
+      const rawTradesFetched = await supabaseService.fetchRawTableData('trades', user.id);
+      exportToCSV(rawTradesFetched, 'RAW_Trades_Master');
+      
+      // 2. Fetch RAW Snapshots
+      const rawSnapshotsFetched = await supabaseService.fetchRawTableData('snapshots', user.id);
       setTimeout(() => {
-        exportToCSV(snapshots, 'My_Snapshots_Isolated');
+        exportToCSV(rawSnapshotsFetched, 'RAW_Snapshots_Master');
       }, 500);
 
+      // 3. Fetch RAW Notes
+      const rawNotesFetched = await supabaseService.fetchRawTableData('notes', user.id);
       setTimeout(() => {
-        exportToCSV(notes, 'My_Notes_Isolated');
+        exportToCSV(rawNotesFetched, 'RAW_Notes_Master');
       }, 1000);
       
     } catch (error) {
-      console.error("[Backup] Export failed:", error);
-      alert("Export failed. Check console for details.");
+      console.error("[Backup] Raw Export failed:", error);
+      alert("Deep fetch failed. Check terminal logs.");
     } finally {
+      setIsDownloading(false);
       setIsOpen(false);
     }
   };
