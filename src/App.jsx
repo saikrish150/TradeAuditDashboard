@@ -204,6 +204,10 @@ const App = () => {
 
     const catFiltered = selectedCategory === 'All' ? timeFiltered : timeFiltered.filter(t => t.category === selectedCategory);
 
+    // YEAR FILTER FIX: Extract unique years from rawTrades for the dropdown
+    const yearsFound = Array.from(new Set(rawTrades.map(t => t.year))).filter(Boolean).sort((a, b) => b - a);
+    setAvailableYears(['All', ...yearsFound]);
+
     const yearFiltered = selectedYear === 'All' ? rawTrades : rawTrades.filter(t => t.year === selectedYear);
     const monthsFound = Array.from(new Set(yearFiltered.map(t => t.month)));
     const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

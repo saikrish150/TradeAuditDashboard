@@ -103,6 +103,8 @@ export const normalizeRow = (row) => {
   // Only set marketCategory if it's actually a trade record to avoid stomping on notes
   if (normalized.market) {
     normalized.marketCategory = isIndian ? 'Indian' : 'Other';
+    // UNIFICATION FIX: Explicitly set category for trades so Dashboard filters match
+    normalized.category = normalized.marketCategory; 
   }
 
   // Snapshot Logic

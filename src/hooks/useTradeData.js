@@ -47,7 +47,11 @@ export const useTradeData = ({
     };
 
     const filtered = rawTrades.filter(t => {
-      // DATE PRESET LOGIC
+      // SUB-FILTER LOGIC (Global Modifiers)
+      if (selectedYear !== 'All' && String(t.year) !== String(selectedYear)) return false;
+      if (selectedMonth !== 'All' && String(t.month) !== String(selectedMonth)) return false;
+
+      // DATE PRESET LOGIC (Window Filters)
       if (datePreset === 'CurrentMonth') {
         if (t.month !== curMonthName || t.year !== curYearName) return false;
       } else if (datePreset !== 'All') {
@@ -60,10 +64,7 @@ export const useTradeData = ({
           if (startDate && tDate < new Date(startDate)) return false;
           if (endDate && tDate > new Date(endDate)) return false;
         }
-      } else {
-        if (selectedYear !== 'All' && t.year !== selectedYear) return false;
-        if (selectedMonth !== 'All' && t.month !== selectedMonth) return false;
-      }
+      } 
 
       // GLOBAL FILTER LOGIC
       if (selectedDay !== 'All' && String(t.dayNum) !== selectedDay) return false;
