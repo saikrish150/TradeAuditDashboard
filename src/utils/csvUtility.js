@@ -22,8 +22,6 @@ export const exportToCSV = (data, filename) => {
   // 2. Discover Headers directly from the first object's keys (Raw Database State)
   const headers = Object.keys(sortedData[0]).filter(key => typeof sortedData[0][key] !== 'function');
 
-  console.log(`[Export] Generating Raw CSV with ${headers.length} columns.`);
-
   const csvRows = [];
   
   // 3. Add Header Row

@@ -18,6 +18,10 @@ A comprehensive institutional-grade trading performance dashboard designed for p
   - **Lightweight Charts**: Interactive financial charting with price line overlays.
 - **Icons**: Lucide React for consistent, interactive iconography.
 
+### Architecture
+- **Analytical Engine**: Centralized in the `useTradeData` custom hook for isolated, high-performance processing.
+- **Modular UI**: Components like `LightRaysAndParticles`, `MobileNav`, and `TradeArchiveCarousel` are decoupled from the main entry point for better maintainability.
+
 ### Design System
 - **Theme**: Ultra-dark professional aesthetic using `#020617` (Slate 950) as base.
 - **Aesthetics**: Heavy use of glassmorphism (`glass-panel`), glowing light rays, and floating particles for a premium "Institutional Terminal" feel.
@@ -61,23 +65,14 @@ Migrate and optimize the standalone trading alert logic into the Trade Audit das
    - Desktop system notifications.
    - Persistence sync to Supabase for cross-platform availability.
 
-## Status: Journal Infrastructure Hardening
+---
 
+## Status: Project Scale Optimization
 ### Objective
-Finalize the migration from Firebase to Supabase for all primary data collections (Trades, Snapshots, Notes, Goals) to leverage relational integrity and real-time synchronization.
+Modularize the 95KB monolithic architecture to ensure the terminal remains performant and maintainable as new features are added.
 
 ### Accomplishments
-1. **Supabase Migration**: Successfully migrated 4 core tables with relational user-linkage.
-2. **Zero-Opinion Exports**: Implemented a raw database backup system for bit-for-bit data fidelity.
-3. **Smart-Tab Awareness**: Optimized dashboard filtering defaults for performance and history depth.
-4. **UI Hardening**: Global date-picker reliability fix and removal of redundant historical sections.
-
-## Active Plan: Trading Discipline Framework
-
-### Objective
-Implement the "Trading Rules Reference" system to bridge the gap between analysis and execution discipline.
-
-### Actionable Steps
-1. **Discipline UI**: Add a dedicated "Rules" button to the Trading Journal ActionBar.
-2. **Knowledge Hub**: Create a premium modal displaying core Entry, Target, and Stop Loss rules.
-3. **UX Optimization**: Use staggered animations and semantic grouping to make rules easily digestible during live trading.
+1. **Analytical Engine Extraction**: Created the `useTradeData` hook to separate mathematical expectancy from UI rendering.
+2. **Decomposition**: Extracted background animations, mobile nav, and carousels into the `src/components/Common` hub.
+3. **Workspace Purge**: Removed obsolete migration scripts (`patch_app.js`, etc.) to stabilize the project root.
+4. **Code Quality**: Reduced `App.jsx` complexity significantly, leading to faster hot-reload times and cleaner orchestration logic.

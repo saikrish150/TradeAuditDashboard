@@ -90,7 +90,7 @@ const AuthShield = ({ children }) => {
     );
   }
 
-    return children;
+  if (user) return children;
 
   return (
     <div className="fixed inset-0 z-[1000] bg-[#020617] flex items-center justify-center p-6 overflow-hidden">

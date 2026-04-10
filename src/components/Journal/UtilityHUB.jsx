@@ -18,7 +18,6 @@ const UtilityHub = ({ user, trades = [], snapshots = [], notes = [] }) => {
 
     try {
       setIsDownloading(true);
-      console.log("[Backup] Initiating direct bit-for-bit backend export...");
       
       // 1. Fetch RAW Trades (All columns, Un-normalized)
       const rawTradesFetched = await supabaseService.fetchRawTableData('trades', user.id);
