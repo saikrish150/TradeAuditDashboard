@@ -212,6 +212,31 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
     });
   }, [processedTrades, gallerySort]);
 
+  // Aggregated stats for Daily Snapshots (Indian Markets Only)
+  const dailyIndianStats = useMemo(() => {
+    const stats = {};
+    const indianSimb = ['nifty', 'banknifty', 'finnifty', 'sensex', 'nse', 'bse'];
+    
+    trades.forEach(t => {
+      const tMarket = String(t.market || '').toLowerCase();
+      if (!indianSimb.some(s => tMarket.includes(s))) return;
+      
+      const tDate = getComparisonDate(t)?.toDateString();
+      if (!tDate) return;
+      
+      if (!stats[tDate]) stats[tDate] = { pl: 0, count: 0 };
+      stats[tDate].pl += parseFloat(String(t.pl || 0).replace(/[₹\s,]/g, '')) || 0;
+      stats[tDate].count += 1;
+    });
+    return stats;
+  }, [trades]);
+
+  const getSnapshotStats = (item) => {
+    const d = getComparisonDate(item);
+    if (!d) return null;
+    return dailyIndianStats[d.toDateString()] || { pl: 0, count: 0 };
+  };
+
   const processedSnapshots = useMemo(() => {
     return snapshots.filter(s => {
       const matchSearch = galleryFilters.search === '' || 
@@ -239,13 +264,21 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
   const snapshotsWithVisuals = useMemo(() => {
     const list = processedSnapshots.filter(s => (s.screenshotUrl || s.imageUrl || s.url || (s.screenshots && s.screenshots.length > 0)));
     
-    // Apply Gallery Sort (Snapshots only support date sort)
-    if (gallerySort.startsWith('pl')) return list; // Skip P&L sort for snapshots
-
+    // Apply Gallery Sort
     return [...list].sort((a, b) => {
-      const aDate = getComparisonDate(a)?.getTime() || 0;
-      const bDate = getComparisonDate(b)?.getTime() || 0;
-      return gallerySort === 'date-desc' ? bDate - aDate : aDate - bDate;
+      if (gallerySort.startsWith('date')) {
+        const aDate = getComparisonDate(a)?.getTime() || 0;
+        const bDate = getComparisonDate(b)?.getTime() || 0;
+        return gallerySort === 'date-desc' ? bDate - aDate : aDate - bDate;
+      }
+      if (gallerySort.startsWith('pl')) {
+        const aStats = getSnapshotStats(a);
+        const bStats = getSnapshotStats(b);
+        const aPL = aStats?.pl || 0;
+        const bPL = bStats?.pl || 0;
+        return gallerySort === 'pl-desc' ? bPL - aPL : aPL - bPL;
+      }
+      return 0;
     });
   }, [processedSnapshots, gallerySort]);
 
@@ -344,30 +377,6 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
     };
   }, [processedNotes, optimisticVotes]);
 
-  // Aggregated stats for Daily Snapshots (Indian Markets Only)
-  const dailyIndianStats = useMemo(() => {
-    const stats = {};
-    const indianSimb = ['nifty', 'banknifty', 'finnifty', 'sensex', 'nse', 'bse'];
-    
-    trades.forEach(t => {
-      const tMarket = String(t.market || '').toLowerCase();
-      if (!indianSimb.some(s => tMarket.includes(s))) return;
-      
-      const tDate = getComparisonDate(t)?.toDateString();
-      if (!tDate) return;
-      
-      if (!stats[tDate]) stats[tDate] = { pl: 0, count: 0 };
-      stats[tDate].pl += parseFloat(String(t.pl || 0).replace(/[₹\s,]/g, '')) || 0;
-      stats[tDate].count += 1;
-    });
-    return stats;
-  }, [trades]);
-
-  const getSnapshotStats = (item) => {
-    const d = getComparisonDate(item);
-    if (!d) return null;
-    return dailyIndianStats[d.toDateString()] || { pl: 0, count: 0 };
-  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
