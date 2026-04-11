@@ -12,8 +12,8 @@ const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenRules }) => {
   ];
 
   return (
-    <div className="sticky top-0 z-[100] w-full py-4 mb-8 bg-journal-bg/80 backdrop-blur-xl border-b border-journal-gold/10 overflow-x-auto scrollbar-hide">
-      <div className="flex items-center justify-start md:justify-center gap-4 px-6 min-w-max">
+    <div className="sticky top-0 z-[100] w-full py-4 mb-8 bg-journal-bg/80 backdrop-blur-xl border-b border-journal-gold/10 overflow-x-auto scrollbar-hide no-scrollbar">
+      <div className="flex items-center justify-start md:justify-center gap-3 px-4 w-full">
         {buttons.map((btn) => (
           <motion.button
             key={btn.id}

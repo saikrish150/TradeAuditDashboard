@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle2, XCircle } from 'lucide-react';
+import { X, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabaseService, normalizeRow } from '../../services/supabaseService';
 
 // Journal Sub-components
@@ -39,7 +39,36 @@ const TradingJournal = ({
   const [editingTrade, setEditingTrade] = useState(null);
   const [editingSnapshot, setEditingSnapshot] = useState(null);
   const [editingNote, setEditingNote] = useState(null);
-  const [viewerImage, setViewerImage] = useState(null);
+  const [viewerState, setViewerState] = useState({ isOpen: false, currentImage: null, images: [], index: 0 });
+
+  const handleViewImage = useCallback((image, allImages = []) => {
+    const images = allImages.filter(img => !!img);
+    if (images.length === 0 && !image) return;
+    
+    const finalImages = images.length > 0 ? images : [image];
+    const index = finalImages.indexOf(image);
+    
+    setViewerState({
+      isOpen: true,
+      currentImage: image || finalImages[0],
+      images: finalImages,
+      index: index >= 0 ? index : 0
+    });
+  }, []);
+
+  const handlePrevImage = useCallback(() => {
+    setViewerState(prev => {
+      const nextIndex = (prev.index - 1 + prev.images.length) % prev.images.length;
+      return { ...prev, index: nextIndex, currentImage: prev.images[nextIndex] };
+    });
+  }, []);
+
+  const handleNextImage = useCallback(() => {
+    setViewerState(prev => {
+      const nextIndex = (prev.index + 1) % prev.images.length;
+      return { ...prev, index: nextIndex, currentImage: prev.images[nextIndex] };
+    });
+  }, []);
 
   // No local state subscriptions anymore, handled by App.jsx
 
@@ -64,6 +93,13 @@ const TradingJournal = ({
       if (e.key.toLowerCase() === 'r') {
         e.preventDefault();
         setShowRulesModal(prev => !prev);
+      }
+
+      // Viewer Controls
+      if (viewerState.isOpen) {
+        if (e.key === 'ArrowLeft') handlePrevImage();
+        if (e.key === 'ArrowRight') handleNextImage();
+        if (e.key === 'Escape') setViewerState(prev => ({ ...prev, isOpen: false }));
       }
     };
 
@@ -203,14 +239,47 @@ const TradingJournal = ({
   };
 
   const handleSaveGoal = async (data) => {
+    // Sanitize data for Supabase (remove UI-only keys)
+    const goalRecord = {
+      startDate: data.startDate,
+      endDate: data.endDate,
+      amount: parseFloat(data.amount),
+      status: data.status
+    };
+
     try {
       if (data.id) {
-        const updated = await performAction(supabaseService.updateGoal, data.id, data);
-        setGoals(prev => prev.map(g => g.id === data.id ? (updated || data) : g));
+        const updated = await performAction(supabaseService.updateGoal, data.id, goalRecord);
+        
+        // SERVER PERSISTENCE: Archive others if this one is active
+        if (goalRecord.status === 'active') {
+          await performAction(supabaseService.archiveOtherGoals, data.id);
+        }
+
+        setGoals(prev => {
+          let next = prev.map(g => g.id === data.id ? (updated || { ...goalRecord, id: data.id }) : g);
+          if (goalRecord.status === 'active') {
+            next = next.map(g => g.id !== data.id ? { ...g, status: 'archived' } : g);
+          }
+          return next;
+        });
         showToast('Objective updated successfully', 'success');
       } else {
-        const newGoal = await performAction(supabaseService.addGoal, data);
-        setGoals(prev => [newGoal || data, ...prev]);
+        const newGoal = await performAction(supabaseService.addGoal, goalRecord);
+        
+        // SERVER PERSISTENCE: Archive others if this one is active
+        if (goalRecord.status === 'active' && newGoal?.id) {
+           await performAction(supabaseService.archiveOtherGoals, newGoal.id);
+        }
+
+        setGoals(prev => {
+          const freshGoal = newGoal || { ...goalRecord, id: Date.now() };
+          let next = [freshGoal, ...prev];
+          if (freshGoal.status === 'active') {
+             next = next.map(g => g.id !== freshGoal.id ? { ...g, status: 'archived' } : g);
+          }
+          return next;
+        });
         showToast('Objective set successfully', 'success');
       }
     } catch (err) {
@@ -297,7 +366,7 @@ const TradingJournal = ({
         />
         <HabitTracker snapshots={snapshots} />
 
-        <div className="flex justify-start md:justify-center gap-4 mb-8 overflow-x-auto scrollbar-hide px-6 min-w-max">
+        <div className="flex justify-start md:justify-center gap-2 mb-8 overflow-x-auto scrollbar-hide px-4 w-full no-scrollbar">
            {[
              { id: 'trades', label: 'Trade Journal' },
              { id: 'snapshots', label: 'EOD Snapshots' },
@@ -306,7 +375,7 @@ const TradingJournal = ({
              <button
                key={tab.id}
                onClick={() => setActiveTab(tab.id)}
-               className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${activeTab === tab.id ? 'bg-journal-gold/10 border-journal-gold text-journal-gold' : 'border-slate-800 text-slate-500 hover:text-white'}`}
+               className={`px-6 py-3 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] transition-all border whitespace-nowrap flex-shrink-0 ${activeTab === tab.id ? 'bg-journal-gold/10 border-journal-gold text-journal-gold' : 'border-slate-800 text-slate-500 hover:text-white'}`}
              >
                 {tab.label}
              </button>
@@ -320,7 +389,7 @@ const TradingJournal = ({
                 trades={trades} 
                 onEditTrade={(t) => { setEditingTrade(t); setShowTradeModal(true); }} 
                 onDeleteTrade={handleDeleteTrade}
-                onViewImage={setViewerImage}
+                onViewImage={handleViewImage}
                 onTabChange={(tab) => {
                   if (tab === 'All Trades' && !isFullHistory) {
                     setIsFullHistory(true);
@@ -336,7 +405,7 @@ const TradingJournal = ({
                 snapshots={snapshots} 
                 onEditSnapshot={(s) => { setEditingSnapshot(s); setShowSnapshotModal(true); }}
                 onDeleteSnapshot={handleDeleteSnapshot}
-                onViewImage={setViewerImage}
+                onViewImage={handleViewImage}
               />
             </motion.div>
           )}
@@ -389,32 +458,57 @@ const TradingJournal = ({
 
       {/* Full-screen Image Viewer */}
       <AnimatePresence>
-        {viewerImage && (
+        {viewerState.isOpen && (
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
-            onClick={() => setViewerImage(null)}
-            className="fixed inset-0 z-[9999] bg-journal-bg/95 backdrop-blur-2xl flex items-center justify-center p-4 cursor-zoom-out"
+            onClick={() => setViewerState(prev => ({ ...prev, isOpen: false }))}
+            className="fixed inset-0 z-[9999] bg-journal-bg/95 backdrop-blur-2xl flex items-center justify-center p-4"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative max-w-6xl w-full h-full flex items-center justify-center"
+              className="relative max-w-6xl w-full h-full flex items-center justify-center group"
               onClick={e => e.stopPropagation()}
             >
-              <img 
-                src={viewerImage} 
-                alt="Trade Screenshot"
-                className="max-w-full max-h-full rounded-2xl shadow-2xl border border-white/10 object-contain"
-              />
+              {/* Close Button */}
               <button 
-                onClick={() => setViewerImage(null)}
-                className="absolute top-4 right-4 p-3 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all backdrop-blur-md"
+                onClick={() => setViewerState(prev => ({ ...prev, isOpen: false }))}
+                className="absolute top-4 right-4 z-50 p-3 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all backdrop-blur-md"
               >
                 <X size={24} />
               </button>
+
+              {/* Navigation Buttons */}
+              {viewerState.images.length > 1 && (
+                <>
+                  <button 
+                    onClick={handlePrevImage}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-4 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all opacity-0 group-hover:opacity-100 backdrop-blur-md"
+                  >
+                    <ChevronLeft size={32} />
+                  </button>
+                  <button 
+                    onClick={handleNextImage}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-4 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all opacity-0 group-hover:opacity-100 backdrop-blur-md"
+                  >
+                    <ChevronRight size={32} />
+                  </button>
+
+                  {/* Counter */}
+                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md text-white text-[10px] font-black tracking-widest uppercase border border-white/10">
+                    Image {viewerState.index + 1} / {viewerState.images.length}
+                  </div>
+                </>
+              )}
+
+              <img 
+                src={viewerState.currentImage} 
+                alt="Trade Screenshot"
+                className="max-w-full max-h-full rounded-2xl shadow-2xl border border-white/10 object-contain selection:bg-none"
+              />
             </motion.div>
           </motion.div>
         )}

@@ -16,26 +16,31 @@ const GoalTracking = ({ trades, goals = [], onSaveGoal, onDeleteGoal }) => {
     }
   };
 
-  const currentGoal = useMemo(() => {
-    return goals.find(g => g.status === 'active') || (goals.length > 0 ? goals[0] : null);
-  }, [goals]);
-
-  const progressData = useMemo(() => {
-    if (!currentGoal || !trades.length) return { pl: 0, percent: 0, daysLeft: 0 };
-    
-    const start = new Date(currentGoal.startDate);
-    const end = new Date(currentGoal.endDate);
+  const calculateProgress = (goal) => {
+    if (!goal || !trades.length) return { pl: 0, percent: 0, daysLeft: 0 };
+    const start = new Date(goal.startDate);
+    const end = new Date(goal.endDate);
     const today = new Date();
     
     const relevantPL = trades
       .filter(t => t.jsDate >= start && t.jsDate <= end)
       .reduce((sum, t) => sum + (t.pl || 0), 0);
     
-    const percent = Math.min(100, Math.max(0, (relevantPL / currentGoal.amount) * 100));
+    const percent = Math.min(100, Math.max(0, (relevantPL / goal.amount) * 100));
     const daysLeft = Math.max(0, Math.ceil((end - today) / (1000 * 60 * 60 * 24)));
 
     return { pl: relevantPL, percent: Math.round(percent), daysLeft };
-  }, [currentGoal, trades]);
+  };
+
+  const currentGoal = useMemo(() => {
+    return goals.find(g => g.status === 'active') || (goals.length > 0 ? goals[0] : null);
+  }, [goals]);
+
+  const progressData = useMemo(() => calculateProgress(currentGoal), [currentGoal, trades]);
+
+  const handleToggleStatus = async (goal) => {
+    await onSaveGoal({ ...goal, status: 'active' });
+  };
 
   const handleDeleteGoal = async (id) => {
     if (confirm('Delete this historical goal record?')) {
@@ -149,22 +154,48 @@ const GoalTracking = ({ trades, goals = [], onSaveGoal, onDeleteGoal }) => {
             >
               <div className="pt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
                 {goals.filter(g => g.id !== currentGoal?.id).length > 0 ? (
-                  goals.filter(g => g.id !== currentGoal?.id).map((g) => (
-                    <div key={g.id} className="p-4 rounded-2xl bg-slate-950/40 border border-slate-800 flex flex-col gap-3 group/item">
-                       <div className="flex items-center justify-between">
-                          <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">{g.startDate} - {g.endDate}</span>
-                          <button onClick={() => handleDeleteGoal(g.id)} className="text-slate-800 hover:text-journal-red opacity-0 group-hover/item:opacity-100 transition-all">
-                             <Trash2 size={14} />
-                          </button>
-                       </div>
-                       <div className="flex justify-between items-end">
-                          <p className="text-lg font-black text-slate-300">{formatCurrency(g.amount)}</p>
-                          <span className="text-[9px] font-bold text-slate-500 uppercase px-2 py-0.5 rounded bg-slate-900 border border-slate-800">
-                             Archived
-                          </span>
-                       </div>
-                    </div>
-                  ))
+                  goals.filter(g => g.id !== currentGoal?.id).map((g) => {
+                    const stats = calculateProgress(g);
+                    return (
+                      <div key={g.id} className="p-5 rounded-2xl bg-slate-950/60 border border-white/5 flex flex-col gap-4 group/item hover:border-white/10 transition-all">
+                         <div className="flex items-center justify-between">
+                            <div className="flex flex-col gap-0.5">
+                               <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">History Log</span>
+                               <span className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">{g.startDate} — {g.endDate}</span>
+                            </div>
+                            <button onClick={() => handleDeleteGoal(g.id)} className="text-slate-800 hover:text-rose-500 opacity-0 group-hover/item:opacity-100 transition-all p-1">
+                               <Trash2 size={12} />
+                            </button>
+                         </div>
+ 
+                         <div className="flex justify-between items-end">
+                            <div className="space-y-1">
+                               <p className="text-sm font-black text-white italic tracking-tighter">{formatCurrency(g.amount)} <span className="text-[8px] text-slate-500 not-italic uppercase font-bold tracking-widest pl-1">Target</span></p>
+                               <p className={`${stats.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'} text-[10px] font-black`}>{formatCurrency(stats.pl)} <span className="text-[8px] opacity-60 uppercase font-bold">Final</span></p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                               <span className={`text-[10px] font-black italic ${stats.percent >= 100 ? 'text-journal-gold' : 'text-slate-500'}`}>
+                                  {stats.percent}%
+                               </span>
+                               <button 
+                                 onClick={() => handleToggleStatus(g)}
+                                 className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[7px] font-black uppercase tracking-widest hover:bg-journal-gold hover:text-journal-bg hover:border-journal-gold transition-all"
+                               >
+                                  Switch to Active
+                               </button>
+                            </div>
+                         </div>
+
+                         {/* Mini Progress Bar */}
+                         <div className="h-1 w-full bg-slate-900 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-1000 ${stats.percent >= 100 ? 'bg-journal-gold' : 'bg-slate-700'}`} 
+                              style={{ width: `${stats.percent}%` }} 
+                            />
+                         </div>
+                      </div>
+                    );
+                  })
                 ) : (
                   <div className="col-span-full py-10 text-center text-slate-700 text-[10px] font-bold uppercase tracking-widest">
                     No historical records available

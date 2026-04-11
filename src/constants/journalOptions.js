@@ -1,5 +1,9 @@
 export const MARKET_OPTIONS = [
-  'NIFTY', 'GOLD', 'BTC', 'ETH'
+  'NIFTY', 'BTC', 'ETH', 'GOLD'
+];
+
+export const MARKET_CATEGORIES = [
+  'INDIAN MARKETS', 'OTHER MARKETS'
 ];
 
 export const TRADE_STATUS_OPTIONS = [

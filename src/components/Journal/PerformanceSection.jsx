@@ -70,13 +70,15 @@ const PerformanceSection = ({ trades }) => {
     if (typeof window !== 'undefined' && window.innerWidth < 480) return null;
 
     const isPositive = value >= 0;
+    const yOffset = isPositive ? -10 : 15;
+    
     return (
       <text 
         x={x + width / 2} 
-        y={y - 10} 
+        y={y + yOffset} 
         fill={isPositive ? '#10b981' : '#f43f5e'} 
         textAnchor="middle" 
-        className="text-[8px] font-black tracking-tighter"
+        className="text-[9px] font-black tracking-tighter"
       >
         {value > 0 ? '+' : ''}{Math.round(value).toLocaleString()}
       </text>

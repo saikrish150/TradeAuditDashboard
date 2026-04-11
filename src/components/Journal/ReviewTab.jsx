@@ -7,7 +7,7 @@ import {
   Calendar, Clock, Filter, Maximize2, X, Search, Check,
   ChevronDown, ChevronLeft
 } from 'lucide-react';
-import { EMOTION_OPTIONS, TRADE_QUALITY_OPTIONS, MARKET_OPTIONS, SETUP_OPTIONS, NOTE_CATEGORY_OPTIONS } from '../../constants/journalOptions';
+import { EMOTION_OPTIONS, TRADE_QUALITY_OPTIONS, MARKET_OPTIONS, SETUP_OPTIONS, NOTE_CATEGORY_OPTIONS, MARKET_CATEGORIES } from '../../constants/journalOptions';
 import { MONTH_MAP } from '../../utils';
 import { supabaseService } from '../../services/supabaseService';
 import { authService } from '../../services/authService';
@@ -77,9 +77,14 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
   // Helper: Normalize date for comparison
   const getComparisonDate = (item) => {
     if (!item) return null;
-    if (item.jsDate instanceof Date) return item.jsDate;
+    if (item instanceof Date) return item;
     
-    const dateStr = item.fullDate || item.date || item.Date;
+    let dateStr = item;
+    if (typeof item === 'object') {
+      if (item.jsDate instanceof Date) return item.jsDate;
+      dateStr = item.fullDate || item.date || item.Date || item.full_date || item.created_at;
+    }
+    
     if (!dateStr) return null;
     const d = new Date(dateStr);
     if (!isNaN(d.getTime())) return d;
@@ -137,7 +142,17 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
       
       const tMarket = String(t.market || 'All').toLowerCase().trim();
       const fMarket = galleryFilters.market.toLowerCase().trim();
-      const matchMarket = galleryFilters.market === 'All' || tMarket.includes(fMarket);
+      
+      let matchMarket = true;
+      if (galleryFilters.market === 'INDIAN MARKETS') {
+        const indianSimb = ['nifty', 'banknifty', 'finnifty', 'sensex', 'nse', 'bse'];
+        matchMarket = indianSimb.some(s => tMarket.includes(s));
+      } else if (galleryFilters.market === 'OTHER MARKETS') {
+        const indianSimb = ['nifty', 'banknifty', 'finnifty', 'sensex', 'nse', 'bse'];
+        matchMarket = !indianSimb.some(s => tMarket.includes(s)) && tMarket !== 'all';
+      } else {
+        matchMarket = galleryFilters.market === 'All' || tMarket.includes(fMarket);
+      }
       
       const fSetup = galleryFilters.setup.toLowerCase().trim();
       const matchSetup = galleryFilters.setup === 'All' || String(t.setup || '').toLowerCase().includes(fSetup);
@@ -234,15 +249,15 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
     });
   }, [processedSnapshots, gallerySort]);
 
-  // Flat list of all images in the current filtered results for navigation
-  const allGalleryLinks = useMemo(() => {
+  // Flat list of all images with metadata for common navigation
+  const allGalleryItems = useMemo(() => {
     const items = galleryType === 'trades' ? tradesWithVisuals : snapshotsWithVisuals;
     const links = [];
     items.forEach(item => {
       const shots = item.screenshots && item.screenshots.length > 0 
         ? item.screenshots 
         : [item.screenshotUrl || item.imageUrl || item.url].filter(Boolean);
-      shots.forEach(s => links.push(s));
+      shots.forEach(s => links.push({ url: s, item }));
     });
     return links;
   }, [galleryType, tradesWithVisuals, snapshotsWithVisuals]);
@@ -254,26 +269,26 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') setLightbox(null);
       if (e.key === 'ArrowRight') {
-        const nextIdx = allGalleryLinks.indexOf(lightbox);
-        if (nextIdx !== -1 && nextIdx < allGalleryLinks.length - 1) {
-          setLightbox(allGalleryLinks[nextIdx + 1]);
-        } else if (nextIdx === allGalleryLinks.length - 1) {
-          setLightbox(allGalleryLinks[0]); // Loop
+        const idx = allGalleryItems.findIndex(l => l.url === lightbox.url);
+        if (idx !== -1 && idx < allGalleryItems.length - 1) {
+          setLightbox(allGalleryItems[idx + 1]);
+        } else if (idx === allGalleryItems.length - 1) {
+          setLightbox(allGalleryItems[0]); // Loop
         }
       }
       if (e.key === 'ArrowLeft') {
-        const prevIdx = allGalleryLinks.indexOf(lightbox);
-        if (prevIdx > 0) {
-          setLightbox(allGalleryLinks[prevIdx - 1]);
-        } else if (prevIdx === 0) {
-          setLightbox(allGalleryLinks[allGalleryLinks.length - 1]); // Loop
+        const idx = allGalleryItems.findIndex(l => l.url === lightbox.url);
+        if (idx > 0) {
+          setLightbox(allGalleryItems[idx - 1]);
+        } else if (idx === 0) {
+          setLightbox(allGalleryItems[allGalleryItems.length - 1]); // Loop
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [lightbox, allGalleryLinks]);
+  }, [lightbox, allGalleryItems]);
 
   const processedNotes = useMemo(() => {
     if (!notes || !Array.isArray(notes)) return [];
@@ -328,6 +343,31 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
       observations: sortNotes(observations)
     };
   }, [processedNotes, optimisticVotes]);
+
+  // Aggregated stats for Daily Snapshots (Indian Markets Only)
+  const dailyIndianStats = useMemo(() => {
+    const stats = {};
+    const indianSimb = ['nifty', 'banknifty', 'finnifty', 'sensex', 'nse', 'bse'];
+    
+    trades.forEach(t => {
+      const tMarket = String(t.market || '').toLowerCase();
+      if (!indianSimb.some(s => tMarket.includes(s))) return;
+      
+      const tDate = getComparisonDate(t)?.toDateString();
+      if (!tDate) return;
+      
+      if (!stats[tDate]) stats[tDate] = { pl: 0, count: 0 };
+      stats[tDate].pl += parseFloat(String(t.pl || 0).replace(/[₹\s,]/g, '')) || 0;
+      stats[tDate].count += 1;
+    });
+    return stats;
+  }, [trades]);
+
+  const getSnapshotStats = (item) => {
+    const d = getComparisonDate(item);
+    if (!d) return null;
+    return dailyIndianStats[d.toDateString()] || { pl: 0, count: 0 };
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
@@ -652,7 +692,7 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
                   className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-300 outline-none focus:border-journal-gold/50 cursor-pointer"
                 >
                   <option value="All">All Markets</option>
-                  {MARKET_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  {MARKET_CATEGORIES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
                 
                 <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-1 ml-auto">
@@ -692,17 +732,28 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                     <button 
-                      onClick={() => setLightbox(item.screenshotUrl || (item.screenshots && item.screenshots[0]))}
+                      onClick={() => setLightbox({ url: item.screenshotUrl || (item.screenshots && item.screenshots[0]), item })}
                       className="p-4 rounded-full bg-white/10 border border-white/20 text-white backdrop-blur-md hover:bg-white/20 transition-all"
                     >
                       <Maximize2 size={24} />
                     </button>
                   </div>
-                  {galleryType === 'trades' && (
+                  {galleryType === 'trades' ? (
                     <div className="absolute top-4 right-4">
                       <Badge color={(item.pl || 0) >= 0 ? 'emerald' : 'rose'}>
                         {(item.pl || 0) >= 0 ? '+' : ''}{(item.pl || 0).toFixed(2)}
                       </Badge>
+                    </div>
+                  ) : (
+                    <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+                      {getSnapshotStats(item) && (
+                        <>
+                          <Badge color={getSnapshotStats(item).pl >= 0 ? 'emerald' : 'rose'}>
+                            {getSnapshotStats(item).pl >= 0 ? 'Day: +' : 'Day: '}{getSnapshotStats(item).pl.toFixed(2)}
+                          </Badge>
+                          <Badge color="indigo">Trades: {getSnapshotStats(item).count}</Badge>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -729,10 +780,18 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
                     </div>
                   </div>
                   
-                  {galleryType === 'trades' && (
+                  {galleryType === 'trades' ? (
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
                        {item.emotion && <Badge color="indigo">{String(item.emotion)}</Badge>}
                        {item.tradeQuality && <Badge color="amber">Grade: {String(item.tradeQuality)}</Badge>}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
+                      {item.tags && item.tags.map(tag => (
+                        <span key={tag} className="text-[8px] font-black uppercase text-slate-500 bg-white/5 px-2 py-1 rounded border border-white/5 group-hover:border-journal-gold/30 transition-colors">
+                          #{tag}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -752,7 +811,7 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
       {/* Lightbox */}
       <AnimatePresence>
         {lightbox && (
-          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 overflow-hidden">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -761,56 +820,109 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
               className="absolute inset-0 bg-black/95 backdrop-blur-xl"
             />
             
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative max-w-5xl w-full flex items-center justify-center"
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative z-[11000] w-full max-w-[88vw] h-[82vh] flex items-center justify-center pointer-events-none"
             >
-              {/* Navigation: Prev */}
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (idx > 0) setLightbox(allGalleryLinks[idx - 1]);
-                  else if (idx === 0) setLightbox(allGalleryLinks[allGalleryLinks.length - 1]);
-                }}
-                className="absolute left-4 md:-left-20 p-4 rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 hover:border-white/30 transition-all z-20 backdrop-blur-md group"
-              >
-                <ChevronLeft size={32} className="group-hover:-translate-x-1 transition-transform" />
-              </button>
+              {/* The Unified Image & HUD Wrapper */}
+              <div className="relative h-full w-full flex items-center justify-center pointer-events-auto group/viewer">
+                
+                <motion.div 
+                  initial={{ x: -100, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  className="absolute left-6 top-1/2 -translate-y-1/2 w-32 p-3 bg-transparent border-l border-white/5 z-30 hidden xl:flex flex-col gap-5 transition-all duration-700 pointer-events-none"
+                >
+                   <div className="space-y-5">
+                      {/* Phantom Header */}
+                      <div className="space-y-0.5 opacity-30">
+                         <div className="flex items-center gap-1">
+                            <div className={`w-0.5 h-0.5 rounded-full ${galleryType === 'trades' ? 'bg-amber-500' : 'bg-indigo-500'}`} />
+                            <span className="text-[4px] font-black uppercase tracking-[0.4em] text-white">
+                               DATA
+                            </span>
+                         </div>
+                         <h4 className="text-xs font-black italic text-white uppercase tracking-tighter truncate">
+                            {galleryType === 'trades' ? (lightbox.item?.market || 'M') : 'S'}
+                         </h4>
+                         <p className="text-[6px] font-bold text-slate-600 tabular-nums">
+                            {String(lightbox.item?.date || '-')}
+                         </p>
+                      </div>
 
-              <div className="relative z-10 max-h-[85vh] w-full flex items-center justify-center">
-                <img 
-                  src={lightbox} 
-                  alt="Full Review" 
-                  className="max-h-[85vh] max-w-full rounded-2xl shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-white/10 object-contain mx-auto" 
-                />
-              </div>
+                      {/* Performance Stats */}
+                      <div className="space-y-4">
+                         <div className="space-y-0.5">
+                            <span className="text-[4px] font-black text-slate-700 uppercase tracking-[0.2em]">Yield</span>
+                            <p className={`text-lg font-black italic tracking-tighter leading-none ${
+                               (galleryType === 'trades' ? parseFloat(lightbox.item?.pl || 0) : getSnapshotStats(lightbox.item)?.pl) >= 0 
+                               ? 'text-emerald-500/80 shadow-[0_0_10px_rgba(16,185,129,0.1)]' : 'text-journal-red/80 shadow-[0_0_10px_rgba(239,68,68,0.1)]'
+                            }`}>
+                               ₹{galleryType === 'trades' ? (lightbox.item?.pl || 0) : getSnapshotStats(lightbox.item)?.pl?.toFixed(0)}
+                            </p>
+                         </div>
 
-              {/* Navigation: Next */}
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const idx = allGalleryLinks.indexOf(lightbox);
-                  if (idx < allGalleryLinks.length - 1) setLightbox(allGalleryLinks[idx + 1]);
-                  else setLightbox(allGalleryLinks[0]);
-                }}
-                className="absolute right-4 md:-right-20 p-4 rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 hover:border-white/30 transition-all z-20 backdrop-blur-md group"
-              >
-                <ChevronRight size={32} className="group-hover:translate-x-1 transition-transform" />
-              </button>
+                         <div className="space-y-0.5">
+                            <span className="text-[4px] font-black text-slate-700 uppercase tracking-[0.2em]">Logic</span>
+                            <p className="text-[10px] font-black text-amber-500/70 italic leading-none truncate">
+                               {galleryType === 'trades' 
+                                 ? `${!lightbox.item?.rr || lightbox.item?.rr === '0' ? 'N/A' : lightbox.item.rr} RR` 
+                                 : `${getSnapshotStats(lightbox.item)?.count} EXE`}
+                            </p>
+                         </div>
+                      </div>
 
-              {/* Close Button */}
-              <button 
-                onClick={() => setLightbox(null)}
-                className="absolute -top-16 right-0 p-3 rounded-full bg-white/5 hover:bg-rose-500/20 text-white transition-all border border-white/10 hover:border-rose-500/50"
-              >
-                <X size={24} />
-              </button>
+                      {/* Context HUD */}
+                      {galleryType === 'trades' && (
+                        <div className="space-y-1 opacity-40">
+                           <p className="text-[7px] font-black text-slate-500 uppercase italic leading-tight line-clamp-1">
+                              {lightbox.item?.reasonForTrade || 'Manual'}
+                           </p>
+                           <span className="text-[4px] font-black uppercase text-indigo-400/40 tracking-[0.2em]">{lightbox.item.direction}</span>
+                        </div>
+                      )}
+                   </div>
 
-              {/* Counter Indicator */}
-              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/40 text-[10px] font-black uppercase tracking-widest backdrop-blur-md">
-                Chart {allGalleryLinks.indexOf(lightbox) + 1} <span className="text-white/20 mx-1">/</span> {allGalleryLinks.length}
+                   <div className="mt-auto opacity-20">
+                      <span className="text-[5px] font-black text-slate-800 tabular-nums tracking-[0.3em]">
+                         {allGalleryItems.findIndex(l => l.url === lightbox.url) + 1} / {allGalleryItems.length}
+                      </span>
+                   </div>
+                </motion.div>
+
+                {/* Close Button - Floats Top Right */}
+                <div className="absolute top-4 right-4 z-40">
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
+                     className="p-3 rounded-full bg-slate-900/40 backdrop-blur-xl border border-white/5 text-white/50 hover:text-white hover:bg-rose-500/40 transition-all shadow-xl"
+                   >
+                     <X size={20} />
+                   </button>
+                </div>
+
+                {/* Navigation Arrows */}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); const idx = allGalleryItems.findIndex(l => l.url === lightbox.url); if (idx > 0) setLightbox(allGalleryItems[idx - 1]); else setLightbox(allGalleryItems[allGalleryItems.length - 1]); }}
+                  className="absolute left-10 md:left-12 p-5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 text-white/30 hover:text-white transition-all z-20 shadow-2xl backdrop-blur-md opacity-0 group-hover/viewer:opacity-100"
+                >
+                  <ChevronLeft size={36} />
+                </button>
+
+                <div className="relative w-full h-full flex items-center justify-center rounded-[3rem] overflow-hidden shadow-[0_60px_150px_rgba(0,0,0,1)] border border-white/10 bg-black/60">
+                  <img 
+                    src={lightbox.url} 
+                    alt="Audit Workspace" 
+                    className="max-h-full max-w-full object-contain" 
+                  />
+                </div>
+
+                <button 
+                  onClick={(e) => { e.stopPropagation(); const idx = allGalleryItems.findIndex(l => l.url === lightbox.url); if (idx < allGalleryItems.length - 1) setLightbox(allGalleryItems[idx + 1]); else setLightbox(allGalleryItems[0]); }}
+                  className="absolute right-12 p-5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 text-white/30 hover:text-white transition-all z-20 shadow-2xl backdrop-blur-md opacity-0 group-hover/viewer:opacity-100"
+                >
+                  <ChevronRight size={36} />
+                </button>
               </div>
             </motion.div>
           </div>

@@ -356,15 +356,25 @@ export const supabaseService = {
   },
 
   addGoal: async (userId, data) => {
-    const { error } = await supabase.from('goals').insert([{ ...data, user_id: userId }]);
+    const { data: result, error } = await supabase.from('goals').insert([{ ...data, user_id: userId }]).select();
     if (error) throw error;
+    return result?.[0];
   },
   updateGoal: async (userId, id, data) => {
-    const { error } = await supabase.from('goals').update(data).eq('id', id).eq('user_id', userId);
+    const { data: result, error } = await supabase.from('goals').update(data).eq('id', id).eq('user_id', userId).select();
     if (error) throw error;
+    return result?.[0];
   },
   deleteGoal: async (userId, id) => {
     const { error } = await supabase.from('goals').delete().eq('id', id).eq('user_id', userId);
+    if (error) throw error;
+  },
+  archiveOtherGoals: async (userId, activeId) => {
+    const { error } = await supabase
+      .from('goals')
+      .update({ status: 'archived' })
+      .eq('user_id', userId)
+      .neq('id', activeId);
     if (error) throw error;
   },
 

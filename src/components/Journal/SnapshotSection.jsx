@@ -35,11 +35,12 @@ const SnapshotSection = ({ snapshots = [], onEditSnapshot, onDeleteSnapshot, onV
   };
 
   const getUniqueValues = (key) => {
-    if (key === 'metadata') {
+    if (key === 'metadata' || key === 'tags') {
       const allTags = snapshots.flatMap(s => s.tags || []);
       return Array.from(new Set(allTags)).sort();
     }
-    return [];
+    const values = snapshots.map(s => getVal(s, key)).filter(Boolean);
+    return Array.from(new Set(values.map(v => Array.isArray(v) ? v : [v]).flat())).sort();
   };
 
   const addFilter = (field, value, type = 'cat', op = '=') => {
@@ -91,15 +92,21 @@ const SnapshotSection = ({ snapshots = [], onEditSnapshot, onDeleteSnapshot, onV
         return filters.every(f => {
           const rawVal = getVal(s, f.field);
           
-          if (f.field === 'metadata') { // array type
-             const tradeArray = Array.isArray(rawVal) ? rawVal : [];
-             return tradeArray.some(tag => String(tag).toLowerCase() === String(f.value).toLowerCase());
+          if (f.field === 'metadata' || f.field === 'tags') { // array type with Multi-Select support
+             const grouped = filters.filter(inner => (inner.field === 'metadata' || inner.field === 'tags'));
+             const tradeArray = (Array.isArray(rawVal) ? rawVal : []).map(t => String(t).toLowerCase());
+             return grouped.length === 0 || grouped.some(inner => tradeArray.includes(String(inner.value).toLowerCase()));
           }
 
           if (f.field === 'compliance') {
              const option = COMPLIANCE_OPTIONS.find(opt => opt.label === f.value);
              if (!option) return true;
-             return !!rawVal[option.key.replace('Followed', '').replace('InControl', '').toLowerCase().includes('rules') ? 'rules' : (option.key.toLowerCase().includes('emotion') ? 'eq' : 'system')];
+             return !!s[option.key];
+          }
+
+          if (f.type === 'cat') { // Multi-select support for other categories
+             const grouped = filters.filter(inner => inner.field === f.field && inner.type === 'cat');
+             return grouped.length === 0 || grouped.some(inner => String(rawVal).toLowerCase() === String(inner.value).toLowerCase());
           }
 
           if (f.type === 'num') {
@@ -120,14 +127,20 @@ const SnapshotSection = ({ snapshots = [], onEditSnapshot, onDeleteSnapshot, onV
 
     // Custom Date Range
     if (customDateRange.start) {
-      const start = new Date(customDateRange.start);
-      start.setHours(0, 0, 0, 0);
-      result = result.filter(s => (s.jsDate || new Date(s.date)) >= start);
+      const start = new Date(customDateRange.start).getTime();
+      result = result.filter(s => {
+        const d = (s.jsDate || new Date(s.date)).getTime();
+        return d >= start;
+      });
     }
     if (customDateRange.end) {
       const end = new Date(customDateRange.end);
       end.setHours(23, 59, 59, 999);
-      result = result.filter(s => (s.jsDate || new Date(s.date)) <= end);
+      const endMs = end.getTime();
+      result = result.filter(s => {
+        const d = (s.jsDate || new Date(s.date)).getTime();
+        return d <= endMs;
+      });
     }
 
     // Sort
@@ -136,8 +149,8 @@ const SnapshotSection = ({ snapshots = [], onEditSnapshot, onDeleteSnapshot, onV
       let bVal = getVal(b, sortConfig.key);
 
       if (sortConfig.key === 'date') {
-        aVal = a.jsDate || new Date(a.date);
-        bVal = b.jsDate || new Date(b.date);
+        aVal = (a.jsDate || new Date(a.date)).getTime();
+        bVal = (b.jsDate || new Date(b.date)).getTime();
       }
 
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -270,15 +283,15 @@ const SnapshotSection = ({ snapshots = [], onEditSnapshot, onDeleteSnapshot, onV
                                     />
                                   </div>
                                </div>
-                             ) : col.key === 'metadata' ? (
+                             ) : (col.key === 'metadata' || col.key === 'tags') ? (
                                <div className="flex flex-wrap gap-1.5">
-                                 {getUniqueValues('metadata').map(val => (
+                                 {getUniqueValues(col.key).map(val => (
                                    <button
                                      key={val}
-                                     onClick={() => addFilter('metadata', val, 'array')}
+                                     onClick={() => addFilter(col.key, val, 'array')}
                                      className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-black transition-all ${
-                                       filters.find(f => f.field === 'metadata' && f.value === val)
-                                       ? 'bg-journal-gold text-journal-bg border-journal-gold'
+                                       filters.find(f => (f.field === col.key || (f.field === 'metadata' && col.key === 'tags')) && f.value === val)
+                                       ? 'bg-journal-gold text-journal-bg border-journal-gold shadow-lg shadow-journal-gold/20'
                                        : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:border-slate-700'
                                      }`}
                                    >
@@ -372,12 +385,16 @@ const SnapshotSection = ({ snapshots = [], onEditSnapshot, onDeleteSnapshot, onV
                       }
                       if (col.type === 'image') {
                         return (
-                          <div 
-                            onClick={(e) => { e.stopPropagation(); onViewImage(val); }}
-                            className="relative w-12 h-8 rounded-lg overflow-hidden border border-slate-800 group-hover:border-journal-gold/50 cursor-pointer transition-all"
-                          >
-                            {val ? <img src={val} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-950 flex items-center justify-center text-slate-800"><ImageIcon size={14} /></div>}
-                          </div>
+                           <div 
+                             onClick={(e) => { 
+                               e.stopPropagation(); 
+                               const allImages = processedSnapshots.map(img => img.imageUrl).filter(Boolean);
+                               onViewImage(val, allImages); 
+                             }}
+                             className="relative w-12 h-8 rounded-lg overflow-hidden border border-slate-800 group-hover:border-journal-gold/50 cursor-pointer transition-all"
+                           >
+                             {val ? <img src={val} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-950 flex items-center justify-center text-slate-800"><ImageIcon size={14} /></div>}
+                           </div>
                         );
                       }
                       if (col.key === 'noOfTrades') {

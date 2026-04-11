@@ -457,7 +457,11 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                     if (col.key === 'chartScreenshotUrl' || col.key === 'imageUrl') {
                       return val ? (
                         <div 
-                          onClick={(e) => { e.stopPropagation(); onViewImage(val); }}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            const allImages = processedTrades.map(t => t.chartScreenshotUrl || t.imageUrl).filter(Boolean);
+                            onViewImage(val, allImages); 
+                          }}
                           className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-800 hover:border-journal-gold/50 transition-all cursor-pointer"
                         >
                           <img src={val} className="w-full h-full object-cover" />

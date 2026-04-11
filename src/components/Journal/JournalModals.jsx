@@ -63,7 +63,8 @@ export const AddGoalModal = ({ isOpen, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     startDate: new Date().toISOString().slice(0, 10),
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // Default 30 days
-    amount: ''
+    amount: '',
+    isActive: true
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -74,7 +75,7 @@ export const AddGoalModal = ({ isOpen, onClose, onSave }) => {
       await onSave({
         ...formData,
         amount: parseFloat(formData.amount),
-        status: 'active'
+        status: formData.isActive ? 'active' : 'archived'
       });
       onClose();
     } catch (error) {
@@ -112,6 +113,19 @@ export const AddGoalModal = ({ isOpen, onClose, onSave }) => {
             />
           </div>
           <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">Your progress will be tracked automatically across all trades in this period.</p>
+        </div>
+
+        <div 
+          onClick={() => setFormData({...formData, isActive: !formData.isActive})}
+          className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${formData.isActive ? 'bg-journal-gold/5 border-journal-gold/40 text-journal-gold' : 'bg-slate-950/30 border-slate-800 text-slate-500'}`}
+        >
+           <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase italic tracking-widest">Set as Active Objective</span>
+              <span className="text-[8px] font-bold opacity-60 uppercase">Archives existing active goals if enabled</span>
+           </div>
+           <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${formData.isActive ? 'bg-journal-gold border-journal-gold text-journal-bg' : 'border-slate-700'}`}>
+              {formData.isActive && <Check size={14} />}
+           </div>
         </div>
 
         <button 

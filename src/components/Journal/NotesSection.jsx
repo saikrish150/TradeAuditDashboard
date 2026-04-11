@@ -11,6 +11,7 @@ import { NOTE_CATEGORY_OPTIONS } from '../../constants/journalOptions';
 import { FullTextModal } from './JournalModals';
 import { supabaseService } from '../../services/supabaseService';
 import { authService } from '../../services/authService';
+import { DB_FIELDS } from '../../constants/fieldMappings';
 import { ChevronUp, Check as CheckIcon } from 'lucide-react';
 
 const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
@@ -20,9 +21,11 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
   const [filters, setFilters] = useState([]);
   const [activeFilterPopup, setActiveFilterPopup] = useState(null);
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
-  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'pinned', direction: 'desc' });
   const [viewingText, setViewingText] = useState(null);
   const [isVoting, setIsVoting] = useState(false);
+  const [isPinning, setIsPinning] = useState(null); // noteId
+  const [pinStates, setPinStates] = useState({}); // { noteId: boolean }
   const [optimisticVotes, setOptimisticVotes] = useState({}); // { noteId: extraVotes }
   const [voteFeedback, setVoteFeedback] = useState(null); // noteId of recently voted
   const popoverRef = useRef(null);
@@ -107,8 +110,47 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
     }
   };
 
+  const handleTogglePin = async (note) => {
+    if (isPinning) return;
+    const newPinnedStatus = !note.pinned;
+    
+    // OPTIMISTIC UPDATE: Instant UI feedback
+    setPinStates(prev => ({ ...prev, [note.id]: newPinnedStatus }));
+    setIsPinning(note.id);
+    
+    try {
+      const session = await authService.getSession();
+      const user = session?.user;
+      if (!user) return;
+
+      if (newPinnedStatus) {
+        // Find existing pinned note and offer to swap or just pin both
+      }
+
+      await supabaseService.updateNote(user.id, note.id, {
+        [DB_FIELDS.notePinned]: newPinnedStatus ? 'Yes' : 'No'
+      });
+      
+      // Local state will be updated via refresh/subscription in parent
+    } catch (error) {
+      console.error("Error toggling pin:", error);
+      // Rollback on error
+      setPinStates(prev => {
+        const next = { ...prev };
+        delete next[note.id];
+        return next;
+      });
+    } finally {
+      setIsPinning(null);
+      setCurrentPage(1); // Reset to page 1 so user sees the pinned note at top
+    }
+  };
+
   const processedNotes = useMemo(() => {
-    let result = [...notes];
+    let result = notes.map(n => ({
+      ...n,
+      pinned: pinStates[n.id] !== undefined ? pinStates[n.id] : n.pinned
+    }));
 
     // Search
     if (searchTerm) {
@@ -153,12 +195,12 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
 
     // Sort
     result.sort((a, b) => {
-      // Pinned notes always at top if not sorting by specific columns or if primary sort is date
-      if (sortConfig.key === 'date' || !sortConfig.key) {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
+      // PRIMARY SORT: Always respectPinned status first
+      if (a.pinned !== b.pinned) {
+        return a.pinned ? -1 : 1;
       }
 
+      // SECONDARY SORT: Based on user selection
       let aVal = getVal(a, sortConfig.key);
       let bVal = getVal(b, sortConfig.key);
 
@@ -176,7 +218,7 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
     });
 
     return result;
-  }, [notes, searchTerm, filters, customDateRange, sortConfig]);
+  }, [notes, searchTerm, filters, customDateRange, sortConfig, pinStates]);
 
   const totalPages = Math.ceil(processedNotes.length / itemsPerPage);
   const currentNotes = processedNotes.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -351,12 +393,22 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
                     const val = n[col.key];
                     const renderCell = () => {
                       if (col.key === 'pinned') {
+                         const loading = isPinning === n.id;
                          return (
                             <div className="flex justify-center">
-                              <Pin 
-                                size={14} 
-                                className={`transition-all ${val ? 'text-journal-gold fill-journal-gold rotate-45' : 'text-slate-800'}`} 
-                              />
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTogglePin(n);
+                                }}
+                                disabled={loading}
+                                className={`p-2 rounded-xl transition-all hover:bg-white/5 active:scale-90 ${loading ? 'animate-pulse' : ''}`}
+                              >
+                                <Pin 
+                                  size={14} 
+                                  className={`transition-all ${val ? 'text-journal-gold fill-journal-gold rotate-45' : 'text-slate-800 group-hover:text-slate-600'}`} 
+                                />
+                              </button>
                             </div>
                          );
                       }
