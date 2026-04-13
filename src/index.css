@@ -11,16 +11,14 @@
   }
   body {
     font-family: 'Inter', sans-serif;
-    /* Deep 3D Space Background */
-    background: radial-gradient(circle at 50% 0%, #0B1235 0%, #060B1F 40%, #030617 100%);
-    background-color: #030617;
+    background-color: #0A0A0A;
+    color: #FFFFFF;
     background-attachment: fixed;
-    color: #f8fafc;
-    /* Background Grid Pattern */
+    /* Professional Technical Background */
     background-image: 
-      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-    background-size: 40px 40px;
+      radial-gradient(circle at 2px 2px, rgba(212, 175, 55, 0.05) 1px, transparent 0),
+      radial-gradient(circle at center, rgba(10, 10, 10, 0) 0%, #0A0A0A 100%);
+    background-size: 40px 40px, 100% 100%;
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -33,27 +31,35 @@
 }
 
 @layer utilities {
-  /* Premium Glassmorphism & Depth Layers */
-  /* Modern Glass for 2026 Professional Standards */
+  /* Premium Trading Glassmorphism */
   .modern-glass {
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(28, 28, 28, 0.85);
+    backdrop-filter: blur(25px) saturate(200%);
+    -webkit-backdrop-filter: blur(25px) saturate(200%);
+    border: 1px solid rgba(212, 175, 55, 0.18);
     box-shadow: 
-      0 10px 40px -10px rgba(0, 0, 0, 0.5),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      0 10px 40px -10px rgba(0, 0, 0, 0.8),
+      inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .journal-glass {
+    background: rgba(20, 20, 20, 0.95);
+    backdrop-filter: blur(25px) saturate(200%);
+    border: 1px solid rgba(212, 175, 55, 0.22);
+    box-shadow: 
+      0 12px 50px -12px rgba(0, 0, 0, 0.95),
+      inset 0 1px 1px rgba(212, 175, 55, 0.08);
   }
 
   .shimmer {
     background: linear-gradient(
       90deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.05) 50%,
-      rgba(255, 255, 255, 0) 100%
+      rgba(212, 175, 55, 0) 0%,
+      rgba(212, 175, 55, 0.03) 50%,
+      rgba(212, 175, 55, 0) 100%
     );
     background-size: 200% 100%;
-    animation: shimmer 2s infinite;
+    animation: shimmer 3s infinite;
   }
 
   @keyframes shimmer {
@@ -62,24 +68,31 @@
   }
 
   .active-glow {
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), inset 0 0 12px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 0 35px rgba(212, 175, 55, 0.25), inset 0 0 15px rgba(212, 175, 55, 0.1);
+  }
+  .gold-glow {
+    box-shadow: 0 0 25px rgba(212, 175, 55, 0.3), inset 0 0 15px rgba(212, 175, 55, 0.15);
+  }
+  .red-glow {
+    box-shadow: 0 0 25px rgba(230, 57, 70, 0.35), inset 0 0 15px rgba(230, 57, 70, 0.15);
+  }
+  .green-glow {
+    box-shadow: 0 0 25px rgba(46, 204, 113, 0.35), inset 0 0 15px rgba(46, 204, 113, 0.15);
   }
 
   .glow-text {
-    text-shadow: 0 0 16px currentColor;
+    text-shadow: 0 0 12px currentColor;
   }
   
-  /* Background ambient animated glows */
   .ambient-glow {
     position: absolute;
     border-radius: 50%;
-    filter: blur(100px);
-    opacity: 0.2;
+    filter: blur(120px);
+    opacity: 0.15;
     z-index: 0;
     pointer-events: none;
   }
 
-  /* Non-scroll dashboard lock */
   .dashboard-lock {
     height: calc(100vh - 260px);
     overflow: hidden;
@@ -92,82 +105,50 @@
     }
   }
 
-  .pb-safe-area {
-    padding-bottom: env(safe-area-inset-bottom, 16px);
-  }
-
-  /* Journal Specific Styles */
-  .journal-glass {
-    background: rgba(11, 11, 11, 0.7);
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(212, 175, 55, 0.15);
-    box-shadow: 
-      0 10px 40px -10px rgba(0, 0, 0, 0.5),
-      inset 0 0 0 1px rgba(212, 175, 55, 0.05);
-  }
-
-  .gold-glow {
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2), inset 0 0 12px rgba(212, 175, 55, 0.1);
-  }
-
-  .red-glow {
-    box-shadow: 0 0 20px rgba(255, 59, 59, 0.2), inset 0 0 12px rgba(255, 59, 59, 0.1);
-  }
-
-  .gold-border-glow {
-    border-color: rgba(212, 175, 55, 0.4);
-    box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
-  }
-
+  /* Scrollbar Polishing */
   .custom-scrollbar::-webkit-scrollbar {
-    height: 6px;
-    width: 6px;
+    height: 5px;
+    width: 5px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(212, 175, 55, 0.2);
+    background: rgba(212, 175, 55, 0.15);
     border-radius: 10px;
-    border: 1px solid rgba(212, 175, 55, 0.1);
+    border: 1px solid rgba(212, 175, 55, 0.05);
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(212, 175, 55, 0.4);
+    background: rgba(212, 175, 55, 0.3);
   }
 
-  /* Quote Layer Accents */
-  .quote-purple {
-    color: #a855f7;
-    text-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+  /* Button Premium Wrappers */
+  .btn-primary {
+    @apply bg-journal-red text-white shadow-[0_4px_15px_rgba(230,57,70,0.3)] hover:shadow-[0_6px_25px_rgba(230,57,70,0.5)] transition-all duration-300 active:scale-95;
   }
-  .quote-gold {
-    color: #eab308;
-    text-shadow: 0 0 20px rgba(234, 179, 8, 0.4);
+
+  .btn-secondary {
+    @apply border border-journal-gold text-journal-gold shadow-[0_0_10px_rgba(212,175,55,0.1)] hover:bg-journal-gold/10 transition-all duration-300 active:scale-95;
   }
-  .quote-red {
-    color: #ef4444;
-    text-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
-  }
-  .quote-watermark {
-    color: rgba(255, 255, 255, 0.03);
-    user-select: none;
-    pointer-events: none;
+
+  .btn-success {
+    @apply bg-journal-green text-white shadow-[0_4px_15px_rgba(46,204,113,0.3)] hover:shadow-[0_6px_25px_rgba(46,204,113,0.5)] transition-all duration-300 active:scale-95;
   }
 }
 
-/* Base scrollbar overrides for a completely integrated look */
+/* Base scrollbar overrides */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0A0A0A;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(212, 175, 55, 0.15);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(212, 175, 55, 0.25);
 }

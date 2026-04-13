@@ -32,7 +32,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [activeFilterPopup]);
-  const itemsPerPage = 15;
+  const itemsPerPage = 10;
 
   const columns = JOURNAL_COLUMNS;
 
@@ -213,7 +213,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
       <div className="flex flex-col gap-4 p-4 pb-2">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Timeline Tabs */}
-          <div className="flex items-center gap-1 bg-slate-950/50 p-1 rounded-xl border border-slate-800">
+          <div className="flex bg-journal-secondary/50 p-1 rounded-xl border border-white/10 backdrop-blur-md">
             {tabs.map(tab => (
               <button
                 key={tab}
@@ -222,10 +222,13 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                   setCurrentPage(1); 
                   if (onTabChange) onTabChange(tab);
                 }}
-                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab
-                  ? 'bg-journal-gold text-journal-bg shadow-[0_0_15px_rgba(212,175,55,0.3)]'
-                  : 'text-slate-400 hover:text-slate-300'
-                }`}
+                className={`
+                  px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all
+                  ${activeTab === tab
+                    ? 'bg-journal-gold text-journal-bg shadow-lg shadow-journal-gold/20'
+                    : 'text-journal-text-muted hover:text-white'
+                  }
+                `}
               >
                 {tab}
               </button>
@@ -234,18 +237,18 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
 
           <div className="flex items-center gap-3">
              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-journal-text-muted" size={14} />
                 <input
                   type="text"
                   placeholder="Universal trade search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-slate-950/30 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs font-bold text-white outline-none focus:border-journal-gold/30 transition-all"
+                  className="w-full bg-journal-secondary/50 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs font-bold text-white outline-none focus:border-journal-gold/30 transition-all"
                 />
              </div>
-             <div className={`px-4 py-2 rounded-xl border backdrop-blur-md flex flex-col items-end min-w-[140px] ${totalPL >= 0 ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-red-500/20 bg-red-500/5'}`}>
-               <p className="text-[7px] font-black uppercase text-slate-400 tracking-[0.2em]">Period Net P&L</p>
-               <p className={`text-sm font-black tabular-nums leading-tight ${totalPL >= 0 ? 'text-emerald-400' : 'text-journal-red'}`}>
+             <div className={`px-4 py-2 rounded-xl border backdrop-blur-md flex flex-col items-end min-w-[140px] ${totalPL >= 0 ? 'border-journal-green/20 bg-journal-green/5' : 'border-journal-red/20 bg-journal-red/5'}`}>
+               <p className="text-[7px] font-black uppercase text-journal-text-muted tracking-[0.2em]">Period Net P&L</p>
+               <p className={`text-sm font-black tabular-nums leading-tight ${totalPL >= 0 ? 'text-journal-green' : 'text-journal-red'}`}>
                  {totalPL >= 0 ? '+' : ''}{formatCurrency(totalPL)}
                </p>
              </div>
@@ -299,8 +302,8 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                     setActiveFilterPopup(activeFilterPopup === col.key ? null : col.key);
                   }}
                   className={`
-                    px-6 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 cursor-pointer hover:text-journal-gold transition-colors border-b border-white/5 group/th relative
-                    ${col.sticky ? 'sticky left-0 z-20 bg-slate-950/90' : 'z-10'}
+                    px-6 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-journal-text-muted cursor-pointer hover:text-journal-gold transition-colors border-b border-white/5 group/th relative
+                    ${col.sticky ? 'sticky left-0 z-20 bg-journal-bg' : 'z-10'}
                     ${filters.some(f => f.field === col.key) || (col.type === 'date' && (customDateRange.start || customDateRange.end)) ? 'text-journal-gold' : ''}
                   `}
                 >
@@ -428,7 +431,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
               <motion.tr
                 key={trade.id}
                 layout
-                className="hover:bg-white/[0.02] transition-colors group"
+                className="hover:bg-journal-gold/[0.03] odd:bg-journal-bg even:bg-journal-secondary/30 transition-colors group"
               >
                 {columns.map(col => {
                   const val = trade[col.key];
@@ -441,7 +444,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                     if (col.key === 'W/L' || col.key === 'isWin') {
                       const isWin = val === 'WIN' || trade.isWin === true;
                       return (
-                        <span className={`text-[9px] font-black uppercase tracking-widest ${isWin ? 'text-emerald-400' : 'text-journal-red'}`}>
+                        <span className={`text-[9px] font-black uppercase tracking-widest ${isWin ? 'text-journal-green' : 'text-journal-red'}`}>
                           {val || (isWin ? 'WIN' : 'LOSS')}
                         </span>
                       );
@@ -449,7 +452,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                     if (col.key === 'pl') {
                       const numVal = parseFloat(val?.toString().replace(/[₹,]/g, '')) || 0;
                       return (
-                        <span className={`text-[11px] font-black tabular-nums ${numVal >= 0 ? 'text-emerald-400' : 'text-journal-red'}`}>
+                        <span className={`text-[11px] font-black tabular-nums ${numVal >= 0 ? 'text-journal-green' : 'text-journal-red'}`}>
                           {formatCurrency(numVal)}
                         </span>
                       );

@@ -17,14 +17,14 @@ export const EMOTION_OPTIONS = [
 export const SETUP_OPTIONS = [
   'Retest', 'B.O.S', 'Price Action', 'Consolidation breakout',
   'Trend Line', 'Random', 'Imp level S/R',
-  'Strong trend trading', 'other', 'Previous Day closing setup', 'Sideways',
+  'Strong trend trading', 'other', 'Previous Day closing setup', 'Sideways', 'Trap Trading'
 ];
 
 export const LOSS_REASON_OPTIONS = [
   'All Rules Followed', 'OVER TRADING', 'Against the Trend',
   'Early entry without confirmations', 'Rules Not Followed',
   'WRONG ANALYSIS', 'Early Exit', 'Not A+ Setup', 'Learning',
-  'Against the trend', 'NO SETUP', 'GREED'
+  'NO SETUP', 'GREED'
 ];
 
 export const OUTCOME_OPTIONS = [

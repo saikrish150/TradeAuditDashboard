@@ -9,79 +9,79 @@ export const AlertsPanel = React.memo(({ alerts, onDelete }) => {
 
   return (
     <div className="flex flex-col h-full font-inter">
-      <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3 mt-4">
-        <h2 className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest text-slate-400">
-          <Bell className="w-4 h-4 text-indigo-500" />
+      <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3 mt-4">
+        <h2 className="text-[10px] font-black flex items-center gap-2 uppercase tracking-[0.2em] text-journal-text-muted">
+          <Bell className="w-4 h-4 text-journal-gold" />
           Active Alerts
         </h2>
-        <span className="bg-indigo-600/10 text-indigo-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-500/20">
+        <span className="bg-journal-gold text-journal-bg text-[9px] font-black px-3 py-0.5 rounded-full shadow-lg shadow-journal-gold/20">
           {alerts.filter(a => a.status === 'active').length}
         </span>
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
         {alerts.filter(a => a.status === 'active').length === 0 ? (
-          <div className="text-center py-12 bg-slate-900/30 rounded-xl border border-dashed border-slate-800">
-            <BellOff className="w-8 h-8 text-slate-800 mx-auto mb-3" />
-            <p className="text-slate-600 text-xs font-bold uppercase tracking-tighter">No Active Alerts</p>
-            <p className="text-slate-700 text-[10px] mt-1">Click the + icon on the chart</p>
+          <div className="text-center py-16 bg-black/20 rounded-2xl border border-dashed border-white/5">
+            <BellOff className="w-8 h-8 text-white/5 mx-auto mb-3" />
+            <p className="text-journal-text-muted text-[10px] font-black uppercase tracking-widest">No Active Alerts</p>
+            <p className="text-journal-text-muted/40 text-[9px] mt-2 uppercase tracking-widest">Place markers on chart</p>
           </div>
         ) : (
           alerts.filter(a => a.status === 'active').map((alert) => (
             <div 
               key={alert.id}
-              className={`p-3 rounded-xl border bg-slate-900/40 backdrop-blur-sm border-slate-800/50 transition-all hover:bg-slate-900/60 hover:border-slate-700 group relative overflow-hidden ${
+              className={`p-4 rounded-2xl border bg-black/40 backdrop-blur-sm border-white/5 transition-all hover:bg-black/60 hover:border-journal-gold/30 group relative overflow-hidden ${
                 alert.status === 'triggered' ? 'opacity-60 grayscale-[0.5]' : ''
               }`}
             >
               {/* Highlight bar for active alerts */}
               {alert.status === 'active' && (
                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                  alert.condition === 'gt' ? 'bg-emerald-500' : 'bg-rose-500'
+                  alert.condition === 'gt' ? 'bg-journal-green shadow-[0_0_10px_rgba(46,204,113,0.5)]' : 'bg-journal-red shadow-[0_0_10px_rgba(230,57,70,0.5)]'
                 }`} />
               )}
 
               <div className="flex justify-between items-start pl-2">
                 <div className="flex-1">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Coins className="w-3 h-3 text-indigo-500" />
-                    <h3 className="font-bold text-xs text-slate-200 tracking-tight">{alert.symbol}</h3>
-                    <span className="text-[9px] text-slate-600 hidden group-hover:inline-block transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Coins className="w-3.5 h-3.5 text-journal-gold" />
+                    <h3 className="font-black text-[11px] text-white tracking-widest uppercase">{alert.symbol}</h3>
+                    <span className="text-[9px] text-journal-text-muted hidden group-hover:inline-block transition-all font-black uppercase tracking-tighter">
                       • {getSymbolName(alert.symbol)}
                     </span>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-tighter ${
-                      alert.condition === 'gt' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
+                    <span className={`text-[8px] px-2 py-0.5 rounded-lg font-black uppercase tracking-widest ${
+                      alert.condition === 'gt' ? 'bg-journal-green/10 text-journal-green border border-journal-green/20' : 'bg-journal-red/10 text-journal-red border border-journal-red/20'
                     }`}>
                       {alert.condition === 'gt' ? 'Greater Than' : 'Less Than'}
                     </span>
-                    <span className="text-sm font-mono font-black text-slate-100">${alert.target_price.toLocaleString()}</span>
+                    <span className="text-sm font-black text-white italic tracking-tighter">${alert.target_price.toLocaleString()}</span>
                   </div>
                 </div>
                 
                   <div className="flex flex-col gap-2">
                     <button 
                       onClick={() => onDelete(alert.id)}
-                      className="p-3 -m-1.5 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all active:scale-90"
+                      className="p-3 -m-1.5 text-journal-text-muted hover:text-journal-red hover:bg-journal-red/5 rounded-2xl transition-all active:scale-95"
                       title="Delete Alert"
                     >
-                      <Trash2 className="w-4 h-4 lg:w-3.5 lg:h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
               </div>
 
-              <div className="flex items-center justify-between mt-3 pl-2 text-[9px] font-bold uppercase tracking-widest text-slate-600">
-                <span className="flex items-center gap-1.5">
+              <div className="flex items-center justify-between mt-4 pl-2 text-[9px] font-black uppercase tracking-[0.2em] text-journal-text-muted/40 font-mono">
+                <span className="flex items-center gap-2">
                   {alert.status === 'active' ? (
-                    <Clock className="w-2.5 h-2.5 text-indigo-500" />
+                    <Clock className="w-3 h-3 text-journal-gold" />
                   ) : (
-                    <CheckCircle className="w-2.5 h-2.5 text-emerald-500" />
+                    <CheckCircle className="w-3 h-3 text-journal-green" />
                   )}
                   {alert.status}
                 </span>
-                <span className="opacity-40">{new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>{new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
             </div>
           ))

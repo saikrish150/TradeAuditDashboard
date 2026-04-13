@@ -3,13 +3,13 @@ import { motion as Motion } from 'framer-motion';
 
 const LightRaysAndParticles = () => {
   const [particles] = useState(() => 
-    Array.from({ length: 25 }).map(() => ({
+    Array.from({ length: 45 }).map(() => ({
       x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
       y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
-      opacity: Math.random() * 0.5 + 0.1,
-      scale: Math.random() * 1.5 + 0.5,
-      destY: Math.random() * -500,
-      duration: Math.random() * 15 + 10,
+      opacity: Math.random() * 0.7 + 0.2,
+      scale: Math.random() * 2 + 0.5,
+      destY: Math.random() * -600,
+      duration: Math.random() * 20 + 10,
     }))
   );
 
@@ -17,19 +17,19 @@ const LightRaysAndParticles = () => {
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
       {/* Light Rays / Glowing Orbs */}
       <Motion.div
-        className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#00f2fe]/10 rounded-full blur-[120px]"
-        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-[-15%] left-[-10%] w-[60%] h-[60%] bg-[#D4AF37]/20 rounded-full blur-[160px]"
+        animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.6, 0.4] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
       />
       <Motion.div
-        className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#4facfe]/10 rounded-full blur-[150px]"
-        animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
-        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        className="absolute bottom-[-15%] right-[-10%] w-[70%] h-[70%] bg-[#E63946]/15 rounded-full blur-[180px]"
+        animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0.5, 0.3] }}
+        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
       <Motion.div
-        className="absolute top-[40%] left-[20%] w-[30%] h-[30%] bg-[#e100ff]/5 rounded-full blur-[100px]"
-        animate={{ x: [0, 100, 0], y: [0, -50, 0] }}
-        transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-[30%] right-[10%] w-[40%] h-[40%] bg-[#2ECC71]/10 rounded-full blur-[140px]"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+        transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 1 }}
       />
 
       {/* Floating Particles */}

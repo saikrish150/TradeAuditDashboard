@@ -19,13 +19,17 @@ const Card = ({ children, className = "" }) => (
   </div>
 );
 
-const Badge = ({ children, color = "indigo" }) => {
+const Badge = ({ children, color = "journal-gold" }) => {
   const colors = {
-    indigo: "bg-indigo-500/10 border-indigo-500/30 text-indigo-400",
-    emerald: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
-    rose: "bg-rose-500/10 border-rose-500/30 text-rose-400",
-    amber: "bg-amber-500/10 border-amber-500/30 text-amber-400",
-    slate: "bg-white/5 border-white/10 text-slate-400"
+    "journal-gold": "bg-journal-gold/10 border-journal-gold/30 text-journal-gold",
+    "journal-green": "bg-journal-green/10 border-journal-green/30 text-journal-green",
+    "journal-red": "bg-journal-red/10 border-journal-red/30 text-journal-red",
+    "journal-text-secondary": "bg-white/5 border-white/10 text-journal-text-secondary",
+    indigo: "bg-journal-gold/10 border-journal-gold/30 text-journal-gold",
+    emerald: "bg-journal-green/10 border-journal-green/30 text-journal-green",
+    rose: "bg-journal-red/10 border-journal-red/30 text-journal-red",
+    amber: "bg-journal-gold/10 border-journal-gold/30 text-journal-gold",
+    slate: "bg-white/5 border-white/10 text-journal-text-muted"
   };
   return (
     <span className={`px-2 py-1 rounded-md text-[8px] font-black uppercase border transition-all ${colors[color] || colors.indigo}`}>
@@ -384,7 +388,7 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
         <div>
           <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase leading-none">Review Terminal</h2>
           <div className="flex items-center gap-4 mt-2">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Visual Performance Audit & Psychological Insights</p>
+            <p className="text-[10px] font-black text-journal-text-muted uppercase tracking-[0.3em]">Visual Performance Audit & Psychological Insights</p>
           </div>
         </div>
       </div>
@@ -392,28 +396,28 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
       <div className="space-y-12">
         {/* Insights Section - The Bento Wall */}
         <section className="space-y-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-l-4 border-indigo-500 pl-4 py-1">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-l-4 border-journal-gold pl-4 py-1">
             <div>
               <h3 className="text-xl font-black uppercase tracking-widest text-white italic">Psychology Insights</h3>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Behavioral Audit Wall</p>
+              <p className="text-[10px] font-black text-journal-text-muted uppercase tracking-widest mt-1">Behavioral Audit Wall</p>
             </div>
             
             {/* Note Filter Bar */}
             <div className="flex flex-wrap gap-2 items-center w-full md:w-auto">
               <div className="relative group flex-1 md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" size={14} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-journal-text-muted group-focus-within:text-journal-gold transition-colors" size={14} />
                 <input 
                   type="text" 
                   placeholder="Search notes..." 
                   value={noteFilters.search}
                   onChange={e => setNoteFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-[10px] font-bold text-white outline-none focus:border-indigo-500/50 transition-all"
+                  className="w-full bg-journal-secondary/50 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-[10px] font-bold text-white outline-none focus:border-journal-gold/50 transition-all"
                 />
               </div>
               <select 
                 value={noteFilters.category}
                 onChange={e => setNoteFilters(prev => ({ ...prev, category: e.target.value }))}
-                className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-300 outline-none focus:border-indigo-500/50 cursor-pointer"
+                className="bg-journal-secondary/50 border border-white/10 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest text-journal-text-secondary outline-none focus:border-journal-gold/50 cursor-pointer"
               >
                 <option value="All">All Categories</option>
                 {NOTE_CATEGORY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -431,25 +435,25 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
           
           <div className="flex flex-col gap-4">
             {[
-              { id: 'mistakes', label: 'Repeated Mistakes', icon: AlertTriangle, color: 'rose', data: insightColumns.mistakes, accent: 'Urgent Fix Required' },
-              { id: 'learnings', label: 'Trade Wisdom (Learnings)', icon: Lightbulb, color: 'emerald', data: insightColumns.learnings, accent: 'Edge Documentation' },
-              { id: 'observations', label: 'Market Pulse (Observations)', icon: LayoutDashboard, color: 'indigo', data: insightColumns.observations, accent: 'Execution Context' }
+              { id: 'mistakes', label: 'Repeated Mistakes', icon: AlertTriangle, color: 'journal-red', data: insightColumns.mistakes, accent: 'Urgent Fix Required' },
+              { id: 'learnings', label: 'Trade Wisdom (Learnings)', icon: Lightbulb, color: 'journal-green', data: insightColumns.learnings, accent: 'Edge Documentation' },
+              { id: 'observations', label: 'Market Pulse (Observations)', icon: LayoutDashboard, color: 'journal-gold', data: insightColumns.observations, accent: 'Execution Context' }
             ].map((section) => (
               <div key={section.id} className="space-y-4">
                 <button 
                   onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
                   className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all ${
                     expandedSection === section.id 
-                    ? `bg-${section.color}-500/10 border-${section.color}-500/40 shadow-[0_0_20px_rgba(0,0,0,0.2)]` 
+                    ? `bg-${section.color}/10 border-${section.color}/40 shadow-xl` 
                     : 'bg-white/5 border-white/10 hover:bg-white/10'
                   }`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-${section.color}-500/20 text-${section.color}-400`}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-${section.color}/20 text-${section.color}`}>
                       <section.icon size={24} />
                     </div>
                     <div className="text-left">
-                      <h4 className={`text-[11px] font-black uppercase tracking-[0.2em] ${expandedSection === section.id ? `text-${section.color}-400` : 'text-slate-400'}`}>
+                      <h4 className={`text-[11px] font-black uppercase tracking-[0.2em] ${expandedSection === section.id ? `text-${section.color}` : 'text-journal-text-muted'}`}>
                         {section.label}
                       </h4>
                       <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">
@@ -483,8 +487,8 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.05 }}
                           >
-                            <Card className={`p-5 relative group hover:shadow-[0_0_20px_rgba(0,0,0,0.2)] transition-all border-${section.color}-500/10 hover:border-${section.color}-500/30`}>
-                              <div className={`absolute left-0 top-0 bottom-0 w-1 bg-${section.color}-500/30 group-hover:bg-${section.color}-500 transition-all`} />
+                            <Card className={`p-5 relative group hover:shadow-2xl transition-all border-${section.color}/10 hover:border-${section.color}/30`}>
+                              <div className={`absolute left-0 top-0 bottom-0 w-1 bg-${section.color}/30 group-hover:bg-${section.color} transition-all`} />
                               
                               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10 w-full">
                                 <div className="flex-1 space-y-2">
@@ -507,8 +511,8 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
                                       disabled={isVoting && voteFeedback !== note.id}
                                       className={`w-10 h-10 rounded-xl transition-all group/vbtn active:scale-90 flex items-center justify-center border ${
                                         voteFeedback === note.id 
-                                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' 
-                                        : 'bg-white/5 hover:bg-journal-gold/20 border-white/10 hover:border-journal-gold/30 text-slate-500 hover:text-journal-gold'
+                                        ? 'bg-journal-green/20 border-journal-green/40 text-journal-green' 
+                                        : 'bg-white/5 hover:bg-journal-gold/20 border-white/10 hover:border-journal-gold/30 text-journal-text-muted hover:text-journal-gold'
                                       }`}
                                       title="Upvote Insight"
                                     >
@@ -602,18 +606,18 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [] }) => {
                 <Badge color="amber">{galleryType === 'trades' ? 'Execution Log' : 'EOD Snapshots'}</Badge>
               </div>
 
-              <div className="flex p-1.5 modern-glass rounded-2xl border border-white/10">
+              <div className="flex bg-journal-secondary/50 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md">
                 <button 
                   onClick={() => setGalleryType('trades')}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${galleryType === 'trades' ? 'bg-journal-gold text-journal-bg shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                  className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${galleryType === 'trades' ? 'bg-journal-gold text-journal-bg shadow-lg shadow-journal-gold/20' : 'text-journal-text-muted hover:text-white'}`}
                 >
-                  <Camera size={14} /> Trade Snapshots ({tradesWithVisuals.length})
+                  <Camera size={14} className={galleryType === 'trades' ? 'text-journal-bg' : ''} /> Trade Snapshots ({tradesWithVisuals.length})
                 </button>
                 <button 
                   onClick={() => setGalleryType('daily')}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${galleryType === 'daily' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                  className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${galleryType === 'daily' ? 'bg-journal-gold text-journal-bg shadow-lg shadow-journal-gold/20' : 'text-journal-text-muted hover:text-white'}`}
                 >
-                  <ImageIcon size={14} /> Daily Snapshots ({snapshotsWithVisuals.length})
+                  <ImageIcon size={14} className={galleryType === 'daily' ? 'text-journal-bg' : ''} /> Daily Snapshots ({snapshotsWithVisuals.length})
                 </button>
               </div>
             </div>

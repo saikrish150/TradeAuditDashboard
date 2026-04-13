@@ -5,16 +5,15 @@ export const MONTH_MAP = {
 };
 
 export const COLORS = {
-  emerald: '#00e676', // Neon Green
-  rose: '#ff0844',    // Neon Red
-  indigo: '#7f00ff',  // Deep Purple
-  amber: '#f5d020',   // Luminous Gold
-  slate: '#64748b',   // Steel
-  purple: '#e100ff',  // Deep Magenta
-  blue: '#00c6ff',    // Cyan Glow
+  emerald: '#2ECC71', // Premium Green
+  rose: '#E63946',    // Deep Red
+  gold: '#D4AF37',    // Official Gold
+  bg: '#0A0A0A',      // Pure Dark
+  secondary: '#141414',
+  card: '#1C1C1C',
   white: '#ffffff',
-  psychPalette: ['#7f00ff', '#e100ff', '#ff0844', '#f5d020', '#00c6ff', '#00f2fe', '#8b5cf6'],
-  qualityPalette: ['#00e676', '#a855f7', '#7f00ff', '#f5d020', '#e100ff', '#ff0844']
+  psychPalette: ['#D4AF37', '#E63946', '#2ECC71', '#1C1C1C', '#B8B8B8', '#6B6B6B'],
+  qualityPalette: ['#2ECC71', '#E63946', '#D4AF37', '#B8B8B8', '#6B6B6B']
 };
 
 export const cleanCurrency = (val) => {

@@ -331,7 +331,7 @@ const TradingJournal = ({
   if (loading) return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6">
       <div className="w-16 h-16 border-t-2 border-journal-gold rounded-full animate-spin shadow-[0_0_20px_rgba(212,175,55,0.3)]" />
-      <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Syncing Terminal...</p>
+      <p className="text-journal-text-secondary text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Syncing Cloud Terminal...</p>
     </div>
   );
 
@@ -341,8 +341,8 @@ const TradingJournal = ({
       {toast && (
         <div className={`fixed bottom-10 right-10 z-[300] px-6 py-4 rounded-2xl border backdrop-blur-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-right-10 fade-in duration-300 ${
           toast.type === 'success' 
-            ? 'bg-slate-900/90 border-journal-gold/50 text-journal-gold shadow-[0_0_30px_rgba(212,175,55,0.15)]' 
-            : 'bg-rose-950/90 border-rose-500/50 text-rose-400 shadow-[0_0_30px_rgba(244,63,94,0.15)]'
+            ? 'bg-journal-secondary/90 border-journal-gold/50 text-journal-gold shadow-[0_0_30px_rgba(212,175,55,0.15)]' 
+            : 'bg-journal-red/10 border-journal-red/50 text-journal-red shadow-[0_0_30px_rgba(230,57,70,0.15)]'
         }`}>
           {toast.type === 'success' ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
           <span className="text-xs font-black uppercase tracking-widest">{toast.message}</span>
@@ -366,16 +366,19 @@ const TradingJournal = ({
         />
         <HabitTracker snapshots={snapshots} />
 
-        <div className="flex justify-start md:justify-center gap-2 mb-8 overflow-x-auto scrollbar-hide px-4 w-full no-scrollbar">
+        <div className="flex bg-journal-secondary/10 p-1 rounded-xl border border-white/5 backdrop-blur-md overflow-x-auto no-scrollbar w-full md:w-max md:mx-auto mb-8 justify-start md:justify-center px-4 md:px-1">
            {[
-             { id: 'trades', label: 'Trade Journal' },
-             { id: 'snapshots', label: 'EOD Snapshots' },
-             { id: 'notes', label: 'Psychology Notes' }
+             { id: 'trades', label: 'Trades' },
+             { id: 'snapshots', label: 'Snapshots' },
+             { id: 'notes', label: 'Notes' }
            ].map(tab => (
              <button
                key={tab.id}
                onClick={() => setActiveTab(tab.id)}
-               className={`px-6 py-3 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] transition-all border whitespace-nowrap flex-shrink-0 ${activeTab === tab.id ? 'bg-journal-gold/10 border-journal-gold text-journal-gold' : 'border-slate-800 text-slate-500 hover:text-white'}`}
+               className={`
+                 px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap flex-shrink-0
+                 ${activeTab === tab.id ? 'bg-journal-gold text-journal-bg shadow-lg shadow-journal-gold/20' : 'text-journal-text-muted hover:text-white'}
+               `}
              >
                 {tab.label}
              </button>
@@ -423,7 +426,7 @@ const TradingJournal = ({
 
         <div className="mt-12">
             <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500 mb-6 flex items-center gap-2">
-                Monthly Activity Heatmap
+                Heatmap
             </h3>
             <CalendarSection trades={trades} />
         </div>

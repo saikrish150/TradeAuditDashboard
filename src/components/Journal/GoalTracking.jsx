@@ -52,7 +52,7 @@ const GoalTracking = ({ trades, goals = [], onSaveGoal, onDeleteGoal }) => {
     <div className="mb-12 space-y-6">
       <div className="flex items-center justify-between px-2 gap-4">
         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-          Milestones
+          Goals
         </h3>
         <button 
           onClick={() => setShowAddModal(true)}
@@ -74,7 +74,7 @@ const GoalTracking = ({ trades, goals = [], onSaveGoal, onDeleteGoal }) => {
           <div className="relative z-10 space-y-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
               <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase text-journal-gold tracking-[0.4em]">Current Objective</p>
+                <p className="text-[10px] font-black uppercase text-journal-gold tracking-[0.4em]">Goal</p>
                 <div className="flex items-baseline gap-3">
                   <h2 className="text-3xl font-black text-white tracking-tighter">
                     {formatCurrency(progressData.pl)}
@@ -121,8 +121,8 @@ const GoalTracking = ({ trades, goals = [], onSaveGoal, onDeleteGoal }) => {
                 className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-journal-gold transition-all group/h"
               >
                 <History size={12} className={showHistory ? 'text-journal-gold' : ''} />
-                {showHistory ? 'Hide Global Archive' : 'View Past Achievements'}
-                <ChevronDown size={14} className={`transition-transform duration-300 ${showHistory ? 'rotate-180 text-journal-gold' : ''}`} />
+                {showHistory ? 'Hide Archive' : 'View Archive'}
+                <ChevronDown size={14} className={`transition-transform duration-300 ${showHistory ? 'rotate-180 text-journal-gold' : 'text-slate-500'}`} />
               </button>
             </div>
           </div>
@@ -160,7 +160,7 @@ const GoalTracking = ({ trades, goals = [], onSaveGoal, onDeleteGoal }) => {
                       <div key={g.id} className="p-5 rounded-2xl bg-slate-950/60 border border-white/5 flex flex-col gap-4 group/item hover:border-white/10 transition-all">
                          <div className="flex items-center justify-between">
                             <div className="flex flex-col gap-0.5">
-                               <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">History Log</span>
+                               <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Archive</span>
                                <span className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">{g.startDate} — {g.endDate}</span>
                             </div>
                             <button onClick={() => handleDeleteGoal(g.id)} className="text-slate-800 hover:text-rose-500 opacity-0 group-hover/item:opacity-100 transition-all p-1">
@@ -214,18 +214,6 @@ const GoalTracking = ({ trades, goals = [], onSaveGoal, onDeleteGoal }) => {
         onSave={handleSaveGoal}
       />
 
-      {/* Persistent Add Button at Bottom */}
-      {currentGoal && (
-        <div className="flex justify-center pt-2">
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-journal-gold/10 border border-slate-800 hover:border-journal-gold/30 rounded-xl transition-all"
-          >
-            <Plus size={12} className="text-slate-500 group-hover:text-journal-gold" />
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 group-hover:text-journal-gold">Quick Milestone Entry</span>
-          </button>
-        </div>
-      )}
     </div>
   );
 };

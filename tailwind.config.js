@@ -10,10 +10,15 @@ export default {
     extend: {
       colors: {
         'journal': {
-          'red': '#FF3B3B',
+          'bg': '#0A0A0A',
+          'secondary': '#141414',
+          'card': '#1C1C1C',
+          'red': '#E63946',
+          'green': '#2ECC71',
           'gold': '#D4AF37',
-          'bg': '#0B0B0B',
-          'card': '#121212',
+          'text-primary': '#FFFFFF',
+          'text-secondary': '#B8B8B8',
+          'text-muted': '#6B6B6B',
         }
       }
     },

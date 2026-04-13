@@ -11,7 +11,7 @@ import { COMPLIANCE_OPTIONS } from '../../constants/journalOptions';
 const SnapshotSection = ({ snapshots = [], onEditSnapshot, onDeleteSnapshot, onViewImage }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
+  const itemsPerPage = 10;
   const [filters, setFilters] = useState([]);
   const [activeFilterPopup, setActiveFilterPopup] = useState(null);
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });

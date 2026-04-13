@@ -37,7 +37,6 @@ import { MONTH_MAP, COLORS, cleanCurrency, formatCurrency, parseCSV, getMarketCa
 import BackgroundQuotes from './components/BackgroundQuotes';
 
 // Extracted Components
-import LightRaysAndParticles from './components/Common/LightRaysAndParticles';
 import MobileNav from './components/Common/MobileNav';
 import TradeArchiveCarousel from './components/Common/TradeArchiveCarousel';
 
@@ -291,31 +290,41 @@ const App = () => {
 
   return (
     <AuthShield>
-    <div className={`min-h-screen overflow-x-hidden ${activeSection === 'journal' ? 'bg-[#0B0B0B]' : 'bg-[#020617]'} text-slate-100 font-sans p-4 md:p-8 pb-24 md:pb-8 relative transition-colors duration-1000`}>
+    <div className={`min-h-screen overflow-x-hidden ${activeSection === 'journal' ? 'bg-journal-bg' : 'bg-journal-bg'} text-journal-text-primary font-sans p-4 md:p-8 pb-24 md:pb-8 relative transition-colors duration-1000`}>
+      {/* Dynamic Background Polish */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-journal-red/5 via-transparent to-journal-gold/5 pointer-events-none" />
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuOCIgbnVtT2N0YXZlcz0iMSIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNub2lzZSkiIG9wYWNpdHk9IjAuMSIvPjwvc3ZnPg==')]"></div>
-      <LightRaysAndParticles />
-      {activeSection === 'journal' && <BackgroundQuotes />}
+      <BackgroundQuotes />
       <div className="max-w-7xl mx-auto relative">
         <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 relative">
-          <div className="flex items-center gap-4 z-20 w-full md:w-auto justify-between md:justify-start">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-600/30 shrink-0">
-                <CandlestickChart className="text-white" size={20} />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic leading-none">Trader<span className="text-indigo-500"> Terminal</span></h1>
-                <div className="flex items-center gap-3 mt-1">
-                  <p className="text-slate-500 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em]">Terminal v5.1.0</p>
-                  <div className="w-1 h-1 bg-slate-800 rounded-full" />
-                  <button 
-                    onClick={() => authService.signOut()}
-                    className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-slate-600 hover:text-rose-500 transition-all flex items-center gap-1.5 group/logout"
-                  >
-                    <LogOut size={10} className="group-hover/logout:-translate-x-0.5 transition-transform" />
-                    Disconnect Terminal
-                  </button>
+          <div className="flex items-center gap-6 z-20 w-full md:w-auto justify-between md:justify-start">
+            <div className="flex items-center gap-5">
+              <div className="relative group p-0.5 rounded-2xl overflow-hidden active-glow">
+                <div className="absolute inset-0 bg-gradient-to-br from-journal-gold via-transparent to-journal-red opacity-30 group-hover:opacity-50 transition-opacity" />
+                <div className="w-14 h-14 md:w-16 md:h-16 bg-journal-bg rounded-[1.2rem] flex items-center justify-center relative z-10 overflow-hidden border border-white/10">
+                  <img src="/logo.png" alt="TD Logo" className="w-10 h-10 md:w-12 md:h-12 object-contain filter drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]" />
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-journal-red/10 to-transparent" />
                 </div>
               </div>
+
+              <div className="flex flex-col">
+                <div className="flex items-baseline gap-2">
+                  <h1 className="text-xl md:text-2xl font-black tracking-[0.4em] uppercase text-white italic drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">Trader</h1>
+                </div>
+                <div className="flex items-center gap-3">
+                   <h2 className="text-2xl md:text-4xl font-black italic tracking-tighter uppercase leading-none glow-text text-transparent bg-clip-text bg-gradient-to-r from-journal-gold via-white to-journal-gold">Dashboard</h2>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => authService.signOut()}
+                className="modern-glass p-2.5 text-journal-text-secondary hover:text-journal-red transition-all flex items-center justify-center border border-white/5 active:scale-95 group/logout"
+                title="Disconnect Dashboard"
+              >
+                <LogOut size={16} className="group-hover/logout:-translate-x-0.5 transition-transform" />
+              </button>
             </div>
 
             {/* Mobile Filter Trigger */}
@@ -328,31 +337,37 @@ const App = () => {
           </div>
 
           {rawTrades.length > 0 && (
-            <nav className="hidden md:flex modern-glass p-1.5 rounded-2xl md:absolute md:left-1/2 md:-translate-x-1/2 z-10 w-auto overflow-x-auto scrollbar-hide">
+            <div className="flex bg-journal-secondary/50 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md overflow-x-auto scrollbar-hide no-scrollbar w-full md:w-auto relative z-20">
               {[
-                { id: 'alerts', label: 'Alerts', icon: Signal },
-                { id: 'journal', label: 'Trading Journal', icon: History },
-                { id: 'audit', label: 'Dashboard', icon: ShieldCheck }
+                { id: 'alerts', label: 'Trade Alerts', icon: Signal },
+                { id: 'journal', label: 'Trade Journal', icon: History },
+                { id: 'audit', label: 'Trade Audit', icon: ShieldCheck }
               ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveSection(tab.id)}
-                  className={`relative px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 z-10 flex-1 md:flex-none whitespace-nowrap ${activeSection === tab.id ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-slate-500 hover:text-white'}`}
-                >
-                  {activeSection === tab.id && (
-                    <Motion.div
-                      layoutId="active-pill"
-                      className="absolute inset-0 bg-gradient-to-r from-[#00f2fe]/20 to-[#4facfe]/20 rounded-xl border border-[#00f2fe]/30 shadow-[0_0_15px_rgba(0,242,254,0.4)]"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                  <span className="relative z-20 flex items-center gap-2">
-                    <tab.icon size={14} />
+                <div key={tab.id} className="relative">
+                  <button
+                    onClick={() => setActiveSection(tab.id)}
+                    className={`
+                      relative px-6 py-2.5 rounded-xl flex items-center gap-2.5 
+                      text-[10px] font-black uppercase tracking-[0.2em] transition-all 
+                      whitespace-nowrap flex-shrink-0 z-10
+                      ${activeSection === tab.id ? 'text-journal-bg' : 'text-journal-text-muted hover:text-white'}
+                    `}
+                  >
+                    <tab.icon size={14} className={activeSection === tab.id ? 'text-journal-bg' : 'text-journal-text-muted transition-colors'} />
                     {tab.label}
-                  </span>
-                </button>
+
+                    {activeSection === tab.id && (
+                      <Motion.div
+                        layoutId="active-pill"
+                        className="absolute inset-0 bg-journal-gold rounded-xl shadow-lg shadow-journal-gold/30"
+                        transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                        style={{ zIndex: -1 }}
+                      />
+                    )}
+                  </button>
+                </div>
               ))}
-            </nav>
+            </div>
           )}
 
         </header>
@@ -369,14 +384,14 @@ const App = () => {
               <Motion.div 
                 initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="fixed bottom-0 left-0 right-0 z-[170] modern-glass rounded-t-[32px] border-t border-white/20 p-6 md:hidden max-h-[80vh] overflow-y-auto"
+                className="fixed bottom-0 left-0 right-0 z-[170] bg-journal-bg/95 backdrop-blur-2xl rounded-t-[32px] border-t border-white/10 p-6 md:hidden max-h-[80vh] overflow-y-auto"
               >
                 <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6" />
                 <h3 className="text-xl font-black uppercase tracking-widest mb-6 flex items-center gap-3">
                    <Filter className="text-indigo-400" /> Filters
                 </h3>
                 <div className="flex flex-col gap-4">
-                  <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
                     <span className="text-xs font-black uppercase text-slate-500 tracking-widest">Timeframe</span>
                     <select value={datePreset} onChange={(e) => setDatePreset(e.target.value)} className="bg-transparent text-slate-100 text-xs font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none text-right">
                       <option className="bg-slate-950" value="All">All Time</option>
@@ -388,7 +403,7 @@ const App = () => {
                     </select>
                   </div>
                   
-                  <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
                     <span className="text-xs font-black uppercase text-slate-500 tracking-widest">Market</span>
                     <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="bg-transparent text-slate-100 text-xs font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none text-right">
                       <option className="bg-slate-950" value="All">All Types</option>
@@ -396,8 +411,8 @@ const App = () => {
                       <option className="bg-slate-950" value="Other">Other</option>
                     </select>
                   </div>
-
-                  <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
+ 
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
                     <span className="text-xs font-black uppercase text-slate-500 tracking-widest">Asset</span>
                     <select value={selectedAsset} onChange={(e) => setSelectedAsset(e.target.value)} className="bg-transparent text-slate-100 text-xs font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none text-right">
                       {(availableAssets || []).map(a => <option className="bg-slate-950" key={a} value={a}>{a === 'All' ? 'All Assets' : a}</option>)}
@@ -406,7 +421,7 @@ const App = () => {
                 </div>
                 <button 
                   onClick={() => setShowMobileFilters(false)}
-                  className="w-full mt-8 py-4 bg-indigo-600 rounded-2xl text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
+                  className="w-full mt-8 py-4 bg-journal-red rounded-2xl text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-journal-red/20 active:scale-95 transition-all"
                 >
                   Apply Filters
                 </button>
@@ -419,10 +434,10 @@ const App = () => {
 
         
         {rawTrades.length > 0 && activeSection === 'audit' && (
-          <div className="hidden md:flex flex-wrap items-center justify-center md:justify-end gap-2 mb-8 mt-2 relative z-10 w-full bg-slate-950/20 p-2 rounded-2xl border border-slate-800/50 backdrop-blur-sm">
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+          <div className="hidden md:flex flex-wrap items-center justify-center md:justify-end gap-2 mb-8 mt-2 relative z-10 w-full bg-transparent p-1 rounded-2xl border border-white/5">
+            <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
               <Clock size={12} className="text-slate-500 ml-2" />
-              <select value={datePreset} onChange={(e) => setDatePreset(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
+              <select value={datePreset} onChange={(e) => setDatePreset(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
                 <option className="bg-slate-900" value="All">All Time</option>
                 <option className="bg-slate-900" value="CurrentMonth">Current Month</option>
                 <option className="bg-slate-900" value="30">Past 30 Days</option>
@@ -432,37 +447,37 @@ const App = () => {
               </select>
             </div>
             {datePreset === 'Custom' && (
-              <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+              <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
                 <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} onClick={(e) => e.target.showPicker?.()} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
                 <span className="text-slate-500 text-[10px]">-</span>
                 <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={(e) => e.target.showPicker?.()} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
               </div>
             )}
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
               <Globe size={12} className="text-slate-500 ml-2" />
-              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
                 <option className="bg-slate-900" value="All">Type: All</option>
                 <option className="bg-slate-900" value="Indian">Indian Markets</option>
                 <option className="bg-slate-900" value="Other">Other Markets</option>
               </select>
             </div>
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
               <Hash size={12} className="text-slate-500 ml-2" />
-              <select value={selectedAsset} onChange={(e) => setSelectedAsset(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
+              <select value={selectedAsset} onChange={(e) => setSelectedAsset(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
                 {(availableAssets || []).map((a, idx) => <option className="bg-slate-900" key={`${a}-${idx}`} value={a}>{a === 'All' ? 'Asset: All' : a}</option>)}
               </select>
             </div>
             {datePreset === 'All' && (
               <>
-                <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
                   <Filter size={12} className="text-slate-500 ml-2" />
-                  <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
+                  <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
                     {(availableYears || []).map((y, idx) => <option className="bg-slate-900" key={`${y}-${idx}`} value={y}>{y === 'All' ? 'Year: All' : y}</option>)}
                   </select>
                 </div>
-                <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
                   <CalendarDays size={12} className="text-slate-500 ml-2" />
-                  <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-slate-900 text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
+                  <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
                     {(availableMonths || []).map((m, idx) => <option className="bg-slate-900" key={`${m}-${idx}`} value={m}>{m === 'All' ? 'Month: All' : m}</option>)}
                   </select>
                 </div>
@@ -522,26 +537,28 @@ const App = () => {
  
              {activeSection === 'audit' && (
                <div className="space-y-6 md:space-y-12">
-                 <nav className="flex justify-center md:justify-start gap-4 mb-10 border-b border-slate-800 pb-4 overflow-x-auto scrollbar-hide">
+                 <div className="flex bg-transparent p-1 rounded-xl border border-white/5 overflow-x-auto scrollbar-hide no-scrollbar">
                    {[
                      { id: 'performance', label: 'Performance', icon: Activity },
                      { id: 'audit', label: 'Audit', icon: ShieldCheck },
-                      { id: 'review', label: 'Review', icon: LayoutDashboard },
+                     { id: 'review', label: 'Review', icon: LayoutDashboard },
                      { id: 'strategies', label: 'Strategies', icon: Target }
                    ].map((t) => (
                      <button
                        key={t.id}
                        onClick={() => setActiveTab(t.id)}
-                       className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 transition-all relative ${activeTab === t.id ? 'text-indigo-400' : 'text-slate-500 hover:text-white'}`}
+                       className={`
+                         flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] px-5 py-2.5 transition-all relative rounded-lg
+                         ${activeTab === t.id 
+                           ? 'bg-journal-gold text-journal-bg shadow-[0_0_20px_rgba(212,175,55,0.3)]' 
+                           : 'text-journal-text-muted hover:text-white hover:bg-white/5'}
+                       `}
                      >
-                       <t.icon size={12} />
+                       <t.icon size={12} className={activeTab === t.id ? 'text-journal-bg' : ''} />
                        {t.label}
-                       {activeTab === t.id && (
-                         <Motion.div layoutId="sub-pill" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-                       )}
                      </button>
                    ))}
-                 </nav>
+                 </div>
 
                   {activeTab === 'review' && (
                     <ReviewTab 
@@ -556,7 +573,7 @@ const App = () => {
                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                          <Card className="p-8 border-rose-500/30 bg-rose-500/5 col-span-2 relative text-white">
-                           <SectionHeader icon={Hammer} title="Behavioral Diagnosis" color="text-rose-400" />
+                           <SectionHeader icon={Hammer} title="Diagnosis" color="text-rose-400" />
                            <div className="p-6 bg-slate-950/40 rounded-3xl border border-rose-500/20 mb-6">
                              <div className="flex items-center gap-3 mb-2"><Terminal className="text-indigo-400" size= {16} /><h4 className="text-xs font-black uppercase text-indigo-400 tracking-widest">AI Institutional Brief</h4></div>
                              <p className="text-sm font-black text-white italic mb-2 uppercase tracking-tighter leading-none">Trader Profile: {String(aiBrief.profile)}</p>
@@ -572,7 +589,7 @@ const App = () => {
                          </Card>
 
                          <Card className="p-8">
-                           <SectionHeader icon={BrainCircuit} title="AI Strategic Roadmap" color="text-amber-400" />
+                           <SectionHeader icon={BrainCircuit} title="Insights" color="text-amber-400" />
                            <div className="space-y-4">
                              {aiSuggestions ? (
                                <div className="space-y-2">
@@ -595,7 +612,7 @@ const App = () => {
                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                          <Card className="p-8 bg-purple-500/5 relative text-white">
-                           <SectionHeader icon={Smile} title="Emotional Impact Distribution" color="text-purple-400" />
+                           <SectionHeader icon={Smile} title="Emotions" color="text-purple-400" />
                            <div className="relative w-full h-[300px]">
                              <DonutCenter value={emotionStats.reduce((acc, curr) => acc + curr.pl, 0)} />
                              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -610,7 +627,7 @@ const App = () => {
                          </Card>
 
                          <Card className="p-8">
-                           <SectionHeader icon={ZapOff} title="Top Error Impact Chart" color="text-rose-400" />
+                           <SectionHeader icon={ZapOff} title="Errors" color="text-rose-400" />
                            <div className="h-[300px]">
                              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                <BarChart data={errors} layout="vertical" margin={{ left: 40, right: 20 }}>
@@ -629,7 +646,7 @@ const App = () => {
                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                          <Card className="p-8 border-emerald-500/20 bg-emerald-500/5">
-                           <SectionHeader icon={Play} title="What to Continue Doing" color="text-emerald-400" />
+                           <SectionHeader icon={Play} title="Keep" color="text-emerald-400" />
                            <div className="space-y-4">
                              {dynamicAudit.continue.map((item, i) => (
                                <div key={i} className="flex gap-4 p-4 bg-slate-900/60 rounded-2xl border border-emerald-500/10 text-xs font-bold leading-relaxed text-emerald-100 shadow-md">
@@ -641,7 +658,7 @@ const App = () => {
                            </div>
                          </Card>
                          <Card className="p-8 border-rose-500/20 bg-rose-500/5">
-                           <SectionHeader icon={ShieldAlert} title="What to Start Stopping" color="text-rose-400" />
+                           <SectionHeader icon={ShieldAlert} title="Stop" color="text-rose-400" />
                            <div className="space-y-4">
                              {dynamicAudit.start.map((item, i) => (
                                <div key={i} className="flex gap-4 p-4 bg-slate-900/60 rounded-2xl border border-rose-500/10 text-xs font-bold leading-relaxed text-rose-100 shadow-md">
@@ -658,7 +675,7 @@ const App = () => {
 
                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                        <Card className="p-8 border-t border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
-                         <SectionHeader icon={Activity} title="Institutional Scorecard" sub="Behavioral Grade Summary" />
+                         <SectionHeader icon={Activity} title="Scorecard" sub="Behavioral Grade Summary" />
                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-2">
                            <ScoreBar label="Risk Management" score={scores.risk || 0} color="text-amber-400" />
                            <ScoreBar label="Execution Discipline" score={scores.discipline || 0} color="text-indigo-400" />
@@ -676,25 +693,25 @@ const App = () => {
 
                  {activeTab === 'performance' && (
                    <div className="space-y-6 md:space-y-12">
-                     <SectionHeader icon={Briefcase} title="1. Financial Summary" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <MetricCard title="Total Trades" value={String(metrics.total || 0)} icon={Hash} />
+                     <SectionHeader icon={Briefcase} title="Financials" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <MetricCard title="Trades" value={String(metrics.total || 0)} icon={Hash} />
                   <MetricCard title="Win Rate" value={`${String(metrics.winRate || 0)}%`} icon={TrendingUp} trend="up" />
-                  <MetricCard title="Net P&L" value={formatCurrency(metrics.net || 0)} icon={IndianRupee} trend={(metrics.net || 0) >= 0 ? "up" : "down"} size="large" />
-                  <MetricCard title="Profit Factor" value={String(metrics.pf || 0)} icon={BarChart2} />
+                  <MetricCard title="P&L" value={formatCurrency(metrics.net || 0)} icon={IndianRupee} trend={(metrics.net || 0) >= 0 ? "up" : "down"} size="large" />
+                  <MetricCard title="PF" value={String(metrics.pf || 0)} icon={BarChart2} />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <MetricCard title="Avg Win" value={formatCurrency(metrics.avgWin || 0)} icon={ArrowUpRight} trend="up" colorClass="text-emerald-400" />
                   <MetricCard title="Avg Loss" value={formatCurrency(metrics.avgLoss || 0)} icon={ArrowDownRight} trend="down" colorClass="text-rose-400" />
-                  <MetricCard title="Highest Win" value={formatCurrency(metrics.maxProfit || 0)} icon={Flame} colorClass="text-emerald-500" />
-                  <MetricCard title="Highest Loss" value={formatCurrency(metrics.maxLoss || 0)} icon={ZapOff} colorClass="text-rose-500" />
+                  <MetricCard title="Max Win" value={formatCurrency(metrics.maxProfit || 0)} icon={Flame} colorClass="text-emerald-500" />
+                  <MetricCard title="Max Loss" value={formatCurrency(metrics.maxLoss || 0)} icon={ZapOff} colorClass="text-rose-500" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                  <MetricCard title="Realized Risk/Reward" value={`1:${String(metrics.overallRR)}`} icon={Scale} colorClass="text-indigo-400" />
-                  <MetricCard title="Performance Expectancy" value={`₹${String(metrics.expectancy)}`} icon={Zap} colorClass={metrics.expectancy >= 0 ? "text-emerald-400" : "text-rose-400"} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <MetricCard title="R:R" value={`1:${String(metrics.overallRR)}`} icon={Scale} colorClass="text-indigo-400" />
+                  <MetricCard title="Expectancy" value={`₹${String(metrics.expectancy)}`} icon={Zap} colorClass={metrics.expectancy >= 0 ? "text-emerald-400" : "text-rose-400"} />
                 </div>
                 <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                  <SectionHeader icon={Calendar} title="2. Execution Timeline & Heatmap" sub="Hierarchical Performance Drilldown" color="text-amber-400" />
+                  <SectionHeader icon={Calendar} title="Activity" sub="Hierarchical Performance Drilldown" color="text-amber-400" />
                   <div className="mb-10">
                     {selectedYear === 'All' && datePreset === 'All' ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -780,7 +797,7 @@ const App = () => {
                 </Motion.div>
 
                 <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                  <SectionHeader icon={Layers} title="3. Periodic P&L Distribution" color="text-[#00c6ff]" />
+                  <SectionHeader icon={Layers} title="Distribution" color="text-[#00c6ff]" />
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2 p-4 md:p-6 h-[300px] md:h-[400px]">
                       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -824,7 +841,7 @@ const App = () => {
                 </Motion.div>
 
                 <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                  <SectionHeader icon={Diamond} title="4. Quality Grade & Sizing Matrix" color="text-[#f5d020]" />
+                  <SectionHeader icon={Diamond} title="Quality" color="text-[#f5d020]" />
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <Card className="p-4 md:p-6 h-[340px] md:h-[420px] relative text-white">
                       <SectionHeader icon={Layers} title="P&L Weight by Grade" />
@@ -849,13 +866,21 @@ const App = () => {
                       </div>
                     </Card>
                     <Card className="p-4 md:p-6 h-[340px] md:h-[420px]">
-                      <SectionHeader icon={BoxSelect} title="Average Lot Size by Symbol" />
+                      <SectionHeader icon={BoxSelect} title="Lot Sizes" />
                       <ResponsiveContainer width="100%" height="80%" minWidth={0}>
                         <BarChart data={sizingData} layout="vertical" margin={{ left: 40, right: 20 }}>
                           <XAxis type="number" hide />
                           <YAxis type="category" dataKey="name" stroke={COLORS.white} fontSize={9} width={80} axisLine={false} tickLine={false} />
-                          <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none' }} cursor={{ fill: 'transparent' }} formatter={(v) => [`${String(v)} Lots`, 'Average Size']} />
-                          <Bar dataKey="avgLots" fill={COLORS.indigo} radius={[0, 4, 4, 0]} activeBar={false}>{sizingData.map((e, i) => <Cell key={i} fillOpacity={1 - (i * 0.1)} />)}</Bar>
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }} 
+                            itemStyle={{ color: '#ffffff' }}
+                            labelStyle={{ color: '#94a3b8', fontWeight: 'bold' }}
+                            cursor={{ fill: 'transparent' }} 
+                            formatter={(v) => [`${String(v)} Lots`, 'Average Size']} 
+                          />
+                          <Bar dataKey="avgLots" fill={COLORS.gold} radius={[0, 4, 4, 0]} activeBar={false}>
+                            {sizingData.map((e, i) => <Cell key={i} fillOpacity={Math.max(0.3, 1 - (i * 0.15))} />)}
+                          </Bar>
                         </BarChart>
                       </ResponsiveContainer>
                     </Card>
@@ -863,13 +888,13 @@ const App = () => {
                 </Motion.div>
 
                 <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                  <SectionHeader icon={Shield} title="5. Risk & Trajectory Metrics" color="text-[#f5d020]" />
+                  <SectionHeader icon={Shield} title="Risk" color="text-[#f5d020]" />
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-4">
-                      <MetricCard title="Max Win Streak" value={String(metrics.maxWinningStreak || 0)} icon={Trophy} trend="up" />
-                      <MetricCard title="Max Loss Streak" value={String(metrics.maxLosingStreak || 0)} icon={XCircle} trend="down" />
-                      <MetricCard title="Peak Drawdown" value={formatCurrency(metrics.peakDD || 0)} icon={TrendingDown} colorClass="text-rose-400" />
-                      <MetricCard title="Profit/DD Ratio" value={String(metrics.profitDD || 0)} icon={Activity} colorClass="text-indigo-400" />
+                      <MetricCard title="Wins" value={String(metrics.maxWinningStreak || 0)} icon={Trophy} trend="up" />
+                      <MetricCard title="Losses" value={String(metrics.maxLosingStreak || 0)} icon={XCircle} trend="down" />
+                      <MetricCard title="Drawdown" value={formatCurrency(metrics.peakDD || 0)} icon={TrendingDown} colorClass="text-rose-400" />
+                      <MetricCard title="P/D Ratio" value={String(metrics.profitDD || 0)} icon={Activity} colorClass="text-indigo-400" />
                     </div>
                     <Card className="md:col-span-2 p-4 md:p-6 bg-indigo-500/5 relative text-white h-[360px] md:h-[420px]">
                       <SectionHeader icon={Target} title="Trade Outcome Weights" />
@@ -889,10 +914,10 @@ const App = () => {
                 </Motion.div>
 
                 <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                  <SectionHeader icon={Activity} title="6. Growth & Probability Profile" color="text-[#00f2fe]" />
+                  <SectionHeader icon={Activity} title="Growth" color="text-[#00f2fe]" />
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                     <Card className="p-4 md:p-6 h-[300px] md:h-[400px]">
-                      <SectionHeader icon={TrendingUp} title="Cumulative Equity Path" />
+                      <SectionHeader icon={TrendingUp} title="Equity" />
                       <ResponsiveContainer width="100%" height="85%" minWidth={0}>
                         <AreaChart data={equity}>
                           <Tooltip content={<CustomTooltip />} />
@@ -901,7 +926,7 @@ const App = () => {
                       </ResponsiveContainer>
                     </Card>
                     <Card className="p-4 md:p-6 h-[300px] md:h-[400px] relative text-white">
-                      <SectionHeader icon={Target} title="Win/Loss Probability Profile" />
+                      <SectionHeader icon={Target} title="Win Rate" />
                       <div className="relative w-full h-[85%]">
                         <DonutCenter value={outcomeDist.reduce((acc, curr) => acc + (curr.pl || 0), 0)} />
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -925,7 +950,7 @@ const App = () => {
                 </Motion.div>
 
                 <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                  <SectionHeader icon={BarChart3} title="7. Weekday Edge Analysis" color="text-[#e100ff]" />
+                  <SectionHeader icon={BarChart3} title="Time" color="text-[#e100ff]" />
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2 p-8">
                       <div className="h-[280px] md:h-[350px]">
@@ -944,7 +969,7 @@ const App = () => {
                       </div>
                     </Card>
                     <Card className="p-8 bg-purple-500/5 text-white">
-                      <SectionHeader icon={Brain} title="Weekday Impact" color="text-purple-400" />
+                      <SectionHeader icon={Brain} title="Weekdays" color="text-purple-400" />
                       <div className="space-y-4">
                         {bestDay && <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl"><p className="text-[10px] font-black text-emerald-400 mb-1 uppercase tracking-widest leading-none">Best Weekday Winrate</p><p className="text-lg font-black">{String(bestDay.fullName)}</p><p className="text-2xl font-mono font-bold text-emerald-400">{String(bestDay.winRate)}% Success</p></div>}
                         {worstDay && <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl"><p className="text-[10px] font-black text-rose-400 mb-1 uppercase tracking-widest leading-none">Worst Weekday Winrate</p><p className="text-lg font-black">{String(worstDay.fullName)}</p><p className="text-2xl font-mono font-bold text-rose-400">{String(worstDay.winRate)}% Success</p></div>}
@@ -966,9 +991,9 @@ const App = () => {
 
                  {activeTab === 'strategies' && (
                    <div className="space-y-12">
-                     <SectionHeader icon={Compass} title="Technical Edge Ranking Matrix" />
+                     <SectionHeader icon={Compass} title="Edge" />
                      <Card className="p-8 border-dashed border-2 border-slate-800 text-center">
-                       <SectionHeader icon={BarChartHorizontal} title="Strategy Performance Profile" sub="Cumulative P&L per Setup" color="text-indigo-400" />
+                       <SectionHeader icon={BarChartHorizontal} title="Strategy" sub="Cumulative P&L per Setup" color="text-indigo-400" />
                        <div className="h-[300px] md:h-[400px]">
                          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                            <BarChart

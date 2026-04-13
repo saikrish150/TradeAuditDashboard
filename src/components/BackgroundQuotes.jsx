@@ -23,7 +23,7 @@ const QuoteItem = ({ text, style, parallaxSpeed }) => {
       transition={{
         opacity: { duration: 2 },
         y: {
-          duration: 6,
+          duration: 10,
           repeat: Infinity,
           ease: "easeInOut"
         }
@@ -77,8 +77,8 @@ const BackgroundQuotes = () => {
         top: '80%',
         left: '20%',
         fontSize: 'clamp(0.6rem, 1.5vw, 1rem)',
-        className: 'quote-purple font-mono tracking-[0.5em]',
-        opacity: 0.5
+        className: 'quote-gold font-mono tracking-[0.5em]',
+        opacity: 0.1
       }
     },
     {
@@ -99,9 +99,6 @@ const BackgroundQuotes = () => {
       {quotesData.map((quote, idx) => (
         <QuoteItem key={idx} {...quote} />
       ))}
-      
-      {/* Additional ambient noise or texture could be added here */}
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.03] pointer-events-none"></div>
     </div>
   );
 };

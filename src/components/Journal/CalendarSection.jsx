@@ -101,26 +101,48 @@ const CalendarSection = ({ trades }) => {
             key={i}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
+            whileHover={!d.empty ? { scale: 1.05, y: -2, zIndex: 50 } : {}}
             className={`
-              relative h-16 sm:h-24 rounded-lg sm:rounded-xl border flex flex-col justify-between p-1 sm:p-2 transition-all
-              ${d.empty ? 'bg-transparent border-transparent' : 'bg-slate-950/40 border-slate-800/50 hover:border-journal-gold/30'}
+              relative h-16 sm:h-24 rounded-lg sm:rounded-xl border flex flex-col justify-between p-1 sm:p-2 transition-all group
+              ${d.empty ? 'bg-transparent border-transparent' : 'bg-slate-950/40 border-slate-800/50 hover:border-journal-gold/30 hover:shadow-2xl hover:shadow-journal-gold/5'}
               ${d.isBest ? 'gold-border-glow bg-journal-gold/[0.03]' : ''}
             `}
           >
             {!d.empty && (
               <>
-                <div className="flex justify-between items-start">
-                  <span className={`text-[10px] font-black ${d.count > 0 ? 'text-white' : 'text-slate-700'}`}>{d.day}</span>
-                  {d.isBest && <Trophy size={10} className="text-journal-gold animate-bounce" />}
+                <div className="flex justify-between items-start relative z-10">
+                  <span className={`text-[10px] font-black ${d.count > 0 ? 'text-white/80' : 'text-slate-700'}`}>{d.day}</span>
+                  {d.isBest && (
+                    <motion.div 
+                      animate={{ rotate: [0, -10, 10, -10, 0], scale: [1, 1.2, 1, 1.2, 1] }} 
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <Trophy size={12} className="text-journal-gold drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]" />
+                    </motion.div>
+                  )}
                 </div>
 
                 {d.count > 0 && (
-                  <div className="mt-auto">
-                    <p className={`text-[8px] sm:text-[9px] font-black tabular-nums tracking-tighter ${d.pl >= 0 ? 'text-emerald-400' : 'text-journal-red'}`}>
+                  <div className="mt-auto relative z-10">
+                    <p className={`
+                      text-[11px] sm:text-[18px] font-black tabular-nums tracking-tighter leading-none mb-1
+                      ${d.pl >= 0 ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]' : 'text-journal-red drop-shadow-[0_0_10px_rgba(230,57,70,0.3)]'}
+                    `}>
                       {d.pl >= 0 ? '+' : ''}{formatCurrency(d.pl).split('.')[0]}
                     </p>
-                    <p className="hidden sm:block text-[8px] font-bold text-slate-600 uppercase tracking-tighter">{d.count} TRADES</p>
+                    <div className="flex items-center gap-1">
+                      <div className={`h-1 w-1 rounded-full ${d.pl >= 0 ? 'bg-emerald-500' : 'bg-journal-red'}`} />
+                      <p className="hidden sm:block text-[8px] font-black text-slate-500 uppercase tracking-widest">{d.count} Trades</p>
+                    </div>
                   </div>
+                )}
+
+                {/* Dynamic Card Background Glow */}
+                {!d.empty && d.count > 0 && (
+                  <div className={`
+                    absolute inset-0 opacity-10 transition-opacity duration-500 group-hover:opacity-20
+                    ${d.pl >= 0 ? 'bg-gradient-to-br from-emerald-500/20 to-transparent' : 'bg-gradient-to-br from-rose-500/20 to-transparent'}
+                  `} />
                 )}
               </>
             )}

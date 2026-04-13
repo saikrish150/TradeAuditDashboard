@@ -86,7 +86,7 @@ export const AddGoalModal = ({ isOpen, onClose, onSave }) => {
   };
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Set New Performance Objective" maxWidth="max-w-md">
+    <ModalWrapper isOpen={isOpen} onClose={onClose} title="New Goal" maxWidth="max-w-md">
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
@@ -312,7 +312,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
   const [isUsd, setIsUsd] = useState(false);
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Execute New Entry Record">
+    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Add Trade">
       <div className="space-y-4 md:space-y-5 pb-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
           {/* Execution Date & Time */}
@@ -648,7 +648,7 @@ export const AddSnapshotModal = ({ isOpen, onClose, onSave, editingSnapshot, exi
   };
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Log Daily Performance Snapshot">
+    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Add EOD">
        <div className="space-y-4 md:space-y-5 pb-4">
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                <div className="flex flex-col gap-2">
@@ -766,7 +766,7 @@ export const TradingRulesModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Core Trading Discipline Framework" maxWidth="max-w-4xl">
+    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Rules" maxWidth="max-w-4xl">
       <motion.div 
         variants={container}
         initial="hidden"

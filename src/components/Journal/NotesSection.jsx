@@ -17,7 +17,7 @@ import { ChevronUp, Check as CheckIcon } from 'lucide-react';
 const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
+  const itemsPerPage = 10;
   const [filters, setFilters] = useState([]);
   const [activeFilterPopup, setActiveFilterPopup] = useState(null);
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
@@ -227,7 +227,7 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
     <div className="space-y-6 mb-12 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-2">
-          Psychology & Performance Journal
+          Journal
         </h3>
 
         <div className="flex items-center gap-4">
@@ -275,7 +275,12 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
         </div>
       )}
 
-      <div className="journal-glass rounded-3xl overflow-hidden border-journal-gold/10">
+      <div className="md:hidden flex items-center justify-center gap-2 mb-2 text-slate-600 animate-pulse">
+        <ArrowUpDown size={12} className="rotate-90" />
+        <span className="text-[9px] font-black uppercase tracking-widest">Swipe horizontally to explore journal data</span>
+      </div>
+
+      <div className="journal-glass rounded-3xl overflow-hidden border-journal-gold/10 relative">
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-separate border-spacing-0 min-w-[1000px]">
             <thead className="bg-slate-950/40">
@@ -286,7 +291,7 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
                     onClick={() => setActiveFilterPopup(activeFilterPopup === col.key ? null : col.key)}
                     className={`
                       px-6 py-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 border-b border-white/5 cursor-pointer hover:text-journal-gold transition-colors relative group/th
-                      ${col.sticky ? 'sticky left-0 z-20 bg-slate-950/90' : ''}
+                      ${col.sticky ? 'sticky left-0 z-20 bg-journal-bg' : ''}
                       ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : ''}
                       ${filters.some(f => f.field === col.key) || (col.type === 'date' && (customDateRange.start || customDateRange.end)) ? 'text-journal-gold' : ''}
                     `}
@@ -512,7 +517,7 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
                       <td 
                         key={col.key} 
                         onClick={() => col.key === 'content' && setViewingText({ title: `${n.category || 'Journal'} Entry - ${n.date}`, content: val })}
-                        className={`px-6 py-4 border-b border-white/[0.02] ${col.sticky ? 'sticky left-0 z-10 bg-journal-bg/80 backdrop-blur-md' : ''} ${col.align === 'center' ? 'text-center' : ''} ${col.key === 'content' ? 'cursor-pointer' : ''}`}
+                        className={`px-6 py-4 border-b border-white/[0.02] ${col.sticky ? 'sticky left-0 z-10 bg-journal-bg shadow-[2px_0_10px_rgba(0,0,0,0.5)]' : ''} ${col.align === 'center' ? 'text-center' : ''} ${col.key === 'content' ? 'cursor-pointer' : ''}`}
                       >
                         {renderCell()}
                       </td>
