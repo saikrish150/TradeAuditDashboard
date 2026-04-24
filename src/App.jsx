@@ -97,6 +97,10 @@ const App = () => {
   const [liveRate, setLiveRate] = useState(83.5);
 
   const [isFullHistory, setIsFullHistory] = useState(false);
+  // NEW FEATURE START: Time Analysis Toggle State
+  const [timeMarket, setTimeMarket] = useState('indian');
+  const [timeInterval, setTimeInterval] = useState(60);
+  // NEW FEATURE END
 
   const [user, setUser] = useState(null);
 
@@ -241,6 +245,84 @@ const App = () => {
     trades = [], snapshots = [], filteredNotes = []
   } = processedData || {};
 
+  // NEW FEATURE START: Time Analysis Calculation
+  const timeAnalysisData = useMemo(() => {
+    if (!trades || trades.length === 0) return { indian: [], others: [] };
+
+    const getTradesForMarket = (isIndian) => {
+      const indianKeywords = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'RELIANCE', 'HDFC', 'SBIN', 'MCX', 'NSE', 'BSE', 'SENSEX'];
+      return trades.filter(t => {
+        const m = String(t.market || '').toUpperCase();
+        const match = indianKeywords.some(k => m.includes(k));
+        return isIndian ? match : !match;
+      });
+    };
+
+    const processSlots = (tradesList, slots) => {
+      return slots.map(slot => {
+        const slotTrades = tradesList.filter(t => {
+          const d = typeof t.jsDate === 'string' ? new Date(t.jsDate) : t.jsDate;
+          if (!d || isNaN(d.getTime())) return false;
+          const h = d.getHours();
+          const m = d.getMinutes();
+          const timeVal = h * 60 + m;
+          
+          let [sH, sM] = slot.start.split(':').map(Number);
+          let [eH, eM] = slot.end.split(':').map(Number);
+          const startVal = sH * 60 + sM;
+          // Handle 24:00 wrap around for logic
+          let endVal = eH * 60 + (eM || 0);
+          if (slot.end === '24:00') endVal = 24 * 60;
+          
+          return timeVal >= startVal && timeVal < endVal;
+        });
+
+        const totalPL = slotTrades.reduce((sum, t) => sum + (parseFloat(t.pl) || 0), 0);
+        const winCount = slotTrades.filter(t => String(t.isWin || '').toUpperCase() === 'WIN' || t.isWin === 'true' || t.isWin === true).length;
+        const totalCount = slotTrades.length;
+        const wr = totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0;
+
+        return { ...slot, pl: totalPL, total: totalCount, wr };
+      });
+    };
+
+    const formatTime = (totalMins) => {
+        const h = Math.floor(totalMins / 60);
+        const m = totalMins % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+
+    // Generate Indian Slots dynamically (09:15 to 15:30)
+    const indianSlots = [];
+    let curIn = 9 * 60 + 15;
+    const endIn = 15 * 60 + 30;
+    while (curIn < endIn) {
+        let nxt = curIn + timeInterval;
+        if (nxt > endIn) nxt = endIn;
+        indianSlots.push({ start: formatTime(curIn), end: formatTime(nxt) });
+        curIn = nxt;
+    }
+
+    // Generate Other Slots dynamically (00:00 to 24:00)
+    const otherSlots = [];
+    let curOt = 0;
+    const endOt = 24 * 60;
+    while (curOt < endOt) {
+        let nxt = curOt + timeInterval;
+        otherSlots.push({ 
+            start: formatTime(curOt), 
+            end: nxt >= endOt ? '24:00' : formatTime(nxt) 
+        });
+        curOt = nxt;
+    }
+
+    return {
+      indian: processSlots(getTradesForMarket(true), indianSlots),
+      others: processSlots(getTradesForMarket(false), otherSlots)
+    };
+  }, [trades, timeInterval]);
+  // NEW FEATURE END
+
   useEffect(() => {
     if (!processedData || processedData.isEmpty) {
       setAiSuggestions(null);
@@ -249,44 +331,102 @@ const App = () => {
 
     const generateInbuiltSuggestions = () => {
       const suggestions = [];
+      const wR = parseFloat(metrics.winRate) || 0;
+      const rr = parseFloat(metrics.overallRR) || 0;
 
-      // Rule 1: Win Rate Analysis
-      if (metrics.winRate < 40) {
-        suggestions.push(`Win rate is low (${metrics.winRate}%). Focus on higher-probability setups and stricter entry criteria.`);
-      } else if (metrics.winRate > 60) {
-        suggestions.push(`Excellent win rate (${metrics.winRate}%). Consider carefully increasing position size on A-grade setups.`);
+      // 1. Mathematical Expectancy Edge
+      const avgWin = metrics.avgWin || 0;
+      const avgLoss = Math.abs(metrics.avgLoss || 0);
+      const winProb = wR / 100;
+      const lossProb = 1 - winProb;
+      const expectancy = (winProb * avgWin) - (lossProb * avgLoss);
+      
+      if (expectancy > 0) {
+        suggestions.push(`System Edge Validated: Your strategy yields a positive expectancy of +${formatCurrency(expectancy)} per trade. Focus solely on mechanical execution; the math is in your favor.`);
+      } else if (expectancy < 0 && (avgWin + avgLoss) > 0) {
+        const requiredWr = Math.round((avgLoss / (avgWin + avgLoss)) * 100);
+        suggestions.push(`System Leak Detected: Current expectancy is negative (${formatCurrency(expectancy)}/trade). To reach breakeven with your current R:R, you must boost your win rate above ${requiredWr}%.`);
       }
 
-      // Rule 2: Risk/Reward Analysis
-      if (metrics.overallRR < 1.5) {
-        suggestions.push(`Risk/Reward ratio is suboptimal (1:${metrics.overallRR}). Aim for setups with at least a 1:1.5 R/R.`);
-      } else {
-        suggestions.push(`Strong R/R profile (1:${metrics.overallRR}). Continue to let winners run.`);
+      // 2. Advanced Risk/Reward Dynamics
+      if (rr > 0 && rr < 1 && wR < 60) {
+        suggestions.push(`Critical Risk Warning: You are risking more than you make (1:${rr.toFixed(2)} R:R). You need an unsustainably high win rate (>50%) just to survive. Tighter invalidation levels are mandatory.`);
+      } else if (rr >= 2 && wR < 40) {
+        suggestions.push(`High R:R Profile: Your R:R is excellent (1:${rr.toFixed(2)}). A low win rate (${wR}%) is mathematically acceptable here. Do not alter your strategy during drawdowns—trust the asymmetrical payouts.`);
       }
 
-      // Rule 3: Top Error Analysis
-      if (errors.length > 0) {
+      // 3. High-Impact Error Isolation
+      if (errors && errors.length > 0) {
         const topError = errors[0];
-        suggestions.push(`Your top error is "${topError.cat}," costing you ${formatCurrency(topError.impact)}. Create a rule to prevent this.`);
+        const errorFreq = ((topError.count / (trades.length || 1)) * 100).toFixed(0);
+        if (topError.impact < 0) {
+          suggestions.push(`Behavioral Sinkhole: "${topError.cat}" occurs in ${errorFreq}% of trades, draining ${formatCurrency(topError.impact)}. Eliminating this single flaw is the fastest path to compounding your account.`);
+        }
       }
 
-      // Rule 4: Emotional Impact
-      const negativeEmotions = emotionStats.filter(e => e.pl < 0).sort((a, b) => a.pl - b.pl);
+      // 4. Psychological Triggers
+      const negativeEmotions = emotionStats?.filter(e => e.pl < 0).sort((a, b) => a.pl - b.pl) || [];
       if (negativeEmotions.length > 0) {
         const worstEmotion = negativeEmotions[0];
-        suggestions.push(`Trading while feeling "${worstEmotion.name}" has the most negative impact (${formatCurrency(worstEmotion.pl)}). Recognize and pause when this emotion appears.`);
+        if (worstEmotion.count >= 2) {
+          suggestions.push(`Psychological Trigger: Trading while feeling "${worstEmotion.name}" correlates with severe underperformance (${formatCurrency(worstEmotion.pl)}). Implement a mandatory 24-hour cooling-off rule when this state hits.`);
+        }
       }
 
-      // Rule 5: Best vs. Worst Day
-      if (bestDay && worstDay && bestDay.name !== worstDay.name) {
-        suggestions.push(`Your best trading day is ${bestDay.fullName} (${bestDay.winRate}% WR), while your worst is ${worstDay.fullName} (${worstDay.winRate}% WR). Analyze the difference.`);
+      // 5. Temporal / Day of Week Edge
+      if (bestDay && worstDay && bestDay.name !== worstDay.name && bestDay.count >= 2 && worstDay.count >= 2) {
+        suggestions.push(`Temporal Edge: Extreme outperformance detected on ${bestDay.fullName}s (${bestDay.winRate}% WR). Conversely, ${worstDay.fullName}s are historically toxic (${worstDay.winRate}% WR). Consider sizing down heavily on ${worstDay.fullName}s.`);
       }
 
-      setAiSuggestions(suggestions.slice(0, 5));
+      // 6. Setup Quality Discrepancy
+      if (qualityStats && qualityStats.length > 0) {
+        const aGrade = qualityStats.find(q => q.grade === 'A');
+        const cGrade = qualityStats.find(q => q.grade === 'C');
+        if (aGrade && cGrade && cGrade.count > aGrade.count) {
+           suggestions.push(`Discipline Gap: You are taking more C-grade setups (${cGrade.count}) than A-grade setups (${aGrade.count}). Stop forcing trades in sub-optimal environments.`);
+        }
+      }
+
+      // 7. Directional Bias
+      if (statusStats && statusStats.length >= 2) {
+        const longStat = statusStats.find(s => s.name.toUpperCase() === 'LONG' || s.name.toUpperCase() === 'BUY');
+        const shortStat = statusStats.find(s => s.name.toUpperCase() === 'SHORT' || s.name.toUpperCase() === 'SELL');
+        
+        if (longStat && shortStat) {
+          if (longStat.pl > 0 && shortStat.pl < 0) {
+            suggestions.push(`Directional Edge: You have a strong edge going LONG (${formatCurrency(longStat.pl)}), but SHORTs are bleeding (${formatCurrency(shortStat.pl)}). Avoid shorting in the current market regime.`);
+          } else if (shortStat.pl > 0 && longStat.pl < 0) {
+            suggestions.push(`Directional Edge: You excel at SHORTing (${formatCurrency(shortStat.pl)}), but LONGs are costing you (${formatCurrency(longStat.pl)}). Respect your bearish bias.`);
+          }
+        }
+      }
+
+      // 8. Profit Factor Check
+      const pf = parseFloat(metrics.pf) || 0;
+      if (pf >= 2.0) {
+        suggestions.push(`Profit Factor Validation: A PF of ${pf} indicates you make ${pf} for every 1 you lose. This is elite-level robustness. The only goal now is scaling sizing without emotional degradation.`);
+      } else if (pf > 0 && pf < 1.0) {
+        suggestions.push(`Profit Factor Warning: A PF of ${pf} means you lose more than you make. You must prioritize capital preservation over aggressive entries until this crosses 1.25.`);
+      }
+
+      // 9. Setup/Strategy Analysis
+      if (setupAnalysis && setupAnalysis.length >= 2) {
+        const bestSetup = setupAnalysis[setupAnalysis.length - 1];
+        const worstSetup = setupAnalysis[0]; 
+        
+        if (worstSetup && worstSetup.pl < 0 && worstSetup.trades >= 3) {
+           suggestions.push(`Strategy Leak: The "${worstSetup.name}" setup is severely underperforming (${formatCurrency(worstSetup.pl)} over ${worstSetup.trades} trades). Remove it from your playbook temporarily.`);
+        }
+        if (bestSetup && bestSetup.pl > 0 && bestSetup.trades >= 3) {
+           suggestions.push(`Core Edge: The "${bestSetup.name}" setup is your absolute best performer (${formatCurrency(bestSetup.pl)}). Build your entire session around waiting for this exact setup.`);
+        }
+      }
+
+      setAiSuggestions(suggestions.slice(0, 8));
     };
 
     generateInbuiltSuggestions();
-  }, [processedData, metrics.winRate, metrics.overallRR, errors, emotionStats, bestDay, worstDay]);
+  }, [processedData]);
 
   return (
     <AuthShield>
@@ -672,11 +812,96 @@ const App = () => {
                        </div>
                      </Motion.div>
 
+                      {/* NEW FEATURE START: Time Analysis Section */}
+                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                          <SectionHeader icon={Timer} title="Time Analysis" sub="Performance Breakdown by Entry Window" />
+                          <div className="flex flex-wrap gap-3 items-center">
+                            {/* Market Toggle */}
+                            <div className="flex bg-journal-secondary/50 p-1 rounded-xl border border-white/10 backdrop-blur-md">
+                              <button
+                                onClick={() => setTimeMarket('indian')}
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${timeMarket === 'indian' ? 'bg-journal-gold text-journal-bg shadow-lg shadow-journal-gold/20' : 'text-journal-text-muted hover:text-white'}`}
+                              >
+                                Indian
+                              </button>
+                              <button
+                                onClick={() => setTimeMarket('others')}
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${timeMarket === 'others' ? 'bg-journal-gold text-journal-bg shadow-lg shadow-journal-gold/20' : 'text-journal-text-muted hover:text-white'}`}
+                              >
+                                Other
+                              </button>
+                            </div>
+                            
+                            {/* Interval Toggle */}
+                            <div className="flex bg-journal-secondary/50 p-1 rounded-xl border border-white/10 backdrop-blur-md">
+                              {[15, 30, 60, 120, 180].map(val => (
+                                <button
+                                  key={val}
+                                  onClick={() => setTimeInterval(val)}
+                                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${timeInterval === val ? 'bg-journal-gold text-journal-bg shadow-lg shadow-journal-gold/20' : 'text-journal-text-muted hover:text-white'}`}
+                                >
+                                  {val >= 60 ? `${val/60}H` : `${val}M`}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
 
-                     <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 pb-4 overflow-hidden">
+                          {timeAnalysisData[timeMarket].map((slot, i) => (
+                            <Card key={i} className={`p-4 transition-all hover:scale-[1.05] border-t-2 overflow-hidden relative group ${slot.total === 0 ? 'opacity-40 grayscale' : slot.pl >= 0 ? 'border-emerald-500/50 bg-gradient-to-b from-emerald-500/10 to-transparent' : 'border-rose-500/50 bg-gradient-to-b from-rose-500/10 to-transparent'}`}>
+                              {/* Background Glow */}
+                              {slot.total > 0 && (
+                                <div className={`absolute -top-10 -right-10 w-24 h-24 blur-3xl opacity-20 rounded-full pointer-events-none transition-opacity group-hover:opacity-40 ${slot.pl >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                              )}
+                              
+                              <div className="relative z-10 flex flex-col gap-2">
+                                {/* Time Header */}
+                                <div className="flex items-center gap-1.5 opacity-80">
+                                  <Clock size={14} className={slot.total > 0 ? "text-indigo-400" : "text-slate-500"} />
+                                  <span className="text-xs font-black tracking-widest text-slate-300">{slot.start}</span>
+                                </div>
+                                
+                                {/* P&L - HERO */}
+                                <div className="my-1">
+                                  <span className={`text-xl font-black tracking-tighter drop-shadow-md ${slot.total === 0 ? 'text-slate-500' : slot.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {slot.total > 0 ? (slot.pl >= 0 ? '+' : '') + formatCurrency(slot.pl) : '-'}
+                                  </span>
+                                </div>
+
+                                {/* Micro Metrics */}
+                                <div className="flex items-center justify-between mt-1">
+                                  <div className="flex flex-col">
+                                    <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">WR</span>
+                                    <span className={`text-[10px] font-black ${slot.wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{slot.wr}%</span>
+                                  </div>
+                                  <div className="flex flex-col text-right">
+                                    <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">Vol</span>
+                                    <span className="text-[10px] font-black text-slate-300">{slot.total}</span>
+                                  </div>
+                                </div>
+                                
+                                {/* Progress Bar */}
+                                <div className="mt-2 h-0.5 w-full bg-slate-800/50 rounded-full overflow-hidden">
+                                  <Motion.div 
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${slot.wr}%` }}
+                                    className={`h-full shadow-[0_0_8px_currentColor] ${slot.wr >= 50 ? 'bg-emerald-500 text-emerald-500' : 'bg-rose-500 text-rose-500'}`}
+                                  />
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      </Motion.div>
+                      {/* NEW FEATURE END */}
+
+                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+
                        <Card className="p-8 border-t border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
                          <SectionHeader icon={Activity} title="Scorecard" sub="Behavioral Grade Summary" />
-                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-2">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 pt-2">
                            <ScoreBar label="Risk Management" score={scores.risk || 0} color="text-amber-400" />
                            <ScoreBar label="Execution Discipline" score={scores.discipline || 0} color="text-indigo-400" />
                            <ScoreBar label="Psychology & Mood" score={scores.psychology || 0} color="text-purple-400" />
@@ -688,6 +913,37 @@ const App = () => {
                          </div>
                        </Card>
                      </Motion.div>
+
+                      {/* NEW FEATURE START: Most Important Learning (Moved to bottom, Ascending Sort) */}
+                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                        <Card className="p-8">
+                          <SectionHeader icon={Lightbulb} title="Most Important Learning" color="text-amber-400" />
+                          <div className="space-y-4 mt-6">
+                            {[...learnings].sort((a, b) => a.pl - b.pl).map((item, i) => (
+                              <div key={i} className="flex flex-col gap-2 p-4 bg-slate-900/40 rounded-2xl border border-white/5 hover:border-journal-gold/20 transition-all group">
+                                <div className="flex justify-between items-start">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-journal-gold/50" />
+                                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{item.date}</span>
+                                  </div>
+                                  <span className={`text-[10px] font-mono font-bold ${item.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {formatCurrency(item.pl)}
+                                  </span>
+                                </div>
+                                <p className="text-xs font-medium text-slate-300 leading-relaxed italic">
+                                  "{item.text}"
+                                </p>
+                              </div>
+                            ))}
+                            {learnings.length === 0 && (
+                              <p className="text-center text-slate-500 py-10 uppercase text-[10px] font-black tracking-widest italic animate-pulse">
+                                No critical learnings documented for this period.
+                              </p>
+                            )}
+                          </div>
+                        </Card>
+                      </Motion.div>
+                      {/* NEW FEATURE END */}
                    </div>
                  )}
 

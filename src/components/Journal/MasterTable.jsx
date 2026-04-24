@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Filter, Search, Edit3,
@@ -18,6 +19,9 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
   const [activeFilterPopup, setActiveFilterPopup] = useState(null); // field name only
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
   const [viewingText, setViewingText] = useState(null);
+  // NEW FEATURE START: Hover Tooltip State
+  const [hoveredCell, setHoveredCell] = useState(null);
+  // NEW FEATURE END
   const popoverRef = useRef(null);
 
   // Click outside listener for dynamic popovers
@@ -487,8 +491,27 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                   return (
                     <td 
                       key={col.key}
-                      onClick={() => (col.type === 'text' || col.key.includes('Reason')) && setViewingText({ title: col.label, content: val })}
-                      className={`px-6 py-4 truncate max-w-[200px] ${col.sticky ? 'sticky left-0 z-10 bg-journal-bg/80 backdrop-blur-md group-hover:bg-white/[0.05]' : ''} ${(col.type === 'text' || col.key.includes('Reason')) ? 'cursor-pointer hover:text-white' : ''}`}
+                      onClick={() => (col.type === 'text' || col.key.includes('Reason') || col.key === 'reason') && setViewingText({ title: col.label, content: val })}
+                      // NEW FEATURE START: Hover Tooltip Handlers
+                      onMouseEnter={(e) => {
+                        const content = String(val || '');
+                        const isExpandable = col.type === 'text' || col.key.includes('Reason') || col.key === 'reason';
+                        if (isExpandable && content.length > 25) {
+                          setHoveredCell({
+                            content,
+                            x: e.clientX,
+                            y: e.clientY
+                          });
+                        }
+                      }}
+                      onMouseMove={(e) => {
+                        if (hoveredCell) {
+                          setHoveredCell(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
+                        }
+                      }}
+                      onMouseLeave={() => setHoveredCell(null)}
+                      // NEW FEATURE END
+                      className={`px-6 py-4 truncate max-w-[200px] ${col.sticky ? 'sticky left-0 z-10 bg-journal-bg/80 backdrop-blur-md group-hover:bg-white/[0.05]' : ''} ${(col.type === 'text' || col.key.includes('Reason') || col.key === 'reason') ? 'cursor-pointer hover:text-white' : ''}`}
                     >
                       {renderCell()}
                     </td>
@@ -549,6 +572,30 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
         title={viewingText?.title}
         content={viewingText?.content}
       />
+
+      {/* NEW FEATURE START: Hover Tooltip Popup (Portaled to Body) */}
+      {createPortal(
+        <AnimatePresence>
+          {hoveredCell && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed z-[9999] p-4 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl max-w-xs pointer-events-none"
+              style={{ 
+                left: Math.min(hoveredCell.x + 15, window.innerWidth - 320), 
+                top: Math.min(hoveredCell.y + 15, window.innerHeight - 100) 
+              }}
+            >
+              <p className="text-[11px] font-medium text-slate-200 leading-relaxed italic relative z-10">
+                "{hoveredCell.content}"
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+      {/* NEW FEATURE END */}
     </div>
   );
 };
