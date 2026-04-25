@@ -1,33 +1,19 @@
 import React, { useMemo } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 
-const QuoteItem = ({ text, style, parallaxSpeed }) => {
-  const { scrollY } = useScroll();
-  const y = useTransform(scrollY, [0, 1000], [0, parallaxSpeed * 500]);
-
+const QuoteItem = ({ text, style }) => {
   return (
     <motion.div
       style={{
         ...style,
-        y,
         position: 'fixed',
         zIndex: 0,
         pointerEvents: 'none',
         whiteSpace: 'nowrap',
       }}
       initial={{ opacity: 0 }}
-      animate={{ 
-        opacity: style.opacity || 1,
-        y: [0, -15, 0],
-      }}
-      transition={{
-        opacity: { duration: 2 },
-        y: {
-          duration: 10,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }
-      }}
+      animate={{ opacity: style.opacity || 1 }}
+      transition={{ duration: 2 }}
       className={`font-black tracking-tighter uppercase select-none ${style.className}`}
     >
       {text}

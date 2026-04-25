@@ -416,7 +416,9 @@ const TradingJournal = ({
           {activeTab === 'notes' && (
             <motion.div key="notes" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <NotesSection 
+                user={user}
                 notes={notes}
+                setNotes={setNotes}
                 onEditNote={(n) => { setEditingNote(n); setShowNoteModal(true); }}
                 onDeleteNote={handleDeleteNote}
               />

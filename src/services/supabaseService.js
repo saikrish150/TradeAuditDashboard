@@ -144,9 +144,6 @@ const SRC_COLS = {
 };
 
 export const supabaseService = {
-  /**
-   * PURE RAW FETCH: For Bit-for-Bit Backup (No Normalization)
-   */
   fetchRawTableData: async (tableName, userId) => {
     if (!userId) throw new Error("User ID required for raw export.");
     const { data, error } = await supabase
@@ -158,7 +155,6 @@ export const supabaseService = {
     if (error) throw error;
     return data || [];
   },
-
   /**
    * TRADES: Real-time Subscription with User Isolation
    */
@@ -350,6 +346,16 @@ export const supabaseService = {
     if (error) throw error;
     return result?.[0];
   },
+  incrementNoteVotes: async (userId, noteId, newVotes) => {
+    const { data: result, error } = await supabase
+      .from('notes')
+      .update({ [DB_FIELDS.noteVotes]: newVotes.toString() })
+      .eq('id', noteId)
+      .eq('user_id', userId)
+      .select();
+    if (error) throw error;
+    return result?.[0];
+  },
   deleteNote: async (userId, id) => {
     const { error } = await supabase.from('notes').delete().eq('id', id).eq('user_id', userId);
     if (error) throw error;
@@ -378,20 +384,7 @@ export const supabaseService = {
     if (error) throw error;
   },
 
-  /**
-   * VOTING: Increment/Update votes for a note
-   */
-  incrementNoteVotes: async (userId, noteId, newVotes) => {
-    const { data, error } = await supabase
-      .from('notes')
-      .update({ [DB_FIELDS.noteVotes]: newVotes })
-      .eq('id', noteId)
-      .eq('user_id', userId)
-      .select();
-    
-    if (error) throw error;
-    return data?.[0] ? normalizeRow(data[0]) : null;
-  },
+
 
   /**
    * STORAGE: Image Upload (partitioned by userId)

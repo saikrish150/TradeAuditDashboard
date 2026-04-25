@@ -260,6 +260,30 @@ export const useTradeData = ({
       };
     };
 
+    // Advanced Behavioral Audit Logic
+    const worstSetup = Object.entries(setupAnalysisMap).sort((a, b) => a[1].pl - b[1].pl)[0];
+    const bestSetup = Object.entries(setupAnalysisMap).sort((a, b) => b[1].pl - a[1].pl)[0];
+    const worstEmotion = eStats.sort((a, b) => a.pl - b.pl)[0];
+    const bestEmotion = eStats.sort((a, b) => b.pl - a.pl)[0];
+
+    const noteMistakes = (notes || []).filter(n => String(n.category || '').toLowerCase().includes('mistake'))
+      .sort((a, b) => (b.votes || 0) - (a.votes || 0))
+      .slice(0, 3)
+      .map(n => n.content || n.Note);
+      
+    const noteLearnings = (notes || []).filter(n => String(n.category || '').toLowerCase().includes('learning'))
+      .sort((a, b) => (b.votes || 0) - (a.votes || 0))
+      .slice(0, 3)
+      .map(n => n.content || n.Note);
+
+    const stopDoing = [...noteMistakes];
+    if (worstSetup && worstSetup[1].pl < 0) stopDoing.push(`STOP Trading ${worstSetup[0]} (Net Loss: ${formatCurrency(worstSetup[1].pl)})`);
+    if (worstEmotion && worstEmotion.pl < 0) stopDoing.push(`STOP Trading when feeling ${worstEmotion.name} (Impact: ${formatCurrency(worstEmotion.pl)})`);
+
+    const keepDoing = [];
+    if (bestSetup && bestSetup[1].pl > 0) keepDoing.push(`KEEP Focused on ${bestSetup[0]} (Best Edge: ${formatCurrency(bestSetup[1].pl)})`);
+    if (bestEmotion && bestEmotion.pl > 0) keepDoing.push(`KEEP Trading in ${bestEmotion.name} state (Profit: ${formatCurrency(bestEmotion.pl)})`);
+
     return {
       metrics: { net: cumulativePL, winRate: winRateValue, total: tradeTotalCount, avgWin, avgLoss, overallRR: overallRRValue, maxProfit: Math.max(...filtered.map(t => t.pl > 0 ? t.pl : 0), 0), maxLoss: Math.max(...filtered.map(t => t.pl < 0 ? Math.abs(t.pl) : 0), 0), pf: (winTotal / (lossTotal || 1)).toFixed(2), expectancy: (cumulativePL / tradeTotalCount).toFixed(0), maxLosingStreak, maxWinningStreak, peakDD: maxDDValue, profitDD: (cumulativePL / (Math.abs(maxDDValue) || 1)).toFixed(2), mindsetEfficiency: Math.round(((winTotal - Math.abs(revengeLoss)) / (winTotal || 1)) * 100), maxTradesInDay: Math.max(...Object.values(dateData).map(d => d.count), 0), avgTradesPerActiveDay: Object.keys(dateData).length > 0 ? (tradeTotalCount / Object.keys(dateData).length).toFixed(1) : 0 },
       scores: { risk: Math.min(100, Math.max(0, (winTotal / (lossTotal || 1)) * 40)), discipline: Math.round((ruleAlignedCount / (tradeTotalCount || 1)) * 100), psychology: Math.min(100, Math.max(0, 100 - (Math.abs(revengeLoss) / (winTotal || 1) * 100))), consistency: Math.min(100, Math.max(0, 100 - (Math.abs(maxDDValue) / (winTotal || 1) * 50))) },
@@ -281,7 +305,7 @@ export const useTradeData = ({
       outcomeDist: [{ name: 'Wins', value: winCount, color: COLORS.emerald, pl: winTotal }, { name: 'Losses', value: tradeTotalCount - winCount, color: COLORS.rose, pl: -lossTotal }],
       equity: equityArr.filter((_, i) => i % Math.max(1, Math.floor(equityArr.length / 50)) === 0),
       errors: errorStats,
-      dynamicAudit: { start: learningVault.filter(l => l.pl < 0).slice(-3).map(l => l.text), continue: learningVault.filter(l => l.pl >= 0).slice(-3).map(l => l.text) },
+      dynamicAudit: { start: stopDoing.slice(0, 5), continue: keepDoing.slice(0, 5) },
       learnings: learningVault.sort((a, b) => a.pl - b.pl),
       trades: filtered,
       snapshots: rawSnapshots.filter(s => {

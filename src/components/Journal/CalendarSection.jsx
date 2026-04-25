@@ -67,7 +67,11 @@ const CalendarSection = ({ trades }) => {
     const now = new Date();
     let maxAbsPL = 0;
     
-    for (let i = heatmapMonths - 1; i >= 0; i--) {
+    let totalPL = 0;
+    let greenDays = 0;
+    let redDays = 0;
+    
+    for (let i = 0; i < heatmapMonths; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const year = d.getFullYear();
       const month = d.getMonth();
@@ -79,20 +83,34 @@ const CalendarSection = ({ trades }) => {
         return td.getMonth() === month && td.getFullYear() === year;
       });
 
+      let mPL = 0;
+      let mGreen = 0;
+      let mRed = 0;
+
       for (let day = 1; day <= lastDay; day++) {
         const dayTrades = tradesInMonth.filter(t => (t.jsDate || new Date(t.date)).getDate() === day);
         const pl = dayTrades.reduce((acc, curr) => acc + (curr.pl || 0), 0);
         if (Math.abs(pl) > maxAbsPL) maxAbsPL = Math.abs(pl);
         days.push({ day, pl, count: dayTrades.length });
+
+        if (dayTrades.length > 0) {
+          totalPL += pl;
+          mPL += pl;
+          if (pl > 0) { greenDays++; mGreen++; }
+          else if (pl < 0) { redDays++; mRed++; }
+        }
       }
       
       months.push({
         name: d.toLocaleString('default', { month: 'short' }),
         year,
-        days
+        days,
+        mPL,
+        mGreen,
+        mRed
       });
     }
-    return { months, maxAbsPL: maxAbsPL || 1 };
+    return { months, maxAbsPL: maxAbsPL || 1, totalPL, greenDays, redDays };
   }, [viewMode, heatmapMonths, trades]);
 
   const changeMonth = (offset) => {
@@ -135,8 +153,10 @@ const CalendarSection = ({ trades }) => {
                   onChange={(e) => setHeatmapMonths(parseInt(e.target.value))}
                   className="bg-transparent text-[9px] font-black text-white uppercase tracking-widest outline-none cursor-pointer"
                 >
-                  {[2, 4, 6, 8, 10, 12, 24, 48].map(m => (
-                    <option key={m} value={m} className="bg-slate-900">{m}M</option>
+                  {[3, 6, 9, 12, 18, 24, 36, 48].map(m => (
+                    <option key={m} value={m} className="bg-slate-900">
+                      {m < 12 ? `${m} Months` : `${m/12} Year${m/12 > 1 ? 's' : ''}`}
+                    </option>
                   ))}
                 </select>
              </div>
@@ -295,54 +315,94 @@ const CalendarSection = ({ trades }) => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="flex flex-wrap justify-center sm:justify-start gap-x-12 gap-y-10"
+            className="flex flex-col gap-10"
           >
-            {heatmapData.months.map((month, idx) => (
-              <div key={idx} className="flex flex-col gap-4">
-                <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white/80">{month.name}</span>
-                  <span className="text-[8px] font-bold text-slate-600">{month.year}</span>
-                </div>
-                <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-                  {month.days.map((day, dIdx) => {
-                    const intensity = Math.max(0.5, Math.min(1, Math.abs(day.pl) / heatmapData.maxAbsPL));
-                    const hasTrades = day.count > 0;
-                    
-                    return (
-                      <motion.div
-                        key={dIdx}
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: (idx * 0.05) + (dIdx * 0.002) }}
-                        className={`
-                          w-2.5 h-2.5 sm:w-4 sm:h-4 rounded-full relative group/dot cursor-help transition-all duration-300
-                          ${!hasTrades ? 'bg-slate-700/60 border border-white/10' : 
-                            day.pl >= 0 ? 'bg-[#10b981]' : 'bg-[#e63946]'}
-                        `}
-                        style={hasTrades ? { 
-                          opacity: Math.max(0.6, intensity),
-                          filter: `brightness(${1.2 + (intensity * 0.6)}) saturate(${1.2 + (intensity * 0.3)})`,
-                          boxShadow: day.pl >= 0 
-                            ? `0 0 ${20 * intensity}px rgba(16, 185, 129, ${0.8 * intensity})` 
-                            : `0 0 ${20 * intensity}px rgba(230, 57, 70, ${0.8 * intensity})`
-                        } : {}}
-                      >
-                        {/* Enhanced Tooltip */}
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-white whitespace-nowrap opacity-0 group-hover/dot:opacity-100 pointer-events-none transition-all z-50 shadow-2xl backdrop-blur-xl">
-                          <div className="flex flex-col gap-1">
-                             <span className="text-slate-500">{month.name} {day.day}, {month.year}</span>
-                             <span className={day.pl >= 0 ? 'text-emerald-400' : 'text-journal-red'}>
-                                {day.count > 0 ? `${day.pl >= 0 ? '+' : ''}${formatCurrency(day.pl)}` : 'No Activity'}
-                             </span>
-                             {day.count > 0 && <span className="text-[7px] text-slate-600">{day.count} Trades</span>}
+            <div className="flex flex-wrap justify-center sm:justify-start gap-x-12 gap-y-10">
+              {heatmapData.months.map((month, idx) => (
+                <div key={idx} className="flex flex-col gap-4">
+                  <div className="flex justify-between items-start border-b border-white/5 pb-2">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white/80">{month.name}</span>
+                      <span className="text-[7px] font-bold text-slate-600 tracking-wider uppercase">{month.year}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className={`text-[10px] font-black italic tracking-tighter ${month.mPL >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
+                        {month.mPL >= 0 ? '+' : ''}{Math.round(month.mPL).toLocaleString()}
+                      </span>
+                      <div className="flex gap-1.5 mt-0.5">
+                        <span className="text-[7px] font-black text-emerald-400 uppercase tracking-tighter">{month.mGreen}G</span>
+                        <span className="text-[7px] font-black text-rose-400 uppercase tracking-tighter">{month.mRed}R</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                    {month.days.map((day, dIdx) => {
+                      const intensity = Math.max(0.5, Math.min(1, Math.abs(day.pl) / heatmapData.maxAbsPL));
+                      const hasTrades = day.count > 0;
+                      
+                      return (
+                        <motion.div
+                          key={dIdx}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: (idx * 0.05) + (dIdx * 0.002) }}
+                          className={`
+                            w-2.5 h-2.5 sm:w-4 sm:h-4 rounded-full relative group/dot cursor-help transition-all duration-300
+                            ${!hasTrades ? 'bg-slate-700/60 border border-white/10' : 
+                              day.pl >= 0 ? 'bg-[#10b981]' : 'bg-[#e63946]'}
+                          `}
+                          style={hasTrades ? { 
+                            opacity: Math.max(0.6, intensity),
+                            filter: `brightness(${1.2 + (intensity * 0.6)}) saturate(${1.2 + (intensity * 0.3)})`,
+                            boxShadow: day.pl >= 0 
+                              ? `0 0 ${20 * intensity}px rgba(16, 185, 129, ${0.8 * intensity})` 
+                              : `0 0 ${20 * intensity}px rgba(230, 57, 70, ${0.8 * intensity})`
+                          } : {}}
+                        >
+                          {/* Enhanced Tooltip */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-white whitespace-nowrap opacity-0 group-hover/dot:opacity-100 pointer-events-none transition-all z-50 shadow-2xl backdrop-blur-xl">
+                            <div className="flex flex-col gap-1">
+                               <span className="text-slate-500">{month.name} {day.day}, {month.year}</span>
+                               <span className={day.pl >= 0 ? 'text-emerald-400' : 'text-journal-red'}>
+                                  {day.count > 0 ? `${day.pl >= 0 ? '+' : ''}${formatCurrency(day.pl)}` : 'No Activity'}
+                               </span>
+                               {day.count > 0 && <span className="text-[7px] text-slate-600">{day.count} Trades</span>}
+                            </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Heatmap Performance Summary */}
+            <div className="flex flex-wrap items-center gap-6 pt-6 border-t border-white/5">
+               <div className="flex flex-col gap-1">
+                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Heatmap Period P&L</span>
+                  <p className={`text-lg font-black italic tracking-tighter ${heatmapData.totalPL >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
+                    {heatmapData.totalPL >= 0 ? '+' : ''}{formatCurrency(heatmapData.totalPL)}
+                  </p>
+               </div>
+               
+               <div className="h-8 w-px bg-white/5" />
+
+               <div className="flex gap-8">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] font-black text-emerald-400/80 uppercase tracking-widest">Green Sessions</span>
+                    <p className="text-xl font-black text-emerald-400 italic tracking-tighter">
+                       {heatmapData.greenDays} <span className="text-[10px] font-bold text-slate-600 not-italic ml-1">DAYS</span>
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[8px] font-black text-rose-400/80 uppercase tracking-widest">Red Sessions</span>
+                    <p className="text-xl font-black text-rose-500 italic tracking-tighter">
+                       {heatmapData.redDays} <span className="text-[10px] font-bold text-slate-600 not-italic ml-1">DAYS</span>
+                    </p>
+                  </div>
+               </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -14,7 +14,7 @@ import { authService } from '../../services/authService';
 import { DB_FIELDS } from '../../constants/fieldMappings';
 import { ChevronUp, Check as CheckIcon } from 'lucide-react';
 
-const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
+const NotesSection = ({ notes = [], onEditNote, onDeleteNote, user, setNotes }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -82,6 +82,10 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
   };
 
   const handleVote = async (noteId, currentVotes) => {
+    if (isVoting || !user) return;
+    
+    const newVotes = (currentVotes || 0) + 1;
+
     // Optimistic Update
     setOptimisticVotes(prev => ({
       ...prev,
@@ -92,26 +96,27 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
     // Clear feedback after 2s
     setTimeout(() => setVoteFeedback(null), 2000);
 
-    if (isVoting) return;
     setIsVoting(true);
     try {
-      const session = await authService.getSession();
-      const user = session?.user;
-      if (!user) return;
-      
-      const newVotes = (currentVotes || 0) + 1 + (optimisticVotes[noteId] || 0);
       await supabaseService.incrementNoteVotes(user.id, noteId, newVotes);
+      
+      // Update global state to ensure sync
+      if (setNotes) {
+        setNotes(prev => prev.map(n => n.id === noteId ? { ...n, votes: newVotes } : n));
+      }
+      
+      // Clear optimistic vote since global state is now updated
+      setOptimisticVotes(prev => ({ ...prev, [noteId]: 0 }));
     } catch (error) {
       console.error("Error voting:", error);
       setOptimisticVotes(prev => ({ ...prev, [noteId]: Math.max(0, (prev[noteId] || 0) - 1) }));
     } finally {
-      setIsVoting(true);
       setTimeout(() => setIsVoting(false), 500); 
     }
   };
 
   const handleTogglePin = async (note) => {
-    if (isPinning) return;
+    if (isPinning || !user) return;
     const newPinnedStatus = !note.pinned;
     
     // OPTIMISTIC UPDATE: Instant UI feedback
@@ -119,30 +124,17 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote }) => {
     setIsPinning(note.id);
     
     try {
-      const session = await authService.getSession();
-      const user = session?.user;
-      if (!user) return;
-
-      if (newPinnedStatus) {
-        // Find existing pinned note and offer to swap or just pin both
-      }
-
       await supabaseService.updateNote(user.id, note.id, {
         [DB_FIELDS.notePinned]: newPinnedStatus ? 'Yes' : 'No'
       });
-      
-      // Local state will be updated via refresh/subscription in parent
+      if (setNotes) {
+        setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: newPinnedStatus } : n));
+      }
     } catch (error) {
-      console.error("Error toggling pin:", error);
-      // Rollback on error
-      setPinStates(prev => {
-        const next = { ...prev };
-        delete next[note.id];
-        return next;
-      });
+      console.error("Error pinning:", error);
+      setPinStates(prev => ({ ...prev, [note.id]: note.pinned }));
     } finally {
       setIsPinning(null);
-      setCurrentPage(1); // Reset to page 1 so user sees the pinned note at top
     }
   };
 

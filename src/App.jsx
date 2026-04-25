@@ -15,8 +15,8 @@ import {
   CandlestickChart, LayoutDashboard, BrainCircuit, AlertTriangle, Diamond, BoxSelect, Trophy,
   Compass, BarChartHorizontal, CalendarRange, Signal, BarChart3, IndianRupee,
   Terminal, AlertCircle, Lightbulb, ListChecks, CheckSquare,
-  ArrowRightCircle, Sparkles as SparklesIcon,
-  Smile, Play, ShieldAlert, LogOut
+  ArrowRightCircle, Sparkles as SparklesIcon, Plus,
+  Smile, Play, ShieldAlert, LogOut, ZapOff as ZapOffIcon
 } from 'lucide-react';
 
 import Card from './components/Card';
@@ -44,6 +44,22 @@ import TradeArchiveCarousel from './components/Common/TradeArchiveCarousel';
 import { useTradeData } from './hooks/useTradeData';
 
 
+
+
+const Badge = ({ children, color = "indigo" }) => {
+  const colors = {
+    emerald: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+    rose: "bg-rose-500/10 border-rose-500/20 text-rose-400",
+    indigo: "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
+    amber: "bg-amber-500/10 border-amber-500/20 text-amber-400",
+    slate: "bg-slate-500/10 border-slate-500/20 text-slate-400"
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${colors[color] || colors.indigo}`}>
+      {children}
+    </span>
+  );
+};
 
 
 const App = () => {
@@ -702,9 +718,11 @@ const App = () => {
 
                   {activeTab === 'review' && (
                     <ReviewTab 
+                      user={user}
                       trades={rawTrades} 
                       snapshots={rawSnapshots} 
                       notes={notes} 
+                      setNotes={setNotes}
                     />
                   )}
 
@@ -767,7 +785,7 @@ const App = () => {
                          </Card>
 
                          <Card className="p-8">
-                           <SectionHeader icon={ZapOff} title="Errors" color="text-rose-400" />
+                           <SectionHeader icon={ZapOffIcon} title="Errors" color="text-rose-400" />
                            <div className="h-[300px]">
                              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                <BarChart data={errors} layout="vertical" margin={{ left: 40, right: 20 }}>
@@ -785,28 +803,50 @@ const App = () => {
                      {/* Strategic Direction: Start / Continue */}
                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         <Card className="p-8 border-emerald-500/20 bg-emerald-500/5">
-                           <SectionHeader icon={Play} title="Keep" color="text-emerald-400" />
+                         <Card className="p-8 border-emerald-500/20 bg-emerald-500/5 relative overflow-hidden group">
+                           <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700 pointer-events-none">
+                             <ShieldCheck size={120} className="text-emerald-500" />
+                           </div>
+                           
+                           <div className="relative z-10">
+                             <div className="flex items-center justify-between mb-8">
+                               <SectionHeader icon={Play} title="Keep Doing" color="text-emerald-400" />
+                               <Badge color="emerald">Edge Reinforcement</Badge>
+                             </div>
                            <div className="space-y-4">
-                             {dynamicAudit.continue.map((item, i) => (
-                               <div key={i} className="flex gap-4 p-4 bg-slate-900/60 rounded-2xl border border-emerald-500/10 text-xs font-bold leading-relaxed text-emerald-100 shadow-md">
-                                 <CheckCircle size={18} className="text-emerald-500 shrink-0" />
-                                 <p>{String(item)}</p>
+                             {(dynamicAudit?.continue || []).map((item, i) => (
+                               <div key={i} className="flex gap-4 p-5 bg-slate-900/80 rounded-[2rem] border border-emerald-500/20 text-[11px] font-black uppercase tracking-tight text-emerald-100 shadow-xl hover:border-emerald-500/40 transition-all hover:translate-x-1">
+                                 <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                                   <CheckCircle size={16} className="text-emerald-400" />
+                                 </div>
+                                 <p className="leading-relaxed">{String(item)}</p>
                                </div>
                              ))}
                              {dynamicAudit.continue.length === 0 && <p className="text-center text-slate-500 py-10">No recent positive trends detected.</p>}
+                            </div>
                            </div>
                          </Card>
-                         <Card className="p-8 border-rose-500/20 bg-rose-500/5">
-                           <SectionHeader icon={ShieldAlert} title="Stop" color="text-rose-400" />
+                         <Card className="p-8 border-rose-500/20 bg-rose-500/5 relative overflow-hidden group">
+                           <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700 pointer-events-none">
+                             <ZapOff size={120} className="text-rose-500" />
+                           </div>
+
+                           <div className="relative z-10">
+                             <div className="flex items-center justify-between mb-8">
+                               <SectionHeader icon={ShieldAlert} title="Stop Doing" color="text-rose-400" />
+                               <Badge color="rose">Behavioral Debt</Badge>
+                             </div>
                            <div className="space-y-4">
-                             {dynamicAudit.start.map((item, i) => (
-                               <div key={i} className="flex gap-4 p-4 bg-slate-900/60 rounded-2xl border border-rose-500/10 text-xs font-bold leading-relaxed text-rose-100 shadow-md">
-                                 <XCircle size={18} className="text-rose-500 shrink-0" />
-                                 <p>{String(item)}</p>
+                             {(dynamicAudit?.start || []).map((item, i) => (
+                               <div key={i} className="flex gap-4 p-5 bg-slate-900/80 rounded-[2rem] border border-rose-500/20 text-[11px] font-black uppercase tracking-tight text-rose-100 shadow-xl hover:border-rose-500/40 transition-all hover:translate-x-1">
+                                 <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0">
+                                   <XCircle size={16} className="text-rose-400" />
+                                 </div>
+                                 <p className="leading-relaxed">{String(item)}</p>
                                </div>
                              ))}
                              {dynamicAudit.start.length === 0 && <p className="text-center text-slate-500 py-10">No recent behavioral leaks detected.</p>}
+                           </div>
                            </div>
                          </Card>
                        </div>
@@ -897,9 +937,8 @@ const App = () => {
                       </Motion.div>
                       {/* NEW FEATURE END */}
 
-                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-
-                       <Card className="p-8 border-t border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
+                       <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                         <Card className="p-8 border-t border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
                          <SectionHeader icon={Activity} title="Scorecard" sub="Behavioral Grade Summary" />
                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 pt-2">
                            <ScoreBar label="Risk Management" score={scores.risk || 0} color="text-amber-400" />
@@ -1008,38 +1047,85 @@ const App = () => {
                             const yNum = parseInt(yStr);
                             const firstDayOfMonth = new Date(Date.UTC(yNum, mIdx, 1)).getUTCDay();
                             const daysInMonth = new Date(Date.UTC(yNum, mIdx + 1, 0)).getUTCDate();
-
                             return (
-                              <div key={monthStr} className="animate-in fade-in duration-500">
-                                <h4 className="text-sm font-black text-slate-400 uppercase mb-4">{monthStr}</h4>
-                                <div className="grid grid-cols-7 gap-2">
-                                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="text-center text-[10px] font-black text-slate-600 uppercase pb-2">{d}</div>)}
-                                  {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} className="h-24 bg-transparent" />)}
+                              <div key={monthStr} className="animate-in fade-in duration-700">
+                                <div className="flex items-center gap-3 mb-6">
+                                  <div className="h-px flex-1 bg-white/5" />
+                                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] px-4 py-1 rounded-full border border-white/5 bg-white/[0.02]">{monthStr}</h4>
+                                  <div className="h-px flex-1 bg-white/5" />
+                                </div>
+                                
+                                <div className="grid grid-cols-7 gap-2 sm:gap-4">
+                                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                                    <div key={d} className="text-center py-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-600">
+                                      {d}
+                                    </div>
+                                  ))}
+                                  
+                                  {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                                    <div key={`empty-${i}`} className="h-20 sm:h-32 bg-transparent" />
+                                  ))}
+                                  
                                   {Array.from({ length: daysInMonth }).map((_, i) => {
                                     const dayNum = i + 1;
                                     const dateKey = `${yNum}-${String(mIdx + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
                                     const dayVal = (hierarchical.dateData || {})[dateKey] || { pl: 0, count: 0 };
-                                    let bgColor, borderColor, textColor;
+                                    const hasActivity = dayVal.count > 0;
+                                    
+                                    let isPos = dayVal.pl >= 0;
+                                    let intensity = 0;
+                                    
                                     if (heatmapMode === 'pnl') {
-                                      const intensity = Math.max(0.1, (Math.abs(dayVal.pl) / (maxDayAbsVal || 1)));
-                                      bgColor = dayVal.pl > 0 ? `rgba(16, 185, 129, ${intensity})` : dayVal.pl < 0 ? `rgba(244, 63, 94, ${intensity})` : 'rgba(30, 41, 59, 0.3)';
-                                      borderColor = dayVal.pl !== 0 ? (dayVal.pl > 0 ? '#10b981' : '#f43f5e') : '#1e293b';
-                                      textColor = dayVal.pl !== 0 ? 'text-white' : 'text-slate-600';
+                                      intensity = Math.max(0.1, (Math.abs(dayVal.pl) / (maxDayAbsVal || 1)));
                                     } else {
-                                      const intensity = Math.min(1, dayVal.count / (metrics.maxTradesInDay || 1));
-                                      bgColor = dayVal.count > 0 ? `rgba(59, 130, 246, ${0.2 + intensity * 0.8})` : 'rgba(30, 41, 59, 0.3)';
-                                      borderColor = dayVal.count > 0 ? '#3b82f6' : '#1e293b';
-                                      textColor = dayVal.count > 0 ? 'text-white' : 'text-slate-600';
+                                      intensity = Math.min(1, dayVal.count / (metrics.maxTradesInDay || 1));
                                     }
+
                                     return (
-                                      <Card key={i} className="h-24 p-3 flex flex-col justify-between" style={{ backgroundColor: bgColor, borderColor: borderColor }}>
-                                        <span className={`text-xs font-black ${textColor === 'text-white' ? 'text-white/50' : 'text-slate-200'}`}>{dayNum}</span>
-                                        <div className={`flex-1 flex items-center justify-center`}>
-                                          {heatmapMode === 'frequency' && dayVal.count > 0 && <span className="text-2xl font-black text-white drop-shadow-lg animate-in zoom-in duration-300">{String(dayVal.count)}</span>}
-                                          {heatmapMode === 'pnl' && dayVal.pl !== 0 && <span className="text-[10px] font-black text-white text-center drop-shadow-md">{formatCurrency(dayVal.pl)}</span>}
+                                      <Motion.div
+                                        key={i}
+                                        whileHover={hasActivity ? { y: -4, scale: 1.02 } : {}}
+                                        className={`
+                                          relative h-20 sm:h-32 rounded-xl sm:rounded-[2rem] border transition-all duration-300 group
+                                          ${!hasActivity ? 'bg-slate-950/20 border-white/5' : 'bg-slate-900/40 backdrop-blur-xl border-white/10 hover:border-journal-gold/30 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)]'}
+                                        `}
+                                      >
+                                        {hasActivity && (
+                                          <div 
+                                            className="absolute inset-0 rounded-xl sm:rounded-[2rem] opacity-20 group-hover:opacity-40 transition-opacity"
+                                            style={{ 
+                                              background: heatmapMode === 'pnl' 
+                                                ? (isPos ? `radial-gradient(circle at 50% 0%, #10b98130, transparent)` : `radial-gradient(circle at 50% 0%, #f43f5e30, transparent)`)
+                                                : `radial-gradient(circle at 50% 0%, #6366f130, transparent)`
+                                            }} 
+                                          />
+                                        )}
+
+                                        <div className="relative z-10 p-2 sm:p-4 h-full flex flex-col justify-between">
+                                          <span className={`text-[10px] sm:text-xs font-black ${hasActivity ? 'text-white' : 'text-slate-700'}`}>
+                                            {dayNum}
+                                          </span>
+
+                                          {hasActivity && (
+                                            <div className="flex flex-col items-center sm:items-start">
+                                              {heatmapMode === 'pnl' ? (
+                                                <p className={`text-[9px] sm:text-xl font-black italic tracking-tighter ${isPos ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'text-rose-400 drop-shadow-[0_0_10px_rgba(244,63,94,0.3)]'}`}>
+                                                  {isPos ? '+' : ''}{Math.round(dayVal.pl).toLocaleString()}
+                                                </p>
+                                              ) : (
+                                                <p className="text-lg sm:text-3xl font-black text-white italic tracking-tighter drop-shadow-lg">
+                                                  {dayVal.count}
+                                                </p>
+                                              )}
+                                              
+                                              <div className="flex items-center gap-1.5 mt-1 sm:mt-2">
+                                                <div className={`w-1 h-1 rounded-full ${isPos ? 'bg-emerald-500' : 'bg-rose-500'} animate-pulse`} />
+                                                <span className="text-[7px] sm:text-[9px] font-black text-slate-500 uppercase tracking-widest">{dayVal.count} TDS</span>
+                                              </div>
+                                            </div>
+                                          )}
                                         </div>
-                                        <div className="text-right">{dayVal.count > 0 && <span className={`text-[8px] font-black block ${heatmapMode === 'frequency' ? 'text-blue-200' : 'text-slate-400'}`}>{String(dayVal.count)}T</span>}</div>
-                                      </Card>
+                                      </Motion.div>
                                     );
                                   })}
                                 </div>
@@ -1286,17 +1372,17 @@ const App = () => {
                  )}
                </div>
              )}
-           </Motion.main>
-         )}
-         <footer className="mt-20 py-8 border-t border-[#00f2fe]/10 text-center font-bold uppercase text-[10px] tracking-[0.3em] text-slate-600 drop-shadow-[0_0_8px_rgba(0,198,255,0.2)]">TraderDashboard Institutional v2.0</footer>
-       </div>
-       <style>{`.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }`}</style>
-       <AnimatePresence>
-       </AnimatePresence>
+          </Motion.main>
+        )}
+        <footer className="mt-20 py-8 border-t border-[#00f2fe]/10 text-center font-bold uppercase text-[10px] tracking-[0.3em] text-slate-600 drop-shadow-[0_0_8px_rgba(0,198,255,0.2)]">TraderDashboard Institutional v2.0</footer>
+      </div>
+      <style>{`.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }`}</style>
+      <AnimatePresence>
+      </AnimatePresence>
       <UtilityHub user={user} trades={rawTrades} snapshots={rawSnapshots} notes={notes} />
     </div>
   </AuthShield>
-    );
-  };
- 
- export default App;
+  );
+};
+
+export default App;

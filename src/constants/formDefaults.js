@@ -126,7 +126,7 @@ export const mapNoteToForm = (editingNote) => {
     date: dateStr,
     content: editingNote['Note'] || editingNote.content || '',
     category: editingNote['Select'] || editingNote.category || '',
-    isPinned: !!(editingNote['Pin'] === 'true' || editingNote.isPinned || editingNote.pinned),
+    isPinned: editingNote['Pin'] === 'Yes' || editingNote['Pin'] === 'true' || editingNote.isPinned === true || editingNote.pinned === true,
     source: editingNote['Source '] || editingNote.source || ''
   };
 };
