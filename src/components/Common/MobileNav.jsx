@@ -17,13 +17,13 @@ const MobileNav = ({ activeSection, setActiveSection }) => {
             key={tab.id}
             onClick={() => setActiveSection(tab.id)}
             className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-300 relative ${
-              activeSection === tab.id ? 'text-indigo-400' : 'text-slate-500'
+              activeSection === tab.id ? 'text-journal-gold' : 'text-journal-text-muted'
             }`}
           >
             {activeSection === tab.id && (
               <Motion.div
                 layoutId="active-nav-glow"
-                className="absolute top-0 w-12 h-1 bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full shadow-[0_4px_12px_rgba(99,102,241,0.5)]"
+                className="absolute top-0 w-12 h-1 bg-gradient-to-r from-journal-gold to-amber-500 rounded-full shadow-[0_4px_12px_rgba(212,175,55,0.4)]"
               />
             )}
             <tab.icon size={20} className={activeSection === tab.id ? 'glow-text' : ''} />

@@ -412,7 +412,7 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote, user, setNotes }) 
 
                       if (col.key === 'category' && val) {
                          const colorMap = {
-                            "Observation's": "bg-indigo-500/10 border-indigo-500/30 text-indigo-400",
+                            "Observation's": "bg-journal-gold/10 border-journal-gold/30 text-journal-gold",
                             "Important Learnings": "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
                             "Most Repeated Mistakes": "bg-rose-500/10 border-rose-500/30 text-rose-400"
                          };

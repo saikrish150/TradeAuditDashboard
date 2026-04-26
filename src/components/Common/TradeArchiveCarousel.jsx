@@ -39,7 +39,7 @@ const TradeArchiveCarousel = ({ images }) => {
           {images.map((_, i) => (
             <div 
               key={i} 
-              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === index ? 'bg-indigo-400 w-4' : 'bg-white/20'}`}
+              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === index ? 'bg-journal-gold w-4' : 'bg-white/20'}`}
             />
           ))}
         </div>
@@ -47,7 +47,7 @@ const TradeArchiveCarousel = ({ images }) => {
       
       {/* Count Badge */}
       {images.length > 1 && (
-        <div className="absolute top-3 right-3 bg-indigo-600/90 backdrop-blur-sm text-[10px] font-black px-2 py-0.5 rounded-md border border-indigo-400/50 text-white uppercase tracking-tighter">
+        <div className="absolute top-3 right-3 bg-journal-gold/90 backdrop-blur-sm text-[10px] font-black px-2 py-0.5 rounded-md border border-journal-gold/50 text-journal-bg uppercase tracking-tighter">
           {images.length} Charts
         </div>
       )}

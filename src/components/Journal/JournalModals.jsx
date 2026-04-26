@@ -375,9 +375,9 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
                   onClick={() => setFormData({...formData, direction: d})}
                   className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
                     formData.direction === d 
-                    ? (d === 'LONG' ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 
-                       d === 'SHORT' ? 'bg-red-500/10 border-journal-red text-journal-red' : 
-                       'bg-amber-500/10 border-amber-500 text-amber-500')
+                    ? (d === 'LONG' ? 'bg-journal-green/10 border-journal-green text-journal-green' : 
+                       d === 'SHORT' ? 'bg-journal-red/10 border-journal-red text-journal-red' : 
+                       'bg-journal-gold/10 border-journal-gold text-journal-gold')
                     : 'bg-slate-950/30 border-slate-800 text-slate-600 hover:border-slate-700'
                   }`}
                 >

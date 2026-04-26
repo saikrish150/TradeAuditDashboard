@@ -37,7 +37,7 @@ const Badge = ({ children, color = "journal-gold" }) => {
     slate: "bg-white/5 border-white/10 text-journal-text-muted"
   };
   return (
-    <span className={`px-2 py-1 rounded-md text-[8px] font-black uppercase border transition-all ${colors[color] || colors.indigo}`}>
+    <span className={`px-2 py-1 rounded-md text-[9px] md:text-[8px] font-black uppercase border transition-all ${colors[color] || colors.indigo}`}>
       {children}
     </span>
   );
@@ -48,8 +48,8 @@ const DataField = ({ label, value, icon: Icon, color = "slate", isMultiline = fa
     emerald: "text-emerald-400",
     rose: "text-rose-400",
     slate: "text-slate-400",
-    amber: "text-amber-400",
-    indigo: "text-indigo-400"
+    amber: "text-journal-gold",
+    indigo: "text-journal-gold"
   };
 
   const currentColor = colorMap[color] || colorMap.slate;
@@ -59,10 +59,10 @@ const DataField = ({ label, value, icon: Icon, color = "slate", isMultiline = fa
       <div className="py-1.5 space-y-1">
         <div className="flex items-center gap-1.5 opacity-60">
           <Icon size={10} className={currentColor} />
-          <span className="text-[7px] font-black uppercase tracking-widest text-white/50">{label}</span>
+          <span className="text-[8px] md:text-[7px] font-black uppercase tracking-widest text-white/50">{label}</span>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-2">
-          <p className="text-[10px] leading-snug text-slate-100">
+          <p className="text-[11px] md:text-[10px] leading-snug text-slate-100">
             {value || '—'}
           </p>
         </div>
@@ -76,7 +76,7 @@ const DataField = ({ label, value, icon: Icon, color = "slate", isMultiline = fa
         <div className={`w-6 h-6 rounded-lg flex items-center justify-center bg-white/5 border border-white/10 ${currentColor} opacity-80 group-hover/field:opacity-100 transition-all`}>
           <Icon size={11} />
         </div>
-        <p className={`text-[10px] font-black uppercase tracking-tighter ${variant === 'highlight' ? 'text-white' : 'text-slate-100'}`}>
+        <p className={`text-[11px] md:text-[10px] font-black uppercase tracking-tighter ${variant === 'highlight' ? 'text-white' : 'text-slate-100'}`}>
           {value || '—'}
         </p>
       </div>
@@ -891,7 +891,7 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
                     </div>
                     <div className="flex gap-2">
                       {galleryType === 'trades' && item.direction && (
-                        <Badge color={String(item.direction).toLowerCase() === 'long' ? 'indigo' : 'rose'}>
+                        <Badge color={String(item.direction).toLowerCase() === 'long' ? 'journal-green' : 'journal-red'}>
                           {String(item.direction).toUpperCase()}
                         </Badge>
                       )}
@@ -904,7 +904,7 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
 
                   {galleryType === 'trades' ? (
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
-                      {item.emotion && <Badge color="indigo">{String(item.emotion)}</Badge>}
+                      {item.emotion && <Badge color="journal-gold">{String(item.emotion)}</Badge>}
                       {item.tradeQuality && <Badge color="amber">Grade: {String(item.tradeQuality)}</Badge>}
                     </div>
                   ) : (
@@ -948,44 +948,44 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
               className="absolute inset-0 z-[11000] flex flex-col pointer-events-none"
             >
               {/* Close Button - Overlay */}
-              <div className="absolute top-6 right-6 z-50 pointer-events-auto">
+              <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50 pointer-events-auto">
                 <button
                   onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
-                  className="p-4 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 text-white/50 hover:text-white hover:bg-rose-500/40 transition-all shadow-2xl group"
+                  className="p-3 md:p-4 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 text-white/50 hover:text-white hover:bg-rose-500/40 transition-all shadow-2xl group"
                 >
-                  <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
+                  <X size={20} className="md:w-6 md:h-6 group-hover:rotate-90 transition-transform duration-300" />
                 </button>
               </div>
 
               {/* Main Content Split: 80% Image / 20% Data */}
-              <div className="flex-1 flex gap-0 min-h-0 pointer-events-auto">
+              <div className="flex-1 flex flex-col md:flex-row gap-0 min-h-0 pointer-events-auto overflow-y-auto md:overflow-hidden">
                 
                 {/* Left Column: Image (80%) */}
-                <div className="flex-[8] relative group/viewer overflow-hidden border-r border-white/10 bg-black/20 flex items-center justify-center m-6 rounded-[2rem] border border-white/10 shadow-2xl">
+                <div className="flex-none md:flex-[8] h-[50vh] md:h-auto relative group/viewer overflow-hidden md:border-r border-white/10 bg-black/20 flex items-center justify-center m-2 md:m-6 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl">
                   {/* Navigation Arrows (Hover) */}
                   <button 
                     onClick={(e) => { e.stopPropagation(); const idx = allGalleryItems.findIndex(l => l.url === lightbox.url); if (idx > 0) setLightbox(allGalleryItems[idx - 1]); else setLightbox(allGalleryItems[allGalleryItems.length - 1]); }}
-                    className="absolute left-6 p-4 rounded-2xl bg-black/50 hover:bg-black/70 border border-white/5 text-white/20 hover:text-white transition-all z-20 opacity-0 group-hover/viewer:opacity-100 backdrop-blur-md"
+                    className="absolute left-2 md:left-6 p-2 md:p-4 rounded-xl md:rounded-2xl bg-black/50 hover:bg-black/70 border border-white/5 text-white/50 md:text-white/20 hover:text-white transition-all z-20 md:opacity-0 md:group-hover/viewer:opacity-100 backdrop-blur-md"
                   >
-                    <ChevronLeft size={32} />
+                    <ChevronLeft size={24} className="md:w-8 md:h-8" />
                   </button>
 
                   <img 
                     src={lightbox.url} 
                     alt="Audit Workspace" 
-                    className="max-h-full max-w-full object-contain p-8" 
+                    className="max-h-full max-w-full object-contain p-4 md:p-8" 
                   />
 
                   <button 
                     onClick={(e) => { e.stopPropagation(); const idx = allGalleryItems.findIndex(l => l.url === lightbox.url); if (idx < allGalleryItems.length - 1) setLightbox(allGalleryItems[idx + 1]); else setLightbox(allGalleryItems[0]); }}
-                    className="absolute right-6 p-4 rounded-2xl bg-black/50 hover:bg-black/70 border border-white/5 text-white/20 hover:text-white transition-all z-20 opacity-0 group-hover/viewer:opacity-100 backdrop-blur-md"
+                    className="absolute right-2 md:right-6 p-2 md:p-4 rounded-xl md:rounded-2xl bg-black/50 hover:bg-black/70 border border-white/5 text-white/50 md:text-white/20 hover:text-white transition-all z-20 md:opacity-0 md:group-hover/viewer:opacity-100 backdrop-blur-md"
                   >
-                    <ChevronRight size={32} />
+                    <ChevronRight size={24} className="md:w-8 md:h-8" />
                   </button>
                 </div>
 
                 {/* Right Column: Data Sidebar (20%) */}
-                <div className="flex-[2] flex flex-col bg-slate-950/60 backdrop-blur-3xl overflow-hidden m-6 ml-0 rounded-[2rem] border border-white/10 shadow-2xl">
+                <div className="flex-1 md:flex-[2] flex flex-col bg-slate-950/60 backdrop-blur-3xl overflow-hidden m-2 md:m-6 md:ml-0 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl mb-12 md:mb-6">
 
 
                   <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-1">

@@ -488,7 +488,7 @@ const App = () => {
               onClick={() => setShowMobileFilters(!showMobileFilters)}
               className="md:hidden p-2.5 rounded-xl modern-glass border border-white/10 text-slate-400 active:scale-95 transition-all"
             >
-              <Filter size={18} className={showMobileFilters ? 'text-indigo-400' : ''} />
+              <Filter size={18} className={showMobileFilters ? 'text-journal-gold' : ''} />
             </button>
           </div>
 
@@ -544,7 +544,7 @@ const App = () => {
               >
                 <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6" />
                 <h3 className="text-xl font-black uppercase tracking-widest mb-6 flex items-center gap-3">
-                   <Filter className="text-indigo-400" /> Filters
+                   <Filter className="text-journal-gold" /> Filters
                 </h3>
                 <div className="flex flex-col gap-4">
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
@@ -645,25 +645,25 @@ const App = () => {
 
         {loading ? (
           <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6">
-            <div className="w-16 h-16 border-t-2 border-indigo-500 rounded-full animate-spin shadow-[0_0_20px_rgba(99,102,241,0.3)]" />
+            <div className="w-16 h-16 border-t-2 border-journal-gold rounded-full animate-spin shadow-[0_0_20px_rgba(212,175,55,0.3)]" />
             <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Syncing Cloud Terminal...</p>
           </div>
         ) : (!rawTrades || rawTrades.length === 0) && !isParsing ? (
           <div className="min-h-[400px] flex items-center justify-center p-6 text-center">
             <Card className="max-w-xl w-full p-12 border-dashed border-2 border-slate-800">
-              <div className="w-20 h-20 bg-indigo-600/10 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse"><Signal className="text-indigo-500" size={40} /></div>
-              <h1 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase italic leading-none">Trader<span className="text-indigo-500">Dashboard</span> Cloud</h1>
+              <div className="w-20 h-20 bg-journal-gold/10 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse"><Signal className="text-journal-gold" size={40} /></div>
+              <h1 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase italic leading-none">Trader<span className="text-journal-gold">Dashboard</span> Cloud</h1>
               <p className="text-slate-400 mb-10 text-xs font-bold uppercase tracking-[0.2em]">Institutional Performance Terminal (Connected)</p>
               <button 
                 onClick={() => setActiveSection('journal')}
-                className="inline-flex items-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-4 rounded-2xl cursor-pointer font-black text-xs uppercase tracking-[0.2em] transition-all shadow-2xl shadow-indigo-600/20"
+                className="inline-flex items-center gap-3 bg-journal-gold hover:bg-journal-gold/90 text-journal-bg px-10 py-4 rounded-2xl cursor-pointer font-black text-xs uppercase tracking-[0.2em] transition-all shadow-2xl shadow-journal-gold/20"
               >
                 <Plus size={18} /> Start Journaling
               </button>
             </Card>
           </div>
         ) : processedData?.isEmpty ? (
-          <div className="h-[400px] flex flex-col items-center justify-center gap-4"><Search size={48} className="text-slate-800" /><p className="text-slate-500 uppercase font-black text-xs tracking-[0.2em]">No data found for this selection.</p><button onClick={() => { setSelectedYear('All'); setSelectedMonth('All'); setDatePreset('CurrentMonth'); }} className="text-[10px] font-black uppercase text-indigo-400 underline">Reset Filters</button></div>
+          <div className="h-[400px] flex flex-col items-center justify-center gap-4"><Search size={48} className="text-slate-800" /><p className="text-slate-500 uppercase font-black text-xs tracking-[0.2em]">No data found for this selection.</p><button onClick={() => { setSelectedYear('All'); setSelectedMonth('All'); setDatePreset('CurrentMonth'); }} className="text-[10px] font-black uppercase text-journal-gold underline">Reset Filters</button></div>
         ) : (
           <Motion.main
             initial={{ opacity: 0, y: 20 }}

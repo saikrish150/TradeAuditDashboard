@@ -73,7 +73,7 @@ const AuditLedgerCard = ({ snapshot, index }) => {
        {/* Audit Table Rows */}
        <div className="flex flex-col gap-1.5">
           <AuditRow icon={BookOpen} label="Strategy" followed={s?.rulesFollowedBool} activeColor="text-emerald-400" />
-          <AuditRow icon={Brain} label="Emotions" followed={s?.emotionsInControlBool} activeColor="text-indigo-400" />
+          <AuditRow icon={Brain} label="Emotions" followed={s?.emotionsInControlBool} activeColor="text-journal-gold" />
           <AuditRow icon={Target} label="Adherence" followed={s?.setupFollowedBool} activeColor="text-journal-gold" />
        </div>
 
@@ -166,8 +166,8 @@ const HabitTracker = ({ snapshots = [] }) => {
         {/* Global HUD Metrics */}
         <div className="flex flex-wrap items-center gap-3 bg-slate-950/20 p-2 rounded-2xl border border-white/5 backdrop-blur-xl">
           <StatPill icon={ShieldCheck} label="Compliance" value={filteredStats.ruleRate} colorClass="bg-emerald-500 text-emerald-400" />
-          <StatPill icon={Smile} label="Equilibrium" value={filteredStats.emotionRate} colorClass="bg-indigo-400 text-indigo-400" />
-          <StatPill icon={Target} label="Adherence" value={filteredStats.setupRate} colorClass="bg-amber-500 text-amber-500" />
+          <StatPill icon={Smile} label="Equilibrium" value={filteredStats.emotionRate} colorClass="bg-journal-gold text-journal-gold" />
+          <StatPill icon={Target} label="Adherence" value={filteredStats.setupRate} colorClass="bg-journal-gold text-journal-gold" />
           
           <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 group transition-all hover:border-slate-600">
              <select 
