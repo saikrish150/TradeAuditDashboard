@@ -283,7 +283,7 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote, user, setNotes }) 
                     onClick={() => setActiveFilterPopup(activeFilterPopup === col.key ? null : col.key)}
                     className={`
                       px-6 py-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 border-b border-white/5 cursor-pointer hover:text-journal-gold transition-colors relative group/th
-                      ${col.sticky ? 'sticky left-0 z-20 bg-journal-bg' : ''}
+                      ${col.sticky ? 'md:sticky md:left-0 z-10 md:z-20 md:bg-journal-bg' : 'z-10'}
                       ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : ''}
                       ${filters.some(f => f.field === col.key) || (col.type === 'date' && (customDateRange.start || customDateRange.end)) ? 'text-journal-gold' : ''}
                     `}
@@ -509,7 +509,7 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote, user, setNotes }) 
                       <td 
                         key={col.key} 
                         onClick={() => col.key === 'content' && setViewingText({ title: `${n.category || 'Journal'} Entry - ${n.date}`, content: val })}
-                        className={`px-6 py-4 border-b border-white/[0.02] ${col.sticky ? 'sticky left-0 z-10 bg-journal-bg shadow-[2px_0_10px_rgba(0,0,0,0.5)]' : ''} ${col.align === 'center' ? 'text-center' : ''} ${col.key === 'content' ? 'cursor-pointer' : ''}`}
+                        className={`px-6 py-4 border-b border-white/[0.02] ${col.sticky ? 'md:sticky md:left-0 z-10 md:bg-journal-bg md:shadow-[2px_0_10px_rgba(0,0,0,0.5)]' : ''} ${col.align === 'center' ? 'text-center' : ''} ${col.key === 'content' ? 'cursor-pointer' : ''}`}
                       >
                         {renderCell()}
                       </td>

@@ -8,7 +8,7 @@ import {
   TrendingUp, TrendingDown, Activity, Calendar, Clock,
   Target, Shield, Zap, Skull, Award, ArrowUpRight, ArrowDownRight,
   Briefcase, Hash, BarChart2, DollarSign,
-  Info, CheckCircle2, XCircle, ChevronLeft,
+  Info, CheckCircle2, XCircle, ChevronLeft, ChevronDown,
   Brain, History, Scale, Upload, FileSpreadsheet,
   XOctagon, ArrowUpCircle, CheckCircle, Search, ShieldCheck, Filter, Hammer, Footprints, ArrowRight,
   CalendarDays, BookOpen, Flame, ZapOff, Layers, Globe, HeartPulse, Timer, Book,
@@ -39,6 +39,7 @@ import BackgroundQuotes from './components/BackgroundQuotes';
 // Extracted Components
 import MobileNav from './components/Common/MobileNav';
 import TradeArchiveCarousel from './components/Common/TradeArchiveCarousel';
+import { CustomSelect } from './components/Common/CustomSelect';
 
 // Hooks
 import { useTradeData } from './hooks/useTradeData';
@@ -58,6 +59,56 @@ const Badge = ({ children, color = "indigo" }) => {
     <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${colors[color] || colors.indigo}`}>
       {children}
     </span>
+  );
+};
+
+const CustomMobileSelect = ({ value, options, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedLabel = options.find(o => o.value === value)?.label || value;
+
+  // Handle clicking outside to close
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.custom-select-container')) setIsOpen(false);
+    };
+    if (isOpen) window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div className="relative custom-select-container">
+      <div 
+        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+        className="flex items-center gap-2 cursor-pointer bg-slate-950/80 hover:bg-black px-3 py-2 rounded-xl border border-white/10 shadow-inner transition-colors"
+      >
+        <span className="text-slate-100 text-[11px] font-black uppercase tracking-widest">{selectedLabel}</span>
+        <ChevronDown size={14} className={`text-journal-gold transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <Motion.div 
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="absolute right-0 top-full mt-2 min-w-[180px] bg-[#0c0c0c]/95 backdrop-blur-2xl border border-journal-gold/30 rounded-2xl overflow-hidden shadow-2xl shadow-black/80 z-[200]"
+          >
+            <div className="max-h-[250px] overflow-y-auto no-scrollbar py-2 flex flex-col gap-1 px-2">
+              {options.map((opt) => (
+                <div 
+                  key={opt.value}
+                  onClick={(e) => { e.stopPropagation(); onChange(opt.value); setIsOpen(false); }}
+                  className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all ${value === opt.value ? 'bg-journal-gold/20 text-journal-gold shadow-sm border border-journal-gold/30' : 'text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'}`}
+                >
+                  {opt.label}
+                </div>
+              ))}
+            </div>
+          </Motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 
@@ -454,26 +505,17 @@ const App = () => {
       <div className="max-w-7xl mx-auto relative">
         <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 relative">
           <div className="flex items-center gap-6 z-20 w-full md:w-auto justify-between md:justify-start">
-            <div className="flex items-center gap-5">
-              <div className="relative group p-0.5 rounded-2xl overflow-hidden active-glow">
-                <div className="absolute inset-0 bg-gradient-to-br from-journal-gold via-transparent to-journal-red opacity-30 group-hover:opacity-50 transition-opacity" />
-                <div className="w-14 h-14 md:w-16 md:h-16 bg-journal-bg rounded-[1.2rem] flex items-center justify-center relative z-10 overflow-hidden border border-white/10">
-                  <img src="/logo.png" alt="TD Logo" className="w-10 h-10 md:w-12 md:h-12 object-contain filter drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]" />
-                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-journal-red/10 to-transparent" />
-                </div>
-              </div>
+            <div className="flex items-center gap-3">
 
               <div className="flex flex-col">
                 <div className="flex items-baseline gap-2">
-                  <h1 className="text-xl md:text-2xl font-black tracking-[0.4em] uppercase text-white italic drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">Trader</h1>
+                  <h1 className="text-lg md:text-xl font-black tracking-[0.4em] uppercase text-white italic drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">Trader</h1>
                 </div>
                 <div className="flex items-center gap-3">
-                   <h2 className="text-2xl md:text-4xl font-black italic tracking-tighter uppercase leading-none glow-text text-transparent bg-clip-text bg-gradient-to-r from-journal-gold via-white to-journal-gold">Dashboard</h2>
+                   <h2 className="text-xl md:text-3xl font-black italic tracking-tighter uppercase leading-none glow-text text-transparent bg-clip-text bg-gradient-to-r from-journal-gold via-white to-journal-gold pr-2">Dashboard</h2>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-4">
               <button 
                 onClick={() => authService.signOut()}
                 className="modern-glass p-2.5 text-journal-text-secondary hover:text-journal-red transition-all flex items-center justify-center border border-white/5 active:scale-95 group/logout"
@@ -483,17 +525,19 @@ const App = () => {
               </button>
             </div>
 
-            {/* Mobile Filter Trigger */}
-            <button 
-              onClick={() => setShowMobileFilters(!showMobileFilters)}
-              className="md:hidden p-2.5 rounded-xl modern-glass border border-white/10 text-slate-400 active:scale-95 transition-all"
-            >
-              <Filter size={18} className={showMobileFilters ? 'text-journal-gold' : ''} />
-            </button>
+            {/* Mobile Filter Trigger - only visible on audit tab */}
+            {activeSection === 'audit' && (
+              <button 
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                className="md:hidden p-2.5 rounded-xl modern-glass border border-white/10 text-slate-400 active:scale-95 transition-all"
+              >
+                <Filter size={18} className={showMobileFilters ? 'text-journal-gold' : ''} />
+              </button>
+            )}
           </div>
 
           {rawTrades.length > 0 && (
-            <div className="flex bg-journal-secondary/50 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md overflow-x-auto scrollbar-hide no-scrollbar w-full md:w-auto relative z-20">
+            <div className="hidden md:flex bg-journal-secondary/50 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md overflow-x-auto scrollbar-hide no-scrollbar w-full md:w-auto relative z-20">
               {[
                 { id: 'alerts', label: 'Trade Alerts', icon: Signal },
                 { id: 'journal', label: 'Trade Journal', icon: History },
@@ -549,35 +593,53 @@ const App = () => {
                 <div className="flex flex-col gap-4">
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
                     <span className="text-xs font-black uppercase text-slate-500 tracking-widest">Timeframe</span>
-                    <select value={datePreset} onChange={(e) => setDatePreset(e.target.value)} className="bg-transparent text-slate-100 text-xs font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none text-right">
-                      <option className="bg-slate-950" value="All">All Time</option>
-                      <option className="bg-slate-950" value="CurrentMonth">Current Month</option>
-                      <option className="bg-slate-950" value="30">Past 30 Days</option>
-                      <option className="bg-slate-950" value="60">Past 60 Days</option>
-                      <option className="bg-slate-950" value="90">Past 90 Days</option>
-                      <option className="bg-slate-950" value="Custom">Custom Range</option>
-                    </select>
+                    <CustomMobileSelect
+                      value={datePreset}
+                      onChange={setDatePreset}
+                      options={[
+                        { value: 'All', label: 'All Time' },
+                        { value: 'CurrentMonth', label: 'Current Month' },
+                        { value: '30', label: 'Past 30 Days' },
+                        { value: '60', label: 'Past 60 Days' },
+                        { value: '90', label: 'Past 90 Days' },
+                        { value: 'Custom', label: 'Custom Range' },
+                      ]}
+                    />
                   </div>
+                  {datePreset === 'Custom' && (
+                    <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between gap-2">
+                      <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} onClick={(e) => e.target.showPicker?.()} className="bg-transparent text-slate-100 text-[11px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none flex-1" />
+                      <span className="text-slate-500 text-[11px]">TO</span>
+                      <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={(e) => e.target.showPicker?.()} className="bg-transparent text-slate-100 text-[11px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none flex-1 text-right" />
+                    </div>
+                  )}
                   
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
                     <span className="text-xs font-black uppercase text-slate-500 tracking-widest">Market</span>
-                    <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="bg-transparent text-slate-100 text-xs font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none text-right">
-                      <option className="bg-slate-950" value="All">All Types</option>
-                      <option className="bg-slate-950" value="Indian">Indian</option>
-                      <option className="bg-slate-950" value="Other">Other</option>
-                    </select>
+                    <CustomMobileSelect
+                      value={selectedCategory}
+                      onChange={setSelectedCategory}
+                      options={[
+                        { value: 'All', label: 'All Types' },
+                        { value: 'Indian', label: 'Indian' },
+                        { value: 'Other', label: 'Other' },
+                      ]}
+                    />
                   </div>
  
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
                     <span className="text-xs font-black uppercase text-slate-500 tracking-widest">Asset</span>
-                    <select value={selectedAsset} onChange={(e) => setSelectedAsset(e.target.value)} className="bg-transparent text-slate-100 text-xs font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none text-right">
-                      {(availableAssets || []).map(a => <option className="bg-slate-950" key={a} value={a}>{a === 'All' ? 'All Assets' : a}</option>)}
-                    </select>
+                    <CustomSelect
+                      value={selectedAsset}
+                      onChange={setSelectedAsset}
+                      dropdownPosition="top"
+                      options={(availableAssets || []).map(a => ({ value: a, label: a === 'All' ? 'All Assets' : a }))}
+                    />
                   </div>
                 </div>
                 <button 
                   onClick={() => setShowMobileFilters(false)}
-                  className="w-full mt-8 py-4 bg-journal-red rounded-2xl text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-journal-red/20 active:scale-95 transition-all"
+                  className="w-full mt-8 py-4 bg-journal-gold text-journal-bg rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-journal-gold/20 active:scale-95 transition-all hover:brightness-110"
                 >
                   Apply Filters
                 </button>
@@ -593,14 +655,20 @@ const App = () => {
           <div className="hidden md:flex flex-wrap items-center justify-center md:justify-end gap-2 mb-8 mt-2 relative z-10 w-full bg-transparent p-1 rounded-2xl border border-white/5">
             <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
               <Clock size={12} className="text-slate-500 ml-2" />
-              <select value={datePreset} onChange={(e) => setDatePreset(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                <option className="bg-slate-900" value="All">All Time</option>
-                <option className="bg-slate-900" value="CurrentMonth">Current Month</option>
-                <option className="bg-slate-900" value="30">Past 30 Days</option>
-                <option className="bg-slate-900" value="60">Past 60 Days</option>
-                <option className="bg-slate-900" value="90">Past 90 Days</option>
-                <option className="bg-slate-900" value="Custom">Custom Range</option>
-              </select>
+              <CustomSelect
+                value={datePreset}
+                onChange={setDatePreset}
+                className="w-32"
+                triggerClassName="bg-transparent border-none shadow-none px-1 py-0.5"
+                options={[
+                  { value: 'All', label: 'All Time' },
+                  { value: 'CurrentMonth', label: 'Current Month' },
+                  { value: '30', label: 'Past 30 Days' },
+                  { value: '60', label: 'Past 60 Days' },
+                  { value: '90', label: 'Past 90 Days' },
+                  { value: 'Custom', label: 'Custom Range' }
+                ]}
+              />
             </div>
             {datePreset === 'Custom' && (
               <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
@@ -611,31 +679,49 @@ const App = () => {
             )}
             <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
               <Globe size={12} className="text-slate-500 ml-2" />
-              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                <option className="bg-slate-900" value="All">Type: All</option>
-                <option className="bg-slate-900" value="Indian">Indian Markets</option>
-                <option className="bg-slate-900" value="Other">Other Markets</option>
-              </select>
+              <CustomSelect
+                value={selectedCategory}
+                onChange={setSelectedCategory}
+                className="w-32"
+                triggerClassName="bg-transparent border-none shadow-none px-1 py-0.5"
+                options={[
+                  { value: 'All', label: 'Type: All' },
+                  { value: 'Indian', label: 'Indian Markets' },
+                  { value: 'Other', label: 'Other Markets' }
+                ]}
+              />
             </div>
             <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
               <Hash size={12} className="text-slate-500 ml-2" />
-              <select value={selectedAsset} onChange={(e) => setSelectedAsset(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                {(availableAssets || []).map((a, idx) => <option className="bg-slate-900" key={`${a}-${idx}`} value={a}>{a === 'All' ? 'Asset: All' : a}</option>)}
-              </select>
+              <CustomSelect
+                value={selectedAsset}
+                onChange={setSelectedAsset}
+                className="w-28"
+                triggerClassName="bg-transparent border-none shadow-none px-1 py-0.5"
+                options={(availableAssets || []).map(a => ({ value: a, label: a === 'All' ? 'Asset: All' : a }))}
+              />
             </div>
             {datePreset === 'All' && (
               <>
                 <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
                   <Filter size={12} className="text-slate-500 ml-2" />
-                  <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                    {(availableYears || []).map((y, idx) => <option className="bg-slate-900" key={`${y}-${idx}`} value={y}>{y === 'All' ? 'Year: All' : y}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={selectedYear}
+                    onChange={setSelectedYear}
+                    className="w-24"
+                    triggerClassName="bg-transparent border-none shadow-none px-1 py-0.5"
+                    options={(availableYears || []).map(y => ({ value: y, label: y === 'All' ? 'Year: All' : y }))}
+                  />
                 </div>
                 <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
                   <CalendarDays size={12} className="text-slate-500 ml-2" />
-                  <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer pr-2 [color-scheme:dark] border-none">
-                    {(availableMonths || []).map((m, idx) => <option className="bg-slate-900" key={`${m}-${idx}`} value={m}>{m === 'All' ? 'Month: All' : m}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={selectedMonth}
+                    onChange={setSelectedMonth}
+                    className="w-28"
+                    triggerClassName="bg-transparent border-none shadow-none px-1 py-0.5"
+                    options={(availableMonths || []).map(m => ({ value: m, label: m === 'All' ? 'Month: All' : m }))}
+                  />
                 </div>
               </>
             )}
@@ -1020,11 +1106,11 @@ const App = () => {
                       </div>
                     ) : (selectedMonth === 'All' && datePreset === 'All') ? (
                       <div className="space-y-4">
-                        <button onClick={() => setSelectedYear('All')} className="flex items-center gap-2 text-[10px] font-black uppercase text-indigo-400 hover:text-white mb-2 transition-colors"><ChevronLeft size={14} /> Back to Yearly View</button>
+                        <button onClick={() => setSelectedYear('All')} className="flex items-center gap-2 text-[10px] font-black uppercase text-journal-gold hover:text-white mb-2 transition-colors"><ChevronLeft size={14} /> Back to Yearly View</button>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                           {Object.entries(hierarchical.monthData || {}).map(([monthYear, data]) => (
-                            <Card key={monthYear} className="p-6 cursor-pointer group hover:border-indigo-500" onClick={() => setSelectedMonth(monthYear.split(' ')[0])}>
-                              <div className="flex justify-between items-center mb-2"><h4 className="text-sm font-black text-slate-400 uppercase">{String(monthYear.split(' ')[0])}</h4><ArrowRight size={14} className="text-slate-600 group-hover:text-indigo-400 transition-colors" /></div>
+                            <Card key={monthYear} className="p-6 cursor-pointer group hover:border-journal-gold/50" onClick={() => setSelectedMonth(monthYear.split(' ')[0])}>
+                              <div className="flex justify-between items-center mb-2"><h4 className="text-sm font-black text-slate-400 uppercase">{String(monthYear.split(' ')[0])}</h4><ArrowRight size={14} className="text-slate-600 group-hover:text-journal-gold transition-colors" /></div>
                               <p className={`text-lg font-mono font-bold ${data.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(data.pl)}</p>
                               <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">{String(data.count)} Trades</p>
                             </Card>
@@ -1034,10 +1120,10 @@ const App = () => {
                     ) : (
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                          {datePreset === 'All' && <button onClick={() => setSelectedMonth('All')} className="flex items-center gap-2 text-[10px] font-black uppercase text-indigo-400 hover:text-white transition-colors"><ChevronLeft size={14} /> Back to Monthly</button>}
+                          {datePreset === 'All' && <button onClick={() => setSelectedMonth('All')} className="flex items-center gap-2 text-[10px] font-black uppercase text-journal-gold hover:text-white transition-colors"><ChevronLeft size={14} /> Back to Monthly</button>}
                           <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
-                            <button onClick={() => setHeatmapMode('pnl')} className={`px-4 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all ${heatmapMode === 'pnl' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>P&L Mode</button>
-                            <button onClick={() => setHeatmapMode('frequency')} className={`px-4 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all ${heatmapMode === 'frequency' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>Volume Mode</button>
+                            <button onClick={() => setHeatmapMode('pnl')} className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${heatmapMode === 'pnl' ? 'bg-journal-gold text-journal-bg shadow-lg shadow-journal-gold/20' : 'text-slate-500 hover:text-white'}`}>P&L Mode</button>
+                            <button onClick={() => setHeatmapMode('frequency')} className={`px-4 py-1.5 text-[10px] font-black uppercase rounded-md transition-all ${heatmapMode === 'frequency' ? 'bg-journal-gold text-journal-bg shadow-lg shadow-journal-gold/20' : 'text-slate-500 hover:text-white'}`}>Volume Mode</button>
                           </div>
                         </div>
                         <div className="flex flex-col gap-8">

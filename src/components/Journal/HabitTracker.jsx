@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Flame, ShieldCheck, Smile, Target, Trophy, Activity, ChevronDown, Brain, BookOpen, Check, X } from 'lucide-react';
+import { CustomSelect } from '../Common/CustomSelect';
 
 const StatPill = ({ icon: Icon, label, value, colorClass, delay = 0 }) => (
   <motion.div 
@@ -139,7 +140,7 @@ const HabitTracker = ({ snapshots = [] }) => {
   return (
     <div className="mb-12 space-y-8">
       {/* Header Bar */}
-      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6 px-4">
+      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6 px-4 relative z-50">
         <div className="flex flex-wrap items-center gap-6">
            <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-journal-gold/10 border border-journal-gold/20 shadow-[0_0_15px_rgba(212,175,55,0.1)]">
@@ -169,15 +170,18 @@ const HabitTracker = ({ snapshots = [] }) => {
           <StatPill icon={Smile} label="Equilibrium" value={filteredStats.emotionRate} colorClass="bg-journal-gold text-journal-gold" />
           <StatPill icon={Target} label="Adherence" value={filteredStats.setupRate} colorClass="bg-journal-gold text-journal-gold" />
           
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 group transition-all hover:border-slate-600">
-             <select 
+          <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 transition-all hover:border-slate-600 rounded-xl">
+             <CustomSelect 
                value={timeframe} 
-               onChange={(e) => setTimeframe(parseInt(e.target.value))}
-               className="bg-transparent text-[8px] font-black text-slate-400 uppercase tracking-widest outline-none cursor-pointer appearance-none group-hover:text-white"
-             >
-               <option value={1}>1 Week Window</option><option value={2}>2 Week Window</option><option value={3}>3 Week Window</option><option value={4}>Full 4W Window</option>
-             </select>
-             <ChevronDown size={8} className="text-slate-600" />
+               onChange={(val) => setTimeframe(parseInt(val))}
+               className="w-36"
+               options={[
+                 { value: 1, label: '1 Week Window' },
+                 { value: 2, label: '2 Week Window' },
+                 { value: 3, label: '3 Week Window' },
+                 { value: 4, label: 'Full 4W Window' }
+               ]}
+             />
           </div>
         </div>
       </div>
@@ -189,8 +193,8 @@ const HabitTracker = ({ snapshots = [] }) => {
          <div className="mb-4 relative z-10" />
 
          {/* Space-Filling High-Density Grid */}
-         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 relative z-10 place-items-center">
-            {Array.from({ length: isExpanded ? 30 : (isMobile ? 4 : 10) }).map((_, i) => (
+         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 relative z-10 place-items-center">
+            {Array.from({ length: isExpanded ? 35 : (isMobile ? 2 : 7) }).map((_, i) => (
               <AuditLedgerCard key={i} snapshot={sortedSnapshots[i]} index={i} />
             ))}
          </div>

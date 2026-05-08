@@ -215,9 +215,9 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
     <div className="space-y-4 journal-glass rounded-2xl border-journal-gold/10 p-1">
       {/* Table Header Area */}
       <div className="flex flex-col gap-4 p-4 pb-2">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 w-full">
           {/* Timeline Tabs */}
-          <div className="flex bg-journal-secondary/50 p-1 rounded-xl border border-white/10 backdrop-blur-md">
+          <div className="flex flex-wrap md:flex-nowrap bg-journal-secondary/50 p-1 rounded-xl border border-white/10 backdrop-blur-md w-full xl:w-auto">
             {tabs.map(tab => (
               <button
                 key={tab}
@@ -227,7 +227,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                   if (onTabChange) onTabChange(tab);
                 }}
                 className={`
-                  px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all
+                  flex-1 md:flex-none px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap
                   ${activeTab === tab
                     ? 'bg-journal-gold text-journal-bg shadow-lg shadow-journal-gold/20'
                     : 'text-journal-text-muted hover:text-white'
@@ -239,8 +239,8 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
-             <div className="relative w-64">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto">
+             <div className="relative flex-1 sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-journal-text-muted" size={14} />
                 <input
                   type="text"
@@ -250,7 +250,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                   className="w-full bg-journal-secondary/50 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs font-bold text-white outline-none focus:border-journal-gold/30 transition-all"
                 />
              </div>
-             <div className={`px-4 py-2 rounded-xl border backdrop-blur-md flex flex-col items-end min-w-[140px] ${totalPL >= 0 ? 'border-journal-green/20 bg-journal-green/5' : 'border-journal-red/20 bg-journal-red/5'}`}>
+             <div className={`px-4 py-2 rounded-xl border backdrop-blur-md flex flex-col items-end min-w-[140px] flex-shrink-0 ${totalPL >= 0 ? 'border-journal-green/20 bg-journal-green/5' : 'border-journal-red/20 bg-journal-red/5'}`}>
                <p className="text-[7px] font-black uppercase text-journal-text-muted tracking-[0.2em]">Period Net P&L</p>
                <p className={`text-sm font-black tabular-nums leading-tight ${totalPL >= 0 ? 'text-journal-green' : 'text-journal-red'}`}>
                  {totalPL >= 0 ? '+' : ''}{formatCurrency(totalPL)}
@@ -307,7 +307,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                   }}
                   className={`
                     px-6 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-journal-text-muted cursor-pointer hover:text-journal-gold transition-colors border-b border-white/5 group/th relative
-                    ${col.sticky ? 'sticky left-0 z-20 bg-journal-bg' : 'z-10'}
+                    ${col.sticky ? 'md:sticky md:left-0 z-10 md:z-20 md:bg-journal-bg' : 'z-10'}
                     ${filters.some(f => f.field === col.key) || (col.type === 'date' && (customDateRange.start || customDateRange.end)) ? 'text-journal-gold' : ''}
                   `}
                 >
@@ -511,7 +511,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                       }}
                       onMouseLeave={() => setHoveredCell(null)}
                       // NEW FEATURE END
-                      className={`px-6 py-4 truncate max-w-[200px] ${col.sticky ? 'sticky left-0 z-10 bg-journal-bg/80 backdrop-blur-md group-hover:bg-white/[0.05]' : ''} ${(col.type === 'text' || col.key.includes('Reason') || col.key === 'reason') ? 'cursor-pointer hover:text-white' : ''}`}
+                      className={`px-6 py-4 truncate max-w-[200px] ${col.sticky ? 'md:sticky md:left-0 z-10 md:bg-journal-bg/80 md:backdrop-blur-md group-hover:bg-white/[0.05]' : ''} ${(col.type === 'text' || col.key.includes('Reason') || col.key === 'reason') ? 'cursor-pointer hover:text-white' : ''}`}
                     >
                       {renderCell()}
                     </td>

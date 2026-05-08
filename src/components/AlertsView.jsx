@@ -250,15 +250,6 @@ export const AlertsView = () => {
             </div>
 
             <button 
-              onClick={toggleUSMode} 
-              title={`Switch to ${isUSMode ? 'Global' : 'US'} Network`}
-              className={`p-2 rounded-2xl border transition-all hover:scale-105 active:scale-95 flex items-center gap-2 ${isUSMode ? 'bg-journal-red/10 text-journal-red border-journal-red/30' : 'bg-black/40 text-journal-text-muted border-white/5 hover:border-journal-gold/30'}`}
-            >
-              {isUSMode ? <Flag className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
-              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">{isUSMode ? 'US Data' : 'Global Data'}</span>
-            </button>
-
-            <button 
               onClick={() => {
                 fetchAlerts();
                 showToast('Alerts synchronized with cloud Server');
@@ -267,15 +258,6 @@ export const AlertsView = () => {
               className="p-2 rounded-2xl border transition-all bg-black/40 border-white/5 hover:border-journal-gold/30 text-journal-text-muted hover:text-journal-gold hover:bg-journal-gold/5 group"
             >
               <Database className="w-4 h-4 transition-colors" />
-            </button>
-
-            <button 
-              onClick={runDiagnostic} 
-              disabled={isTesting}
-              title="Test Websocket Connection"
-              className={`p-2 rounded-2xl border transition-all ${isTesting ? 'bg-journal-gold/20 border-journal-gold/50' : 'bg-black/40 border-white/5 hover:border-journal-gold/30 group hover:bg-journal-gold/5'}`}
-            >
-              <RefreshCw className={`w-4 h-4 ${isTesting ? 'animate-spin text-journal-gold' : 'text-journal-text-muted group-hover:text-journal-gold'} transition-colors`} />
             </button>
           </div>
         </div>

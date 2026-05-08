@@ -7,6 +7,7 @@ import { supabaseService, normalizeRow } from '../../services/supabaseService';
 import ActionBar from './ActionBar';
 import PerformanceSection from './PerformanceSection';
 import GoalTracking from './GoalTracking';
+import PinnedNotes from './PinnedNotes';
 import HabitTracker from './HabitTracker';
 import MasterTable from './MasterTable';
 import SnapshotSection from './SnapshotSection';
@@ -364,6 +365,7 @@ const TradingJournal = ({
           onSaveGoal={handleSaveGoal}
           onDeleteGoal={handleDeleteGoal}
         />
+        <PinnedNotes notes={notes} />
         <HabitTracker snapshots={snapshots} />
 
         <div className="flex bg-journal-secondary/10 p-1 rounded-xl border border-white/5 backdrop-blur-md overflow-x-auto no-scrollbar w-full md:w-max md:mx-auto mb-8 justify-start md:justify-center px-4 md:px-1">

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Trophy } from 'lucide-react';
 import { formatCurrency } from '../../utils';
+import { CustomSelect } from '../Common/CustomSelect';
 
 const CalendarSection = ({ trades }) => {
   const [viewMode, setViewMode] = useState('heatmap'); // 'monthly' or 'heatmap'
@@ -146,19 +147,17 @@ const CalendarSection = ({ trades }) => {
 
           {/* Timeframe Selector (Only for Heatmap) */}
           {viewMode === 'heatmap' && (
-             <div className="flex items-center gap-2 bg-slate-950/40 px-3 py-1.5 rounded-xl border border-white/5">
-                <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Window:</span>
-                <select 
+              <div className="flex items-center gap-2 bg-slate-950/40 px-2 py-1 rounded-xl border border-white/5">
+                <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest pl-2">Window:</span>
+                <CustomSelect
                   value={heatmapMonths}
-                  onChange={(e) => setHeatmapMonths(parseInt(e.target.value))}
-                  className="bg-transparent text-[9px] font-black text-white uppercase tracking-widest outline-none cursor-pointer"
-                >
-                  {[3, 6, 9, 12, 18, 24, 36, 48].map(m => (
-                    <option key={m} value={m} className="bg-slate-900">
-                      {m < 12 ? `${m} Months` : `${m/12} Year${m/12 > 1 ? 's' : ''}`}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setHeatmapMonths(parseInt(val))}
+                  className="w-28"
+                  options={[3, 6, 9, 12, 18, 24, 36, 48].map(m => ({
+                    value: m,
+                    label: m < 12 ? `${m} Months` : `${m/12} Year${m/12 > 1 ? 's' : ''}`
+                  }))}
+                />
              </div>
           )}
         </div>

@@ -353,12 +353,7 @@ export const Chart = React.memo(({ symbol, interval, alerts, onAddAlert, onUpdat
       {/* Dynamic Plus Button Overlay on Price Scale */}
       {crosshairPos && !hoveredAlert && !draggingAlertRef.current && (
         <button 
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            onAddAlert(crosshairPos.price);
-          }}
-          onTouchStart={(e) => {
+          onPointerDown={(e) => {
             e.stopPropagation();
             e.preventDefault();
             onAddAlert(crosshairPos.price);
@@ -386,7 +381,8 @@ export const Chart = React.memo(({ symbol, interval, alerts, onAddAlert, onUpdat
       )}
       {hoveredAlert && !draggingAlertRef.current && (
         <button 
-          onMouseDown={(e) => {
+          onPointerDown={(e) => {
+            e.stopPropagation();
             e.preventDefault();
             onDeleteAlert(hoveredAlert.id);
             setHoveredAlert(null);

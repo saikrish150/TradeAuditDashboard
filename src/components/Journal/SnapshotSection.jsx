@@ -227,7 +227,7 @@ const SnapshotSection = ({ snapshots = [], onEditSnapshot, onDeleteSnapshot, onV
                     onClick={() => setActiveFilterPopup(activeFilterPopup === col.key ? null : col.key)}
                     className={`
                       px-6 py-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 border-b border-white/5 cursor-pointer hover:text-journal-gold transition-colors relative group/th
-                      ${col.sticky ? 'sticky left-0 z-20 bg-slate-950/90' : ''}
+                      ${col.sticky ? 'md:sticky md:left-0 z-10 md:z-20 md:bg-slate-950/90' : 'z-10'}
                       ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : ''}
                       ${filters.some(f => f.field === col.key) || (col.type === 'date' && (customDateRange.start || customDateRange.end)) ? 'text-journal-gold' : ''}
                     `}
@@ -454,7 +454,7 @@ const SnapshotSection = ({ snapshots = [], onEditSnapshot, onDeleteSnapshot, onV
                     return (
                       <td 
                         key={col.key} 
-                        className={`px-6 py-4 border-b border-white/[0.02] ${col.sticky ? 'sticky left-0 z-10 bg-journal-bg/80 backdrop-blur-md' : ''} ${col.align === 'center' ? 'text-center' : ''}`}
+                        className={`px-6 py-4 border-b border-white/[0.02] ${col.sticky ? 'md:sticky md:left-0 z-10 md:bg-journal-bg/80 md:backdrop-blur-md' : ''} ${col.align === 'center' ? 'text-center' : ''}`}
                       >
                         {renderCell()}
                       </td>

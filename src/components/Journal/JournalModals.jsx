@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, Check, ChevronDown, Plus, Trash2, IndianRupee, History, Target, ShieldAlert, Calendar, Clock as ClockIcon } from 'lucide-react';
 import TerminalClockPicker from './TerminalClockPicker';
+import AutoSuggestTextarea from '../Common/AutoSuggestTextarea';
 import { supabaseService } from '../../services/supabaseService';
 import { 
   MARKET_OPTIONS,
@@ -477,19 +478,19 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           <div className="flex flex-col gap-2">
              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Reason For Trade</label>
-             <textarea 
+             <AutoSuggestTextarea 
                value={formData.reason || ''}
-               onChange={e => setFormData({...formData, reason: e.target.value})}
-               className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-medium text-slate-300 outline-none focus:border-journal-gold/50 h-16 resize-none"
+               onChange={val => setFormData({...formData, reason: val})}
+               className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-medium text-slate-300 outline-none focus:border-journal-gold/50 h-16 resize-none w-full"
                placeholder="Logic behind entry..."
              />
           </div>
           <div className="flex flex-col gap-2">
              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Key Learning / Reflection</label>
-             <textarea 
+             <AutoSuggestTextarea 
                value={formData.learning || ''}
-               onChange={e => setFormData({...formData, learning: e.target.value})}
-               className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-medium text-slate-300 outline-none focus:border-journal-gold/50 h-16 resize-none"
+               onChange={val => setFormData({...formData, learning: val})}
+               className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-xs font-medium text-slate-300 outline-none focus:border-journal-gold/50 h-16 resize-none w-full"
                placeholder="Mistakes or wins..."
              />
           </div>

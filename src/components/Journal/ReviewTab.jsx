@@ -17,6 +17,7 @@ import {
   DollarSign, Hammer, Activity, TrendingUp as TrendingUpIcon
 } from 'lucide-react';
 import { DB_FIELDS } from '../../constants/fieldMappings';
+import { CustomSelect } from '../Common/CustomSelect';
 
 const Card = ({ children, className = "" }) => (
   <div className={`modern-glass border border-white/10 rounded-[2rem] overflow-hidden ${className}`}>
@@ -511,14 +512,15 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
                   className="w-full bg-journal-secondary/50 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-[10px] font-bold text-white outline-none focus:border-journal-gold/50 transition-all"
                 />
               </div>
-              <select
+              <CustomSelect
                 value={noteFilters.category}
-                onChange={e => setNoteFilters(prev => ({ ...prev, category: e.target.value }))}
-                className="bg-journal-secondary/50 border border-white/10 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest text-journal-text-secondary outline-none focus:border-journal-gold/50 cursor-pointer"
-              >
-                <option value="All">All Categories</option>
-                {NOTE_CATEGORY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
+                onChange={e => setNoteFilters(prev => ({ ...prev, category: e }))}
+                className="w-48"
+                options={[
+                  { value: 'All', label: 'All Categories' },
+                  ...NOTE_CATEGORY_OPTIONS.map(opt => ({ value: opt, label: opt }))
+                ]}
+              />
               {hasActiveNoteFilters && (
                 <button
                   onClick={() => setNoteFilters({ search: '', category: 'All' })}
@@ -790,45 +792,49 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
               </div>
 
               <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
-                <select
+                <CustomSelect
                   value={galleryFilters.emotion}
-                  onChange={e => setGalleryFilters(prev => ({ ...prev, emotion: e.target.value }))}
-                  className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-300 outline-none focus:border-journal-gold/50 cursor-pointer"
-                >
-                  <option value="All">All Emotions</option>
-                  {EMOTION_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                  onChange={e => setGalleryFilters(prev => ({ ...prev, emotion: e }))}
+                  className="w-40"
+                  options={[
+                    { value: 'All', label: 'All Emotions' },
+                    ...EMOTION_OPTIONS.map(opt => ({ value: opt, label: opt }))
+                  ]}
+                />
 
-                <select
+                <CustomSelect
                   value={galleryFilters.quality}
-                  onChange={e => setGalleryFilters(prev => ({ ...prev, quality: e.target.value }))}
-                  className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-300 outline-none focus:border-journal-gold/50 cursor-pointer"
-                >
-                  <option value="All">All Grades</option>
-                  {TRADE_QUALITY_OPTIONS.map(opt => <option key={opt} value={opt}>Grade {opt}</option>)}
-                </select>
+                  onChange={e => setGalleryFilters(prev => ({ ...prev, quality: e }))}
+                  className="w-40"
+                  options={[
+                    { value: 'All', label: 'All Grades' },
+                    ...TRADE_QUALITY_OPTIONS.map(opt => ({ value: opt, label: `Grade ${opt}` }))
+                  ]}
+                />
 
-                <select
+                <CustomSelect
                   value={galleryFilters.market}
-                  onChange={e => setGalleryFilters(prev => ({ ...prev, market: e.target.value }))}
-                  className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-300 outline-none focus:border-journal-gold/50 cursor-pointer"
-                >
-                  <option value="All">All Markets</option>
-                  {MARKET_CATEGORIES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                  onChange={e => setGalleryFilters(prev => ({ ...prev, market: e }))}
+                  className="w-40"
+                  options={[
+                    { value: 'All', label: 'All Markets' },
+                    ...MARKET_CATEGORIES.map(opt => ({ value: opt, label: opt }))
+                  ]}
+                />
 
                 <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-1 ml-auto">
                   <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest pl-1">Sort:</span>
-                  <select
+                  <CustomSelect
                     value={gallerySort}
-                    onChange={e => setGallerySort(e.target.value)}
-                    className="bg-transparent text-[9px] font-black uppercase tracking-widest text-journal-gold outline-none cursor-pointer"
-                  >
-                    <option value="date-desc">Newest Date</option>
-                    <option value="date-asc">Oldest Date</option>
-                    <option value="pl-desc">Highest P&L</option>
-                    <option value="pl-asc">Lowest P&L</option>
-                  </select>
+                    onChange={setGallerySort}
+                    className="w-36 ml-2"
+                    options={[
+                      { value: 'date-desc', label: 'Newest Date' },
+                      { value: 'date-asc', label: 'Oldest Date' },
+                      { value: 'pl-desc', label: 'Highest P&L' },
+                      { value: 'pl-asc', label: 'Lowest P&L' }
+                    ]}
+                  />
                 </div>
 
                 {hasActiveGalleryFilters && (

@@ -12,7 +12,7 @@ const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenRules }) => {
   ];
 
   return (
-    <div className="sticky top-0 z-[100] w-full py-6 mb-8 bg-transparent overflow-x-auto scrollbar-hide no-scrollbar transition-all duration-500">
+    <div className="hidden lg:block sticky top-0 z-[100] w-full py-6 mb-8 bg-transparent overflow-x-auto scrollbar-hide no-scrollbar transition-all duration-500">
       <div className="flex items-center justify-start md:justify-center gap-4 px-4 w-full">
         {buttons.map((btn) => (
           <motion.button
