@@ -35,6 +35,9 @@ import UtilityHub from './components/Journal/UtilityHUB';
 import { exchangeRateService } from './services/exchangeRateService';
 import { MONTH_MAP, COLORS, cleanCurrency, formatCurrency, parseCSV, getMarketCategory } from './utils';
 import BackgroundQuotes from './components/BackgroundQuotes';
+import { AIInsightsView } from './components/AIInsights/AIInsightsView';
+import MorningChecklist from './components/Journal/MorningChecklist';
+import AIAuditTab from './components/Journal/AIAuditTab';
 
 // Extracted Components
 import MobileNav from './components/Common/MobileNav';
@@ -540,6 +543,7 @@ const App = () => {
             <div className="hidden md:flex bg-journal-secondary/50 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md overflow-x-auto scrollbar-hide no-scrollbar w-full md:w-auto relative z-20">
               {[
                 { id: 'alerts', label: 'Trade Alerts', icon: Signal },
+                { id: 'insights', label: 'Market Insights', icon: Brain },
                 { id: 'journal', label: 'Trade Journal', icon: History },
                 { id: 'audit', label: 'Trade Audit', icon: ShieldCheck }
               ].map((tab) => (
@@ -613,6 +617,7 @@ const App = () => {
                       <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={(e) => e.target.showPicker?.()} className="bg-transparent text-slate-100 text-[11px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none flex-1 text-right" />
                     </div>
                   )}
+
                   
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between">
                     <span className="text-xs font-black uppercase text-slate-500 tracking-widest">Market</span>
@@ -734,7 +739,7 @@ const App = () => {
             <div className="w-16 h-16 border-t-2 border-journal-gold rounded-full animate-spin shadow-[0_0_20px_rgba(212,175,55,0.3)]" />
             <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Syncing Cloud Terminal...</p>
           </div>
-        ) : (!rawTrades || rawTrades.length === 0) && !isParsing ? (
+        ) : (!rawTrades || rawTrades.length === 0) && !isParsing && !['journal', 'alerts', 'insights'].includes(activeSection) ? (
           <div className="min-h-[400px] flex items-center justify-center p-6 text-center">
             <Card className="max-w-xl w-full p-12 border-dashed border-2 border-slate-800">
               <div className="w-20 h-20 bg-journal-gold/10 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse"><Signal className="text-journal-gold" size={40} /></div>
@@ -748,7 +753,7 @@ const App = () => {
               </button>
             </Card>
           </div>
-        ) : processedData?.isEmpty ? (
+        ) : processedData?.isEmpty && !['journal', 'alerts', 'insights'].includes(activeSection) ? (
           <div className="h-[400px] flex flex-col items-center justify-center gap-4"><Search size={48} className="text-slate-800" /><p className="text-slate-500 uppercase font-black text-xs tracking-[0.2em]">No data found for this selection.</p><button onClick={() => { setSelectedYear('All'); setSelectedMonth('All'); setDatePreset('CurrentMonth'); }} className="text-[10px] font-black uppercase text-journal-gold underline">Reset Filters</button></div>
         ) : (
           <Motion.main
@@ -758,6 +763,10 @@ const App = () => {
           >
             {activeSection === 'alerts' && (
                <AlertsView />
+             )}
+             
+             {activeSection === 'insights' && (
+               <AIInsightsView />
              )}
  
              {activeSection === 'journal' && (
@@ -784,7 +793,8 @@ const App = () => {
                      { id: 'performance', label: 'Performance', icon: Activity },
                      { id: 'audit', label: 'Audit', icon: ShieldCheck },
                      { id: 'review', label: 'Review', icon: LayoutDashboard },
-                     { id: 'strategies', label: 'Strategies', icon: Target }
+                     { id: 'strategies', label: 'Strategies', icon: Target },
+                      { id: 'ai_audit', label: 'AI Audit', icon: BrainCircuit }
                    ].map((t) => (
                      <button
                        key={t.id}
@@ -859,7 +869,7 @@ const App = () => {
                            <SectionHeader icon={Smile} title="Emotions" color="text-purple-400" />
                            <div className="relative w-full h-[300px]">
                              <DonutCenter value={emotionStats.reduce((acc, curr) => acc + curr.pl, 0)} />
-                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                <PieChart>
                                  <Pie data={emotionStats} innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
                                    {emotionStats.map((e, idx) => <Cell key={idx} fill={COLORS.qualityPalette[idx % COLORS.qualityPalette.length]} />)}
@@ -873,7 +883,7 @@ const App = () => {
                          <Card className="p-8">
                            <SectionHeader icon={ZapOffIcon} title="Errors" color="text-rose-400" />
                            <div className="h-[300px]">
-                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                <BarChart data={errors} layout="vertical" margin={{ left: 40, right: 20 }}>
                                  <XAxis type="number" hide />
                                  <YAxis type="category" dataKey="cat" stroke={COLORS.white} fontSize={10} width={100} axisLine={false} tickLine={false} />
@@ -1228,7 +1238,7 @@ const App = () => {
                   <SectionHeader icon={Layers} title="Distribution" color="text-[#00c6ff]" />
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2 p-4 md:p-6 h-[300px] md:h-[400px]">
-                      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <ComposedChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                           <defs>
                             <filter id="neonGlowPlus" x="-20%" y="-20%" width="140%" height="140%">
@@ -1275,7 +1285,7 @@ const App = () => {
                       <SectionHeader icon={Layers} title="P&L Weight by Grade" />
                       <div className="relative w-full h-[80%]">
                         <DonutCenter value={qualityStats.reduce((acc, curr) => acc + curr.pl, 0)} />
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                           <PieChart>
                             <Pie 
                               data={qualityStats} 
@@ -1328,7 +1338,7 @@ const App = () => {
                       <SectionHeader icon={Target} title="Trade Outcome Weights" />
                       <div className="relative w-full h-[calc(100%-40px)]">
                         <DonutCenter value={statusStats.reduce((acc, curr) => acc + curr.pl, 0)} />
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                           <PieChart>
                             <Pie data={statusStats} innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="absImpact" label={({ name, pl }) => `${String(name)}: ${formatCurrency(pl)}`}>
                               {statusStats.map((e, idx) => <Cell key={idx} fill={COLORS.qualityPalette[idx % COLORS.qualityPalette.length]} />)}
@@ -1357,7 +1367,7 @@ const App = () => {
                       <SectionHeader icon={Target} title="Win Rate" />
                       <div className="relative w-full h-[85%]">
                         <DonutCenter value={outcomeDist.reduce((acc, curr) => acc + (curr.pl || 0), 0)} />
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                           <PieChart>
                             <Pie 
                               data={outcomeDist} 
@@ -1382,7 +1392,7 @@ const App = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2 p-8">
                       <div className="h-[280px] md:h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                           <BarChart data={weekdayEdge} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                             <XAxis dataKey="name" stroke={COLORS.white} fontSize={11} axisLine={false} tickLine={false} />
@@ -1423,7 +1433,7 @@ const App = () => {
                      <Card className="p-8 border-dashed border-2 border-slate-800 text-center">
                        <SectionHeader icon={BarChartHorizontal} title="Strategy" sub="Cumulative P&L per Setup" color="text-indigo-400" />
                        <div className="h-[300px] md:h-[400px]">
-                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                            <BarChart
                              layout="vertical"
                              data={[...setupAnalysis].sort((a, b) => b.pl - a.pl)}
@@ -1456,6 +1466,10 @@ const App = () => {
                      </div>
                    </div>
                  )}
+
+                  {activeTab === 'ai_audit' && (
+                    <AIAuditTab trades={rawTrades} />
+                  )}
                </div>
              )}
           </Motion.main>
@@ -1466,6 +1480,7 @@ const App = () => {
       <AnimatePresence>
       </AnimatePresence>
       <UtilityHub user={user} trades={rawTrades} snapshots={rawSnapshots} notes={notes} />
+      <MorningChecklist notes={notes} />
     </div>
   </AuthShield>
   );

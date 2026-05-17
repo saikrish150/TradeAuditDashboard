@@ -187,26 +187,27 @@ const NotesSection = ({ notes = [], onEditNote, onDeleteNote, user, setNotes }) 
 
     // Sort
     result.sort((a, b) => {
-      // PRIMARY SORT: Always respectPinned status first
+      // PRIMARY SORT: Always respect Pinned status first
       if (a.pinned !== b.pinned) {
         return a.pinned ? -1 : 1;
       }
 
       // SECONDARY SORT: Based on user selection
-      let aVal = getVal(a, sortConfig.key);
-      let bVal = getVal(b, sortConfig.key);
+      if (sortConfig.key !== 'pinned' && sortConfig.key !== 'date') {
+        let aVal = getVal(a, sortConfig.key);
+        let bVal = getVal(b, sortConfig.key);
 
-      if (sortConfig.key === 'date') {
-        aVal = a.jsDate || new Date(a.date);
-        bVal = b.jsDate || new Date(b.date);
-      } else if (sortConfig.key === 'pinned') {
-        aVal = a.pinned ? 1 : 0;
-        bVal = b.pinned ? 1 : 0;
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
       }
 
-      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
+      // TERTIARY / DEFAULT: Always sort by date newest → oldest within each group
+      const aDate = (a.jsDate || new Date(a.date))?.getTime?.() || 0;
+      const bDate = (b.jsDate || new Date(b.date))?.getTime?.() || 0;
+      if (sortConfig.key === 'date') {
+        return sortConfig.direction === 'asc' ? aDate - bDate : bDate - aDate;
+      }
+      return bDate - aDate; // Default: newest first
     });
 
     return result;

@@ -1,14 +1,14 @@
 import React from 'react';
-import { Plus, Camera, FileText, Database, DatabaseZap, ShieldCheck } from 'lucide-react';
+import { Plus, Camera, FileText, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenRules }) => {
 
   const buttons = [
-    { id: 'trade', label: 'Add Trade', icon: Plus, action: onAddTrade, color: 'journal-red' },
-    { id: 'snapshot', label: 'Add Snapshot', icon: Camera, action: onAddSnapshot, color: 'journal-gold' },
-    { id: 'note', label: 'Add Notes', icon: FileText, action: onAddNote, color: 'journal-text-secondary' },
-    { id: 'rules', label: 'Rules', icon: ShieldCheck, action: onOpenRules, color: 'journal-gold' },
+    { id: 'trade',    label: 'Add Trade',    icon: Plus,        action: onAddTrade,    color: 'journal-red' },
+    { id: 'snapshot', label: 'Screenshot',   icon: Camera,      action: onAddSnapshot, color: 'journal-gold' },
+    { id: 'note',     label: 'Add Notes',    icon: FileText,    action: onAddNote,     color: 'journal-text-secondary' },
+    { id: 'rules',    label: 'Rules',        icon: ShieldCheck, action: onOpenRules,   color: 'journal-gold' },
   ];
 
   return (
@@ -21,7 +21,7 @@ const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenRules }) => {
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
             className={`
-              relative px-6 py-2.5 rounded-xl flex items-center gap-2 
+              relative px-6 py-2.5 rounded-xl flex items-center gap-2
               text-[11px] font-black uppercase tracking-[0.2em] transition-all
               bg-transparent border border-journal-gold/20 hover:border-journal-gold/50
               ${btn.color === 'journal-red' ? 'text-journal-red hover:red-glow' : ''}

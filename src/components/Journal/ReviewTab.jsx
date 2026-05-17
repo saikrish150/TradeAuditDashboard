@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Camera, Image as ImageIcon, LayoutDashboard,
@@ -937,107 +938,119 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
       </div>
 
       {/* Lightbox */}
-      <AnimatePresence>
-        {lightbox && (
-          <div className="fixed inset-0 z-[10000] overflow-hidden">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setLightbox(null)}
-              className="absolute inset-0 bg-black/95 backdrop-blur-xl"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="absolute inset-0 z-[11000] flex flex-col pointer-events-none"
-            >
-              {/* Close Button - Overlay */}
-              <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50 pointer-events-auto">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
-                  className="p-3 md:p-4 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 text-white/50 hover:text-white hover:bg-rose-500/40 transition-all shadow-2xl group"
-                >
-                  <X size={20} className="md:w-6 md:h-6 group-hover:rotate-90 transition-transform duration-300" />
-                </button>
-              </div>
-
-              {/* Main Content Split: 80% Image / 20% Data */}
-              <div className="flex-1 flex flex-col md:flex-row gap-0 min-h-0 pointer-events-auto overflow-y-auto md:overflow-hidden">
-                
-                {/* Left Column: Image (80%) */}
-                <div className="flex-none md:flex-[8] h-[50vh] md:h-auto relative group/viewer overflow-hidden md:border-r border-white/10 bg-black/20 flex items-center justify-center m-2 md:m-6 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl">
-                  {/* Navigation Arrows (Hover) */}
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); const idx = allGalleryItems.findIndex(l => l.url === lightbox.url); if (idx > 0) setLightbox(allGalleryItems[idx - 1]); else setLightbox(allGalleryItems[allGalleryItems.length - 1]); }}
-                    className="absolute left-2 md:left-6 p-2 md:p-4 rounded-xl md:rounded-2xl bg-black/50 hover:bg-black/70 border border-white/5 text-white/50 md:text-white/20 hover:text-white transition-all z-20 md:opacity-0 md:group-hover/viewer:opacity-100 backdrop-blur-md"
+      {createPortal(
+        <AnimatePresence>
+          {lightbox && (
+            <div className="fixed inset-0 z-[10000] overflow-hidden">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setLightbox(null)}
+                className="absolute inset-0 bg-black/95 backdrop-blur-xl"
+              />
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="absolute inset-0 z-[11000] flex flex-col pointer-events-none"
+              >
+                {/* Close Button - Overlay */}
+                <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50 pointer-events-auto">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
+                    className="p-3 md:p-4 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 text-white/50 hover:text-white hover:bg-rose-500/40 transition-all shadow-2xl group"
                   >
-                    <ChevronLeft size={24} className="md:w-8 md:h-8" />
-                  </button>
-
-                  <img 
-                    src={lightbox.url} 
-                    alt="Audit Workspace" 
-                    className="max-h-full max-w-full object-contain p-4 md:p-8" 
-                  />
-
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); const idx = allGalleryItems.findIndex(l => l.url === lightbox.url); if (idx < allGalleryItems.length - 1) setLightbox(allGalleryItems[idx + 1]); else setLightbox(allGalleryItems[0]); }}
-                    className="absolute right-2 md:right-6 p-2 md:p-4 rounded-xl md:rounded-2xl bg-black/50 hover:bg-black/70 border border-white/5 text-white/50 md:text-white/20 hover:text-white transition-all z-20 md:opacity-0 md:group-hover/viewer:opacity-100 backdrop-blur-md"
-                  >
-                    <ChevronRight size={24} className="md:w-8 md:h-8" />
+                    <X size={20} className="md:w-6 md:h-6 group-hover:rotate-90 transition-transform duration-300" />
                   </button>
                 </div>
 
-                {/* Right Column: Data Sidebar (20%) */}
-                <div className="flex-1 md:flex-[2] flex flex-col bg-slate-950/60 backdrop-blur-3xl overflow-hidden m-2 md:m-6 md:ml-0 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl mb-12 md:mb-6">
+                {/* Main Content Split: 80% Image / 20% Data */}
+                <div className="flex-1 flex flex-col md:flex-row gap-0 min-h-0 pointer-events-auto overflow-hidden">
+                  
+                  {/* Left Column: Image (80%) - EDGE-TO-EDGE FOR MAXIMUM VIEW */}
+                  <div className="flex-none md:flex-[8] h-[60vh] md:h-full relative group/viewer overflow-hidden bg-[#050508] flex items-center justify-center shadow-2xl border-r border-white/5">
+                    {/* Navigation Arrows (Hover) */}
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); const idx = allGalleryItems.findIndex(l => l.url === lightbox.url); if (idx > 0) setLightbox(allGalleryItems[idx - 1]); else setLightbox(allGalleryItems[allGalleryItems.length - 1]); }}
+                      className="absolute left-4 p-3 rounded-2xl bg-black/60 hover:bg-black/80 border border-white/10 text-white/50 hover:text-white transition-all z-20 md:opacity-0 md:group-hover/viewer:opacity-100 backdrop-blur-md"
+                    >
+                      <ChevronLeft size={24} />
+                    </button>
 
+                    <img 
+                      src={lightbox.url} 
+                      alt="Audit Workspace" 
+                      className="max-h-full max-w-full object-contain p-2 md:p-4" 
+                    />
 
-                  <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-1">
-                    {galleryType === 'trades' ? (
-                      <>
-                        <DataField label="Execution Date" value={lightbox.item?.date} icon={Calendar} />
-                        <DataField label="Market" value={lightbox.item?.market} icon={Globe} />
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); const idx = allGalleryItems.findIndex(l => l.url === lightbox.url); if (idx < allGalleryItems.length - 1) setLightbox(allGalleryItems[idx + 1]); else setLightbox(allGalleryItems[0]); }}
+                      className="absolute right-4 p-3 rounded-2xl bg-black/60 hover:bg-black/80 border border-white/10 text-white/50 hover:text-white transition-all z-20 md:opacity-0 md:group-hover/viewer:opacity-100 backdrop-blur-md"
+                    >
+                      <ChevronRight size={24} />
+                    </button>
+                  </div>
 
-                        <DataField label="Market Logic" value={lightbox.item?.reason} icon={Info} isMultiline />
-                        <DataField label="Key Learning" value={lightbox.item?.learning} icon={Lightbulb} isMultiline />
+                  {/* Right Column: Data Sidebar (20%) - INTEGRATED EDGE-TO-EDGE WORKSPACE */}
+                  <div className="flex-1 md:flex-[2] flex flex-col bg-[#09090d]/95 backdrop-blur-3xl overflow-hidden h-[40vh] md:h-full border-l border-white/5">
+                    
+                    {/* Sidebar Header with floating close button buffer */}
+                    <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/20">
+                      <span className="text-[10px] font-black uppercase text-journal-gold tracking-[0.2em] flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-journal-gold animate-pulse" />
+                        Trade Details
+                      </span>
+                      {/* Placeholder space to prevent overlay conflict with absolute X button */}
+                      <div className="w-12 h-6" />
+                    </div>
 
-                        <DataField label="Profit / Loss" value={`₹${lightbox.item?.pl || 0}`} icon={DollarSign} variant="highlight" color={(parseFloat(lightbox.item?.pl) || 0) >= 0 ? 'emerald' : 'rose'} />
-                        <DataField label="Direction" value={lightbox.item?.direction} icon={TrendingUpIcon} color={lightbox.item?.direction === 'LONG' ? 'emerald' : 'rose'} />
-                        <DataField label="Risk Reward" value={`${lightbox.item?.rr || '0'} RR`} icon={Activity} />
-                        
-                        <DataField label="Emotional State" value={lightbox.item?.emotions} icon={Brain} />
-                        <DataField label="Trade Grade" value={lightbox.item?.tradeQuality} icon={Award} />
-                        <DataField label="Position Size" value={lightbox.item?.positionSize} icon={Hash} />
+                    <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-1">
+                      {galleryType === 'trades' ? (
+                        <>
+                          <DataField label="Execution Date" value={lightbox.item?.date} icon={Calendar} />
+                          <DataField label="Market" value={lightbox.item?.market} icon={Globe} />
 
-                        {lightbox.item?.lossReason && <DataField label="Loss Root Cause" value={lightbox.item?.lossReason} icon={AlertTriangle} color="rose" isMultiline />}
-                      </>
-                    ) : (
-                      <>
-                        <DataField label="Snapshot Date" value={lightbox.item?.date} icon={Calendar} />
-                        <DataField label="Total Trades" value={lightbox.item?.noOfTrades} icon={Activity} />
-                        <DataField label="Rules Followed" value={lightbox.item?.rulesFollowed} icon={ShieldCheck} color={lightbox.item?.rulesFollowed === 'Yes' ? 'emerald' : 'rose'} />
-                        <DataField label="Emotions Control" value={lightbox.item?.emotionsInControl} icon={Brain} color={lightbox.item?.emotionsInControl === 'Yes' ? 'emerald' : 'rose'} />
-                        <DataField label="Setup Disciplin" value={lightbox.item?.setup} icon={BoxSelect} color={lightbox.item?.setup === 'Yes' ? 'emerald' : 'rose'} />
-                        <DataField label="Session Progress" value={lightbox.item?.progress} icon={TrendingUpIcon} isMultiline />
-                        <div className="space-y-2">
-                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Metadata Tags</span>
-                          <div className="flex flex-wrap gap-2">
-                            {lightbox.item?.tags?.map(tag => (
-                              <Badge key={tag} color="journal-text-secondary">{tag}</Badge>
-                            ))}
+                          <DataField label="Market Logic" value={lightbox.item?.reason} icon={Info} isMultiline />
+                          <DataField label="Key Learning" value={lightbox.item?.learning} icon={Lightbulb} isMultiline />
+
+                          <DataField label="Profit / Loss" value={`₹${lightbox.item?.pl || 0}`} icon={DollarSign} variant="highlight" color={(parseFloat(lightbox.item?.pl) || 0) >= 0 ? 'emerald' : 'rose'} />
+                          <DataField label="Direction" value={lightbox.item?.direction} icon={TrendingUpIcon} color={lightbox.item?.direction === 'LONG' ? 'emerald' : 'rose'} />
+                          <DataField label="Risk Reward" value={`${lightbox.item?.rr || '0'} RR`} icon={Activity} />
+                          
+                          <DataField label="Emotional State" value={lightbox.item?.emotions} icon={Brain} />
+                          <DataField label="Trade Grade" value={lightbox.item?.tradeQuality} icon={Award} />
+                          <DataField label="Position Size" value={lightbox.item?.positionSize} icon={Hash} />
+
+                          {lightbox.item?.lossReason && <DataField label="Loss Root Cause" value={lightbox.item?.lossReason} icon={AlertTriangle} color="rose" isMultiline />}
+                        </>
+                      ) : (
+                        <>
+                          <DataField label="Snapshot Date" value={lightbox.item?.date} icon={Calendar} />
+                          <DataField label="Total Trades" value={lightbox.item?.noOfTrades} icon={Activity} />
+                          <DataField label="Rules Followed" value={lightbox.item?.rulesFollowed} icon={ShieldCheck} color={lightbox.item?.rulesFollowed === 'Yes' ? 'emerald' : 'rose'} />
+                          <DataField label="Emotions Control" value={lightbox.item?.emotionsInControl} icon={Brain} color={lightbox.item?.emotionsInControl === 'Yes' ? 'emerald' : 'rose'} />
+                          <DataField label="Setup Disciplin" value={lightbox.item?.setup} icon={BoxSelect} color={lightbox.item?.setup === 'Yes' ? 'emerald' : 'rose'} />
+                          <DataField label="Session Progress" value={lightbox.item?.progress} icon={TrendingUpIcon} isMultiline />
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Metadata Tags</span>
+                            <div className="flex flex-wrap gap-2">
+                              {lightbox.item?.tags?.map(tag => (
+                                <Badge key={tag} color="journal-text-secondary">{tag}</Badge>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };

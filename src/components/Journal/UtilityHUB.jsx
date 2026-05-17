@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Calculator as CalcIcon, Download, X, FileText, LayoutDashboard, Share2, IndianRupee } from 'lucide-react';
+import { Settings, Calculator as CalcIcon, Download, X, FileText, LayoutDashboard, Share2, IndianRupee, Database } from 'lucide-react';
 import { exportToCSV } from '../../utils/csvUtility';
 import GlobalCalculator from './GlobalCalculator';
 import CurrencyConverter from './CurrencyConverter';
@@ -33,6 +33,30 @@ const UtilityHub = ({ user, trades = [], snapshots = [], notes = [] }) => {
   }, [showCalc]);
   // NEW FEATURE END
 
+  const generateSQLBackup = (data) => {
+    let sql = `-- SUPABASE MASTER BACKUP\n-- Generated: ${new Date().toISOString()}\n\n`;
+    
+    Object.entries(data).forEach(([tableName, rows]) => {
+      if (!rows || rows.length === 0) return;
+      
+      sql += `-- Table: ${tableName}\n`;
+      rows.forEach(row => {
+        const columns = Object.keys(row).map(k => `"${k}"`).join(', ');
+        const values = Object.values(row).map(v => {
+          if (v === null || v === undefined) return 'NULL';
+          if (typeof v === 'string') return `'${v.replace(/'/g, "''")}'`;
+          if (typeof v === 'object') return `'${JSON.stringify(v).replace(/'/g, "''")}'`;
+          return v;
+        }).join(', ');
+        
+        sql += `INSERT INTO ${tableName} (${columns}) VALUES (${values});\n`;
+      });
+      sql += '\n';
+    });
+    
+    return sql;
+  };
+
   const handleExportAll = async () => {
     if (!user?.id) {
       alert("Terminal Session must be active for raw export.");
@@ -41,21 +65,40 @@ const UtilityHub = ({ user, trades = [], snapshots = [], notes = [] }) => {
 
     try {
       setIsDownloading(true);
+      const tables = ['trades', 'snapshots', 'notes', 'goals', 'alerts'];
+      const backupData = {};
+
+      // 1. Fetch all data for SQL backup
+      for (const table of tables) {
+        try {
+          const rawData = await supabaseService.fetchRawTableData(table, user.id);
+          backupData[table] = rawData;
+        } catch (e) {
+          console.warn(`[Backup] Failed to fetch ${table}`, e);
+        }
+      }
+
+      // 2. Generate and Download SQL
+      const sqlContent = generateSQLBackup(backupData);
+      const sqlBlob = new Blob([sqlContent], { type: 'application/sql' });
+      const sqlUrl = URL.createObjectURL(sqlBlob);
+      const sqlLink = document.createElement('a');
+      sqlLink.href = sqlUrl;
+      sqlLink.download = `SUPABASE_BACKUP_${new Date().toISOString().split('T')[0]}.sql`;
+      document.body.appendChild(sqlLink);
+      sqlLink.click();
+      document.body.removeChild(sqlLink);
+      URL.revokeObjectURL(sqlUrl);
+
+      // 3. Trigger individual CSV downloads (with delays to avoid browser blocking)
+      if (backupData.trades) exportToCSV(backupData.trades, 'RAW_Trades_Master');
       
-      // 1. Fetch RAW Trades (All columns, Un-normalized)
-      const rawTradesFetched = await supabaseService.fetchRawTableData('trades', user.id);
-      exportToCSV(rawTradesFetched, 'RAW_Trades_Master');
-      
-      // 2. Fetch RAW Snapshots
-      const rawSnapshotsFetched = await supabaseService.fetchRawTableData('snapshots', user.id);
       setTimeout(() => {
-        exportToCSV(rawSnapshotsFetched, 'RAW_Snapshots_Master');
+        if (backupData.snapshots) exportToCSV(backupData.snapshots, 'RAW_Snapshots_Master');
       }, 500);
 
-      // 3. Fetch RAW Notes
-      const rawNotesFetched = await supabaseService.fetchRawTableData('notes', user.id);
       setTimeout(() => {
-        exportToCSV(rawNotesFetched, 'RAW_Notes_Master');
+        if (backupData.notes) exportToCSV(backupData.notes, 'RAW_Notes_Master');
       }, 1000);
       
     } catch (error) {
@@ -88,7 +131,6 @@ const UtilityHub = ({ user, trades = [], snapshots = [], notes = [] }) => {
                   <span className="absolute left-full ml-3 px-3 py-1 rounded-lg bg-slate-900 border border-white/5 text-[8px] font-black uppercase text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Calculator</span>
                 </motion.button>
 
-                {/* NEW FEATURE START */}
                 <motion.button
                   initial={{ opacity: 0, y: 10, scale: 0.8 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -101,7 +143,6 @@ const UtilityHub = ({ user, trades = [], snapshots = [], notes = [] }) => {
                   <IndianRupee size={20} />
                   <span className="absolute left-full ml-3 px-3 py-1 rounded-lg bg-slate-900 border border-white/5 text-[8px] font-black uppercase text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Converter</span>
                 </motion.button>
-                {/* NEW FEATURE END */}
 
                 <motion.button
                   initial={{ opacity: 0, y: 10, scale: 0.8 }}
@@ -109,11 +150,12 @@ const UtilityHub = ({ user, trades = [], snapshots = [], notes = [] }) => {
                   exit={{ opacity: 0, y: 10, scale: 0.8 }}
                   transition={{ delay: 0 }}
                   onClick={handleExportAll}
-                  className="w-12 h-12 rounded-2xl journal-glass border border-white/10 flex items-center justify-center text-emerald-400 shadow-2xl hover:scale-110 active:scale-95 transition-all group"
-                  title="Export Separate Collections"
+                  className="w-12 h-12 rounded-2xl journal-glass border border-white/10 flex items-center justify-center text-journal-gold shadow-2xl hover:scale-110 active:scale-95 transition-all group"
+                  disabled={isDownloading}
+                  title="Full Backup (CSV + SQL)"
                 >
-                  <Download size={20} />
-                  <span className="absolute left-full ml-3 px-3 py-1 rounded-lg bg-slate-900 border border-white/5 text-[8px] font-black uppercase text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Export CSV</span>
+                  <Download size={20} className={isDownloading ? 'animate-pulse' : ''} />
+                  <span className="absolute left-full ml-3 px-3 py-1 rounded-lg bg-slate-900 border border-white/5 text-[8px] font-black uppercase text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Export CSV & SQL</span>
                 </motion.button>
               </div>
             )}
@@ -134,11 +176,10 @@ const UtilityHub = ({ user, trades = [], snapshots = [], notes = [] }) => {
       </div>
 
       <GlobalCalculator isOpen={showCalc} onClose={() => setShowCalc(false)} />
-      {/* NEW FEATURE START */}
       <CurrencyConverter isOpen={showConverter} onClose={() => setShowConverter(false)} />
-      {/* NEW FEATURE END */}
     </>
   );
 };
 
 export default UtilityHub;
+

@@ -767,59 +767,70 @@ export const TradingRulesModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Rules" maxWidth="max-w-4xl">
+    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Rules" maxWidth="max-w-6xl">
       <motion.div 
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
       >
-        {rules.map((section, idx) => (
-          <motion.div 
-            key={idx}
-            variants={itemAnim}
-            className={`p-6 rounded-3xl border ${section.border} ${section.bg} backdrop-blur-sm flex flex-col gap-4 relative overflow-hidden group`}
-          >
-            {/* Background Icon Watermark */}
-            <section.icon className="absolute -bottom-4 -right-4 w-32 h-32 opacity-[0.03] group-hover:scale-110 transition-transform duration-700" />
-            
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${section.bg} border ${section.border} ${section.color}`}>
-                <section.icon size={20} />
-              </div>
-              <h3 className={`text-sm font-black uppercase tracking-widest ${section.color}`}>{section.title}</h3>
-            </div>
+        {rules.map((section, idx) => {
+          const barColor = section.color.includes('indigo') 
+            ? 'from-indigo-500 to-purple-500' 
+            : section.color.includes('amber') 
+            ? 'from-amber-500 to-yellow-500' 
+            : 'from-rose-500 to-red-500';
 
-            <div className="space-y-4">
-              {section.items.map((item, i) => (
-                <div key={i} className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-1 h-1 rounded-full ${section.color} opacity-50`} />
-                    <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider font-mono">{item.label}</span>
-                  </div>
-                  <p className="text-[11px] font-medium text-slate-400 leading-relaxed pl-3 border-l border-white/5">
-                    {item.desc}
-                  </p>
-                  {item.isList && (
-                    <div className="pl-6 space-y-1.5 mt-1 border-l border-white/5">
-                      {item.subItems.map((sub, si) => (
-                        <div key={si} className="flex items-start gap-2">
-                          <span className={`${section.color} mt-1`}><Check size={10} /></span>
-                          <span className="text-[10px] font-bold text-slate-500 italic leading-snug">{sub}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+          return (
+            <motion.div 
+              key={idx}
+              variants={itemAnim}
+              className={`p-6 pt-8 rounded-3xl border ${section.border} ${section.bg} backdrop-blur-sm flex flex-col gap-4 relative overflow-hidden group hover:scale-[1.01] hover:border-white/10 transition-all duration-300`}
+            >
+              {/* Premium Top Accent Glow Bar */}
+              <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${barColor}`} />
+              
+              {/* Background Icon Watermark */}
+              <section.icon className="absolute -bottom-4 -right-4 w-32 h-32 opacity-[0.025] group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
+              
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-xl ${section.bg} border ${section.border} ${section.color}`}>
+                  <section.icon size={20} />
                 </div>
-              ))}
-            </div>
-          </motion.div>
-        ))}
+                <h3 className={`text-sm font-black uppercase tracking-widest ${section.color}`}>{section.title}</h3>
+              </div>
+
+              <div className="space-y-4 flex-1">
+                {section.items.map((item, i) => (
+                  <div key={i} className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-1 h-1 rounded-full ${section.color} opacity-60`} />
+                      <span className="text-[10px] font-black uppercase text-slate-300 tracking-wider font-mono">{item.label}</span>
+                    </div>
+                    <p className="text-[11px] font-medium text-slate-400 leading-relaxed pl-3 border-l border-white/5">
+                      {item.desc}
+                    </p>
+                    {item.isList && (
+                      <div className="pl-6 space-y-1.5 mt-1 border-l border-white/5">
+                        {item.subItems.map((sub, si) => (
+                          <div key={si} className="flex items-start gap-2">
+                            <span className={`${section.color} mt-1`}><Check size={10} /></span>
+                            <span className="text-[10px] font-bold text-slate-500 italic leading-snug">{sub}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          );
+        })}
       </motion.div>
 
       <div className="mt-8 p-4 bg-white/5 border border-white/10 rounded-2xl">
         <div className="flex items-center gap-3 text-slate-400">
-          <ShieldAlert size={16} className="text-journal-gold" />
+          <ShieldAlert size={16} className="text-journal-gold shrink-0" />
           <p className="text-[10px] font-black uppercase tracking-widest leading-loose">
             Discipline is not just a rule, it is the <span className="text-journal-gold">barrier</span> between capital and chaos. Stick to the plan or stay out of the market.
           </p>

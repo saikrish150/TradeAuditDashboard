@@ -149,7 +149,6 @@ export const supabaseService = {
     const { data, error } = await supabase
       .from(tableName)
       .select('*')
-      .eq('user_id', userId)
       .order('id', { ascending: true });
 
     if (error) throw error;
@@ -165,7 +164,6 @@ export const supabaseService = {
     let query = supabase
       .from('trades')
       .select(SRC_COLS.trades)
-      .eq('user_id', userId)
       .order(DB_FIELDS.date, { ascending: false });
     
     if (!fullHistory) query = query.limit(100);
@@ -176,16 +174,16 @@ export const supabaseService = {
 
     // INCREMENTAL REAL-TIME: Merging changes locally instead of re-fetching everything
     const channel = supabase
-      .channel(`trades_${userId}`)
+      .channel(`trades_global`)
       .on('postgres_changes', 
-        { event: '*', table: 'trades', filter: `user_id=eq.${userId}` }, 
+        { event: '*', table: 'trades' }, 
         async (payload) => {
           if (payload.eventType === 'INSERT') {
-            onUpdate(prev => [normalizeRow(payload.new), ...prev]);
+            onUpdate(prev => prev.some(item => item.id === payload.new.id) ? prev : [normalizeRow(payload.new), ...prev]);
           } else if (payload.eventType === 'UPDATE') {
             onUpdate(prev => prev.map(item => item.id === payload.new.id ? normalizeRow(payload.new) : item));
           } else if (payload.eventType === 'DELETE') {
-            onUpdate(prev => prev.filter(item => item.id === payload.old.id));
+            onUpdate(prev => prev.filter(item => item.id !== payload.old.id));
           }
         }
       )
@@ -203,7 +201,6 @@ export const supabaseService = {
     let query = supabase
       .from('snapshots')
       .select(SRC_COLS.snapshots)
-      .eq('user_id', userId)
       .order(DB_FIELDS.dateAdded, { ascending: false });
 
     if (!fullHistory) query = query.limit(50);
@@ -213,16 +210,16 @@ export const supabaseService = {
     });
 
     const channel = supabase
-      .channel(`snapshots_${userId}`)
+      .channel(`snapshots_global`)
       .on('postgres_changes', 
-        { event: '*', table: 'snapshots', filter: `user_id=eq.${userId}` }, 
+        { event: '*', table: 'snapshots' }, 
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            onUpdate(prev => [normalizeRow(payload.new), ...prev]);
+            onUpdate(prev => prev.some(item => item.id === payload.new.id) ? prev : [normalizeRow(payload.new), ...prev]);
           } else if (payload.eventType === 'UPDATE') {
             onUpdate(prev => prev.map(item => item.id === payload.new.id ? normalizeRow(payload.new) : item));
           } else if (payload.eventType === 'DELETE') {
-            onUpdate(prev => prev.filter(item => item.id === payload.old.id));
+            onUpdate(prev => prev.filter(item => item.id !== payload.old.id));
           }
         }
       )
@@ -240,7 +237,6 @@ export const supabaseService = {
     let query = supabase
       .from('notes')
       .select(SRC_COLS.notes)
-      .eq('user_id', userId)
       .order(DB_FIELDS.noteDate, { ascending: false });
 
     if (!fullHistory) query = query.limit(100);
@@ -250,16 +246,16 @@ export const supabaseService = {
     });
 
     const channel = supabase
-      .channel(`notes_${userId}`)
+      .channel(`notes_global`)
       .on('postgres_changes', 
-        { event: '*', table: 'notes', filter: `user_id=eq.${userId}` }, 
+        { event: '*', table: 'notes' }, 
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            onUpdate(prev => [normalizeRow(payload.new), ...prev]);
+            onUpdate(prev => prev.some(item => item.id === payload.new.id) ? prev : [normalizeRow(payload.new), ...prev]);
           } else if (payload.eventType === 'UPDATE') {
             onUpdate(prev => prev.map(item => item.id === payload.new.id ? normalizeRow(payload.new) : item));
           } else if (payload.eventType === 'DELETE') {
-            onUpdate(prev => prev.filter(item => item.id === payload.old.id));
+            onUpdate(prev => prev.filter(item => item.id !== payload.old.id));
           }
         }
       )
@@ -277,21 +273,19 @@ export const supabaseService = {
     supabase
       .from('goals')
       .select('*')
-      .eq('user_id', userId)
       .order('startDate', { ascending: false })
       .then(({ data }) => {
         if (data) onUpdate(data);
       });
 
     const channel = supabase
-      .channel(`goals_${userId}`)
+      .channel(`goals_global`)
       .on('postgres_changes', 
-        { event: '*', table: 'goals', filter: `user_id=eq.${userId}` }, 
+        { event: '*', table: 'goals' }, 
         async () => {
           const { data } = await supabase
             .from('goals')
             .select('*')
-            .eq('user_id', userId)
             .order('startDate', { ascending: false });
           if (data) onUpdate(data);
         }
@@ -312,12 +306,12 @@ export const supabaseService = {
     return data?.[0];
   },
   updateTrade: async (userId, id, tradeData) => {
-    const { data, error } = await supabase.from('trades').update(tradeData).eq('id', id).eq('user_id', userId).select();
+    const { data, error } = await supabase.from('trades').update(tradeData).eq('id', id).select();
     if (error) throw error;
     return data?.[0];
   },
   deleteTrade: async (userId, id) => {
-    const { error } = await supabase.from('trades').delete().eq('id', id).eq('user_id', userId);
+    const { error } = await supabase.from('trades').delete().eq('id', id);
     if (error) throw error;
   },
 
@@ -327,12 +321,12 @@ export const supabaseService = {
     return result?.[0];
   },
   updateSnapshot: async (userId, id, data) => {
-    const { data: result, error } = await supabase.from('snapshots').update(data).eq('id', id).eq('user_id', userId).select();
+    const { data: result, error } = await supabase.from('snapshots').update(data).eq('id', id).select();
     if (error) throw error;
     return result?.[0];
   },
   deleteSnapshot: async (userId, id) => {
-    const { error } = await supabase.from('snapshots').delete().eq('id', id).eq('user_id', userId);
+    const { error } = await supabase.from('snapshots').delete().eq('id', id);
     if (error) throw error;
   },
 
@@ -342,7 +336,7 @@ export const supabaseService = {
     return result?.[0];
   },
   updateNote: async (userId, id, data) => {
-    const { data: result, error } = await supabase.from('notes').update(data).eq('id', id).eq('user_id', userId).select();
+    const { data: result, error } = await supabase.from('notes').update(data).eq('id', id).select();
     if (error) throw error;
     return result?.[0];
   },
@@ -351,13 +345,12 @@ export const supabaseService = {
       .from('notes')
       .update({ [DB_FIELDS.noteVotes]: newVotes.toString() })
       .eq('id', noteId)
-      .eq('user_id', userId)
       .select();
     if (error) throw error;
     return result?.[0];
   },
   deleteNote: async (userId, id) => {
-    const { error } = await supabase.from('notes').delete().eq('id', id).eq('user_id', userId);
+    const { error } = await supabase.from('notes').delete().eq('id', id);
     if (error) throw error;
   },
 
@@ -367,19 +360,18 @@ export const supabaseService = {
     return result?.[0];
   },
   updateGoal: async (userId, id, data) => {
-    const { data: result, error } = await supabase.from('goals').update(data).eq('id', id).eq('user_id', userId).select();
+    const { data: result, error } = await supabase.from('goals').update(data).eq('id', id).select();
     if (error) throw error;
     return result?.[0];
   },
   deleteGoal: async (userId, id) => {
-    const { error } = await supabase.from('goals').delete().eq('id', id).eq('user_id', userId);
+    const { error } = await supabase.from('goals').delete().eq('id', id);
     if (error) throw error;
   },
   archiveOtherGoals: async (userId, activeId) => {
     const { error } = await supabase
       .from('goals')
       .update({ status: 'archived' })
-      .eq('user_id', userId)
       .neq('id', activeId);
     if (error) throw error;
   },

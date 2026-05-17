@@ -160,3 +160,75 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(212, 175, 55, 0.25);
 }
+
+/* Market Insights FullCalendar Overrides */
+.ai-calendar-wrapper .fc {
+  --fc-border-color: rgba(255, 255, 255, 0.05);
+  --fc-button-text-color: #fff;
+  --fc-button-bg-color: rgba(255, 255, 255, 0.05);
+  --fc-button-border-color: rgba(255, 255, 255, 0.1);
+  --fc-button-hover-bg-color: rgba(255, 255, 255, 0.1);
+  --fc-button-hover-border-color: rgba(255, 255, 255, 0.2);
+  --fc-button-active-bg-color: rgba(212, 175, 55, 0.2);
+  --fc-button-active-border-color: rgba(212, 175, 55, 0.5);
+  --fc-event-bg-color: transparent;
+  --fc-event-border-color: transparent;
+  --fc-today-bg-color: rgba(212, 175, 55, 0.05);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: transparent;
+  --fc-list-event-hover-bg-color: rgba(255, 255, 255, 0.05);
+  font-family: 'Inter', sans-serif;
+}
+
+.ai-calendar-wrapper .fc-theme-standard th {
+  border-color: rgba(255, 255, 255, 0.05);
+  padding: 12px 0;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  color: #94a3b8; /* slate-400 */
+}
+
+.ai-calendar-wrapper .fc-daygrid-day-number {
+  font-size: 11px;
+  font-weight: 700;
+  color: #cbd5e1; /* slate-300 */
+  padding: 8px;
+}
+
+.ai-calendar-wrapper .fc-col-header-cell-cushion {
+  color: #94a3b8;
+}
+
+.ai-calendar-wrapper .fc-day-today .fc-daygrid-day-number {
+  color: #D4AF37; /* journal-gold */
+  font-weight: 900;
+}
+
+.ai-calendar-wrapper .fc-h-event {
+  background-color: transparent;
+  border: none;
+}
+
+.ai-calendar-wrapper .fc-daygrid-event-harness {
+  margin-bottom: 4px;
+}
+
+.ai-calendar-wrapper .fc-button {
+  text-transform: uppercase;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.1em;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  transition: all 0.2s;
+}
+
+.ai-calendar-wrapper .fc-toolbar-title {
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #fff;
+}

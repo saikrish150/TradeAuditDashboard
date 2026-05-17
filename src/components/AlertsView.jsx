@@ -68,7 +68,6 @@ export const AlertsView = () => {
     const { data, error } = await supabase
       .from('alerts')
       .select('*')
-      .eq('user_id', currentUserId)
       .order('created_at', { ascending: false });
       
     if (!error && data) setAlerts(data);
@@ -241,9 +240,9 @@ export const AlertsView = () => {
             ))}
           </div>
           
-          <div className="hidden lg:block w-[1px] h-8 bg-white/5"></div>
+          <div className="hidden md:block w-[1px] h-8 bg-white/5"></div>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2">
             <div className={`flex items-center gap-2 bg-black/40 px-4 py-2 rounded-2xl border border-white/5`}>
               {connStatus === 'error' ? <WifiOff className={`w-4 h-4 ${getStatusColor()}`} /> : <Wifi className={`w-4 h-4 ${getStatusColor()}`} />}
               <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${getStatusColor()} hidden xs:inline`}>{connStatus}</span>

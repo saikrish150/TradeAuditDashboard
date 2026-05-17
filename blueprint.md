@@ -7,9 +7,9 @@ A comprehensive institutional-grade trading performance dashboard designed for p
 
 ### Tech Stack
 - **Framework**: React 19 (Vite)
-- **Database (Hybrid)**: 
-  - **Firebase**: Native cloud storage for Audit logs, Daily Snapshots, and User Journaling.
-  - **Supabase**: Real-time alert management and persistence (linked to external automation/bots).
+- **Database**: **Supabase (Postgres)** - Master data persistence for trades, snapshots, notes, and goals.
+- **Auth**: **Supabase Auth** - Secure identity management and session handling.
+- **Storage**: **Supabase Storage** - Secure asset hosting for chart screenshots and gallery media.
 - **Real-time Engine**: Binance WebSocket Gateway using **RxJS** for reactive price streams.
 - **Styling**: Tailwind CSS with custom glassmorphism effects.
 - **Animations**: Framer Motion for smooth, premium transitions.
@@ -36,43 +36,41 @@ A comprehensive institutional-grade trading performance dashboard designed for p
 - **Sizing Matrix**: Average lot size analysis by market/symbol.
 - **Strategy Analysis**: Performance breakdown by setup/strategy.
 - **CSV Integration**: Flexible parser for importing external trading journals.
-- **Alert Intelligence**:
-  - Real-time price tracking for BTC, ETH, and GOLD.
-  - Drag-and-drop price alert creation on the chart.
-  - Browser Notification and Audio chime triggers.
-  - Hybrid persistence: Alerts sync to Supabase for multi-device/bot visibility.
+- **Market Insights Terminal & Market Intelligence:**
+  - Real-time aggregation of macroeconomic events.
+  - Custom unified logic to merge Global (US Focus) and Regional (India Focus) data streams.
+  - Strict high-impact volatility filtering (`importance: 1` strict focus for Indian markets).
+  - 100% Serverless Backend architecture (Supabase Edge Functions + pg_cron).
+
+## Backend Architecture (Supabase Engine)
+- **Data Fetcher (`fetch-market-events`)**: Deno Edge Function running every 3 hours. Pulls live data from Investing.com and TradingView, calculates internal `importance_score` and `affected_markets`, and uses `UPSERT` to maintain a deduped `economic_events` table.
+- **Alert System (`system-alerts`)**: Deno Edge Function running every 5 minutes. Scans for events occurring exactly 15 minutes away, sending a formatted Markdown notification directly to a designated Telegram Bot to keep the trader instantly aware of impending volatility.
+- **Frontend Integration**: UI completely decoupled from external APIs, reading lightning-fast directly from the Supabase database.
 
 ---
 
-## Completed: Alerts Intelligence Integration
+## Completed: Full Supabase Migration
 
 ### Objective
-Migrate and optimize the standalone trading alert logic into the Trade Audit dashboard while maintaining a hybrid database connection to Supabase.
+Decommission the legacy Firebase infrastructure and migrate all core services to Supabase for improved performance, unified data management, and better SQL-based analytics.
 
 ### Accomplishments
-1. **Hybrid Infrastructure**: Configured dual-DB environment (Firebase + Supabase).
-2. **WebSocket Porting**: Optimized Binance WebSocket service for Trade Audit's state management.
-3. **Interactive Charting**:
-   - Ported `Chart.jsx` with full Support for Lightweight Charts **v5 API**.
-   - Integrated `autoSize` and `ResizeObserver` for flexible dashboard layouts.
-   - Fixed "Object is disposed" hardware acceleration issues on hot-reload.
-4. **Performance Tuning**:
-   - Implemented `React.memo` across high-frequency components.
-   - Moved price-tick state to `useRef` to eliminate re-render storms during high volatility.
-5. **Geo-Routing**: Added Global/US server toggle to bypass regional Binance API restrictions.
-6. **Smart Alerting**:
-   - High-fidelity audio triggers (Mixkit SFX).
-   - Desktop system notifications.
-   - Persistence sync to Supabase for cross-platform availability.
+1. **Unified Infrastructure**: Migrated all tables (Trades, Snapshots, Notes, Goals) to Supabase Postgres.
+2. **Auth Switch**: Replaced Firebase Auth with Supabase Auth, integrating `AuthShield` and `authService`.
+3. **Storage Migration**: Successfully moved all chart screenshots and daily snapshots to Supabase Storage.
+4. **SQL Backup Utility**: Developed a standalone Node script to generate comprehensive SQL backups for disaster recovery.
+5. **Real-time Optimization**: Leveraged Supabase Channels for high-fidelity data synchronization across components.
+6. **Master Export**: Implemented a "Master JSON Backup" feature in the Utility HUB for portable data access.
 
 ---
 
 ## Status: Project Scale Optimization
 ### Objective
-Modularize the 95KB monolithic architecture to ensure the terminal remains performant and maintainable as new features are added.
+Modularize the architecture to ensure the terminal remains performant and maintainable as new features are added.
 
 ### Accomplishments
 1. **Analytical Engine Extraction**: Created the `useTradeData` hook to separate mathematical expectancy from UI rendering.
 2. **Decomposition**: Extracted background animations, mobile nav, and carousels into the `src/components/Common` hub.
-3. **Workspace Purge**: Removed obsolete migration scripts (`patch_app.js`, etc.) to stabilize the project root.
+3. **Workspace Purge**: Removed obsolete migration scripts to stabilize the project root.
 4. **Code Quality**: Reduced `App.jsx` complexity significantly, leading to faster hot-reload times and cleaner orchestration logic.
+

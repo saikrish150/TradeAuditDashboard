@@ -494,11 +494,22 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                       onClick={() => (col.type === 'text' || col.key.includes('Reason') || col.key === 'reason') && setViewingText({ title: col.label, content: val })}
                       // NEW FEATURE START: Hover Tooltip Handlers
                       onMouseEnter={(e) => {
+                        const isImage = col.key === 'chartScreenshotUrl' || col.key === 'imageUrl';
+                        if (isImage && val) {
+                          setHoveredCell({
+                            content: val,
+                            isImage: true,
+                            x: e.clientX,
+                            y: e.clientY
+                          });
+                          return;
+                        }
                         const content = String(val || '');
                         const isExpandable = col.type === 'text' || col.key.includes('Reason') || col.key === 'reason';
                         if (isExpandable && content.length > 25) {
                           setHoveredCell({
                             content,
+                            isImage: false,
                             x: e.clientX,
                             y: e.clientY
                           });
@@ -581,15 +592,23 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed z-[9999] p-4 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl max-w-xs pointer-events-none"
+              className={`fixed z-[9999] backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl pointer-events-none ${hoveredCell.isImage ? 'p-1.5' : 'p-4 max-w-xs'} bg-slate-900/95`}
               style={{ 
-                left: Math.min(hoveredCell.x + 15, window.innerWidth - 320), 
-                top: Math.min(hoveredCell.y + 15, window.innerHeight - 100) 
+                left: Math.min(hoveredCell.x + 15, window.innerWidth - (hoveredCell.isImage ? 320 : 320)), 
+                top: Math.min(hoveredCell.y + 15, window.innerHeight - (hoveredCell.isImage ? 250 : 100)) 
               }}
             >
-              <p className="text-[11px] font-medium text-slate-200 leading-relaxed italic relative z-10">
-                "{hoveredCell.content}"
-              </p>
+              {hoveredCell.isImage ? (
+                <img 
+                  src={hoveredCell.content} 
+                  alt="Trade Screenshot" 
+                  className="w-[280px] h-auto max-h-[220px] object-cover rounded-xl"
+                />
+              ) : (
+                <p className="text-[11px] font-medium text-slate-200 leading-relaxed italic relative z-10">
+                  "{hoveredCell.content}"
+                </p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>,

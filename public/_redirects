@@ -1,0 +1,3 @@
+/api-investing/* https://www.investing.com/:splat 200
+/api-gdelt/* https://api.gdeltproject.org/:splat 200
+/* /index.html 200

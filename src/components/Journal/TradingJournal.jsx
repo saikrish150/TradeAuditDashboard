@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Plus, Camera, FileText, ShieldCheck } from 'lucide-react';
 import { supabaseService, normalizeRow } from '../../services/supabaseService';
 
 // Journal Sub-components
@@ -357,6 +357,27 @@ const TradingJournal = ({
         onOpenRules={() => setShowRulesModal(true)}
       />
 
+      {/* ── Mobile Action Bar (below header, above content) ── */}
+      <div className="lg:hidden sticky top-0 z-[100] py-2">
+        <div className="flex items-center justify-around gap-1 bg-journal-secondary border border-white/10 rounded-2xl px-2 py-2">
+          {[
+            { label: 'Trade',      icon: Plus,        action: () => setShowTradeModal(true),    color: 'text-journal-red' },
+            { label: 'Screenshot', icon: Camera,      action: () => setShowSnapshotModal(true), color: 'text-journal-gold' },
+            { label: 'Notes',      icon: FileText,    action: () => setShowNoteModal(true),     color: 'text-slate-400' },
+            { label: 'Rules',      icon: ShieldCheck, action: () => setShowRulesModal(true),    color: 'text-journal-gold' },
+          ].map((btn, i) => (
+            <button
+              key={i}
+              onClick={btn.action}
+              className={`flex flex-col items-center justify-center gap-1 flex-1 py-1.5 rounded-xl active:bg-white/5 transition-all ${btn.color}`}
+            >
+              <btn.icon size={18} />
+              <span className="text-[7px] font-black uppercase tracking-widest leading-none">{btn.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 pb-20 w-full overflow-hidden">
         <PerformanceSection trades={trades} />
         <GoalTracking 
@@ -435,6 +456,7 @@ const TradingJournal = ({
             <CalendarSection trades={trades} />
         </div>
       </div>
+
 
       {/* Modals */}
       <AddTradeModal 
