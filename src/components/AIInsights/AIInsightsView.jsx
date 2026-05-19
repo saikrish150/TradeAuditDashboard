@@ -95,7 +95,7 @@ export const AIInsightsView = () => {
       </div>
 
       {/* Sub-Tab Navigation */}
-      <div className="flex items-center gap-1 bg-[#0a0a0a]/80 p-1.5 rounded-xl border border-white/10 backdrop-blur-xl w-fit">
+      <div className="flex items-center gap-1 bg-[#0a0a0a]/80 p-1.5 rounded-xl border border-white/10 backdrop-blur-xl w-full md:w-fit overflow-x-auto no-scrollbar scrollbar-hide flex-nowrap relative z-20">
         {SUB_TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -103,7 +103,7 @@ export const AIInsightsView = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative flex items-center gap-2 px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+              className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 flex-shrink-0 whitespace-nowrap ${
                 isActive
                   ? 'text-journal-gold'
                   : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'

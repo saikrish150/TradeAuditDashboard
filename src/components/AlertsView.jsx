@@ -4,13 +4,14 @@ import { binanceService } from '../services/binance';
 import { SUPPORTED_SYMBOLS, SUPPORTED_TIMEFRAMES } from '../types/binance';
 import { Chart } from './Chart';
 import { AlertsPanel } from './AlertsPanel';
-import { TrendingUp, Coins, ChevronRight, LayoutGrid, Clock, Wifi, WifiOff, RefreshCw, Database, Globe, Flag } from 'lucide-react';
+import { TrendingUp, Coins, ChevronRight, LayoutGrid, Clock, Wifi, WifiOff, RefreshCw, Database, Globe, Flag, Volume2 } from 'lucide-react';
 
 const GUEST_USER_ID = '00000000-0000-0000-0000-000000000000';
 
 export const AlertsView = () => {
   const [alerts, setAlerts] = useState([]);
   const currentPricesRef = useRef({}); // Optimized: Use ref to prevent re-rendering on every price tick
+  const audioCtxRef = useRef(null);
   const [selectedSymbol, setSelectedSymbol] = useState(SUPPORTED_SYMBOLS[0]);
   const [selectedInterval, setSelectedInterval] = useState('5m');
   const [connStatus, setConnStatus] = useState('disconnected');
@@ -35,6 +36,26 @@ export const AlertsView = () => {
   useEffect(() => {
     const statusSub = binanceService.getConnectionStatus().subscribe(setConnStatus);
     return () => statusSub.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext && !audioCtxRef.current) {
+          audioCtxRef.current = new AudioContext();
+        }
+        if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume();
+        }
+      } catch (e) {}
+    };
+    window.addEventListener('click', unlockAudio, { once: true });
+    window.addEventListener('touchstart', unlockAudio, { once: true });
+    return () => {
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
   }, []);
 
   const toggleUSMode = () => {
@@ -77,16 +98,62 @@ export const AlertsView = () => {
 
   const playAlertSound = useCallback(() => {
     try {
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      // 1. Initialize AudioContext on the fly if needed
+      if (!audioCtxRef.current) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          audioCtxRef.current = new AudioContext();
+        }
+      }
+
+      const ctx = audioCtxRef.current;
+      if (ctx) {
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
+        
+        // Tone 1: A5 (880Hz) - Alert trigger
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880, ctx.currentTime);
+        gain1.gain.setValueAtTime(0, ctx.currentTime);
+        gain1.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.03);
+        gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        
+        osc1.start(ctx.currentTime);
+        osc1.stop(ctx.currentTime + 0.35);
+        
+        // Tone 2: C6 (1046.5Hz) - Ascending minor third (highly audible warning)
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1046.5, ctx.currentTime + 0.12);
+        gain2.gain.setValueAtTime(0, ctx.currentTime + 0.12);
+        gain2.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+        
+        osc2.start(ctx.currentTime + 0.12);
+        osc2.stop(ctx.currentTime + 0.5);
+        return;
+      }
+    } catch (e) {
+      console.warn('[AlertsView] Web Audio API synth failed, attempting fallback', e);
+    }
+
+    // Fallback: Extremely reliable free public sound asset
+    try {
+      const audio = new Audio('https://www.soundjay.com/buttons/sounds/button-3.mp3');
       audio.volume = 0.5;
       audio.play().catch(e => {
-        console.warn('[AlertsView] Audio play blocked. Click anywhere on the page to enable sound.', e);
+        console.warn('[AlertsView] Audio play blocked by browser autoplay policy.', e);
       });
-      // Stop after 4 seconds to prevent looping/annoyance
-      setTimeout(() => {
-        audio.pause();
-        audio.currentTime = 0;
-      }, 4000);
     } catch (e) {
       console.error('[AlertsView] Audio initialization failed', e);
     }

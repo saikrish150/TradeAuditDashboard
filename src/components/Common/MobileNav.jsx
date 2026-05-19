@@ -1,12 +1,13 @@
 import React from 'react';
 import { motion as Motion } from 'framer-motion';
-import { Signal, History, ShieldCheck } from 'lucide-react';
+import { Signal, Brain, History, ShieldCheck } from 'lucide-react';
 
 const MobileNav = ({ activeSection, setActiveSection }) => {
   const tabs = [
-    { id: 'alerts', label: 'Trade Alerts', icon: Signal },
-    { id: 'journal', label: 'Trade Journal', icon: History },
-    { id: 'audit', label: 'Trade Audit', icon: ShieldCheck }
+    { id: 'alerts', label: 'Alerts', icon: Signal },
+    { id: 'insights', label: 'Insights', icon: Brain },
+    { id: 'journal', label: 'Journal', icon: History },
+    { id: 'audit', label: 'Audit', icon: ShieldCheck }
   ];
 
   return (
