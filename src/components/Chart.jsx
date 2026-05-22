@@ -3,11 +3,12 @@ import { createChart, ColorType, LineStyle, CandlestickSeries } from 'lightweigh
 import { binanceService } from '../services/binance';
 import { Plus, BellPlus, Trash2 } from 'lucide-react';
 
-export const Chart = React.memo(({ symbol, interval, alerts, onAddAlert, onUpdateAlert, onDeleteAlert }) => {
+export const Chart = React.memo(({ symbol, interval, alerts, autoLevels, onAddAlert, onUpdateAlert, onDeleteAlert }) => {
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
   const priceLinesRef = useRef(new Map());
+  const autoPriceLinesRef = useRef(new Map());
   const [crosshairPos, setCrosshairPos] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [hoveredAlert, setHoveredAlert] = useState(null);
@@ -261,6 +262,7 @@ export const Chart = React.memo(({ symbol, interval, alerts, onAddAlert, onUpdat
       chartRef.current = null;
       seriesRef.current = null;
       priceLinesRef.current.clear(); // FATAL BUG FIX: Flush old price lines so they can be securely recreated on the newly constructed chart instance!
+      autoPriceLinesRef.current.clear();
       
       // Defer removal to next tick to let internal ResizeObservers flush safely
       requestAnimationFrame(() => {
@@ -289,7 +291,8 @@ export const Chart = React.memo(({ symbol, interval, alerts, onAddAlert, onUpdat
     });
 
     alerts.forEach((alert) => {
-      if (alert.status === 'active' && alert.symbol === symbol.id) {
+      const isAuto = ['PDH', 'PDL', 'PWH', 'PWL'].includes(alert.label);
+      if (!isAuto && alert.status === 'active' && alert.symbol === symbol.id) {
         let line = priceLinesRef.current.get(alert.id);
         const targetPriceVal = Number(alert.target_price); // Cast to strict Number
         const lineOptions = {
@@ -317,6 +320,46 @@ export const Chart = React.memo(({ symbol, interval, alerts, onAddAlert, onUpdat
       }
     });
   }, [alerts, symbol]);
+
+  // Update Auto Levels (PDH, PDL, PWH, PWL)
+  useEffect(() => {
+    if (!seriesRef.current || !autoLevels) return;
+
+    // 1. Remove old auto lines first
+    autoPriceLinesRef.current.forEach((line) => {
+      try {
+        seriesRef.current?.removePriceLine(line);
+      } catch (e) {}
+    });
+    autoPriceLinesRef.current.clear();
+
+    const levels = [
+      { key: 'PDH', val: autoLevels.pdh, color: '#f59e0b', title: 'PDH (Prev Day High)' },
+      { key: 'PDL', val: autoLevels.pdl, color: '#f59e0b', title: 'PDL (Prev Day Low)' },
+      { key: 'PWH', val: autoLevels.pwh, color: '#ef4444', title: 'PWH (Prev Week High)' },
+      { key: 'PWL', val: autoLevels.pwl, color: '#ef4444', title: 'PWL (Prev Week Low)' }
+    ];
+
+    levels.forEach(({ key, val, color, title }) => {
+      if (val !== null && val !== undefined) {
+        const lineVal = Number(val);
+        const line = seriesRef.current?.createPriceLine({
+          price: lineVal,
+          color: color,
+          lineWidth: 1.5,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: true,
+          lineVisible: true,
+          axisLabelColor: color,
+          axisLabelTextColor: '#ffffff',
+          title: title
+        });
+        if (line) {
+          autoPriceLinesRef.current.set(key, line);
+        }
+      }
+    });
+  }, [autoLevels, symbol]);
 
   const handleContextMenu = (e) => {
     e.preventDefault();
