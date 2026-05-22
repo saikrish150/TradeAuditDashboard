@@ -101,7 +101,29 @@ export const AlertsView = () => {
     if (!error && data) setAlerts(data);
   }, []);
 
-  useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
+  useEffect(() => { 
+    fetchAlerts(); 
+    
+    // Listen for backend cron job updates (e.g. status changing to 'triggered')
+    const channel = supabase
+      .channel('alerts-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'alerts',
+        },
+        (payload) => {
+          setAlerts(prev => prev.map(a => a.id === payload.new.id ? payload.new : a));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchAlerts]);
 
   useEffect(() => {
     const calculateAutoLevels = async () => {
