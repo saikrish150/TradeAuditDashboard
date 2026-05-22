@@ -77,6 +77,17 @@ const BackgroundQuotes = () => {
         className: 'quote-watermark italic',
         opacity: 0.02
       }
+    },
+    {
+      text: "ACCEPT AND SMILE AT THE LOSS",
+      parallaxSpeed: -0.08,
+      style: {
+        top: '52%',
+        right: '25%',
+        fontSize: 'clamp(0.8rem, 3vw, 2rem)',
+        className: 'quote-red font-mono tracking-wider',
+        opacity: 0.25
+      }
     }
   ], []);
 
