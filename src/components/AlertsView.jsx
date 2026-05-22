@@ -305,7 +305,16 @@ export const AlertsView = () => {
     }
   };
 
-  const handleSetTriggered = async (id) => {
+  const handleSetTriggered = async (id, alertData, currentPrice) => {
+    // 1. Send Telegram instantly via Edge Function BEFORE marking as triggered
+    try {
+      supabase.functions.invoke('check-alerts', {
+        body: { alert: alertData, currentPrice }
+      });
+    } catch (e) {
+      console.error('Telegram notification failed:', e);
+    }
+    // 2. Then mark as triggered in UI + database
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'triggered' } : a));
     await supabase.from('alerts').update({ status: 'triggered' }).eq('id', id);
   };
@@ -330,7 +339,7 @@ export const AlertsView = () => {
              } else {
                triggerAlert(alert);
              }
-             handleSetTriggered(alert.id);
+             handleSetTriggered(alert.id, alert, update.price);
           }
         }
       });
