@@ -104,6 +104,10 @@ export const AlertsView = () => {
   useEffect(() => { 
     fetchAlerts(); 
     
+    // Listen for manual sync triggers from the Journal (BrokerSyncCenter)
+    const handleManualRefresh = () => fetchAlerts();
+    window.addEventListener('refreshAlerts', handleManualRefresh);
+
     // Listen for backend cron job updates (e.g. status changing to 'triggered')
     const channel = supabase
       .channel('alerts-updates')
@@ -121,6 +125,7 @@ export const AlertsView = () => {
       .subscribe();
 
     return () => {
+      window.removeEventListener('refreshAlerts', handleManualRefresh);
       supabase.removeChannel(channel);
     };
   }, [fetchAlerts]);
