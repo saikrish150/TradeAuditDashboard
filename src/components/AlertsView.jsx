@@ -305,20 +305,9 @@ export const AlertsView = () => {
     }
   };
 
-  const handleSetTriggered = async (id, alertObj, currentPrice) => {
+  const handleSetTriggered = async (id) => {
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'triggered' } : a));
     await supabase.from('alerts').update({ status: 'triggered' }).eq('id', id);
-
-    // Instantly fire Telegram notification via Edge Function
-    if (alertObj) {
-      try {
-        await supabase.functions.invoke('check-alerts', {
-          body: { record: alertObj, currentPrice }
-        });
-      } catch (e) {
-        console.error('Failed to trigger Telegram alert:', e);
-      }
-    }
   };
 
   useEffect(() => {
@@ -341,7 +330,7 @@ export const AlertsView = () => {
              } else {
                triggerAlert(alert);
              }
-             handleSetTriggered(alert.id, alert, update.price);
+             handleSetTriggered(alert.id);
           }
         }
       });
