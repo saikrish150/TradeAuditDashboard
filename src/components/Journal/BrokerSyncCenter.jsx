@@ -108,19 +108,14 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
     return filtered;
   }, [reconstructed, categoryBrokers, dateFilter]);
 
+  const [localLastSynced, setLocalLastSynced] = useState({});
+
   // Compute the last time trades were synced for the current category
   const lastSyncedTime = useMemo(() => {
-    const categoryBrokerIds = categoryBrokers.map(b => b.id);
-    const categoryTrades = reconstructed.filter(t => categoryBrokerIds.includes(t.broker_id));
-    
-    if (categoryTrades.length === 0) return null;
-    
-    const sortedByCreated = [...categoryTrades].sort((a, b) => 
-      new Date(b.created_at) - new Date(a.created_at)
-    );
-    
-    return new Date(sortedByCreated[0].created_at);
-  }, [reconstructed, categoryBrokers]);
+    const targetBroker = categoryBrokers[0];
+    if (!targetBroker) return null;
+    return localLastSynced[targetBroker.id] || null;
+  }, [localLastSynced, categoryBrokers]);
 
   // Load broker context
   useEffect(() => {
@@ -148,6 +143,22 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
 
       if (recErr) throw recErr;
       setReconstructed(recTrades || []);
+
+      // Load last synced times from localStorage or fallback to most recent trade
+      const syncedTimes = {};
+      brokerList.forEach(b => {
+        const stored = localStorage.getItem(`broker_last_sync_${b.id}`);
+        if (stored) {
+          syncedTimes[b.id] = new Date(stored);
+        } else {
+          // Fallback to most recent trade entry time
+          const tradesForBroker = (recTrades || []).filter(t => t.broker_id === b.id);
+          if (tradesForBroker.length > 0) {
+            syncedTimes[b.id] = new Date(tradesForBroker[0].entry_time);
+          }
+        }
+      });
+      setLocalLastSynced(syncedTimes);
     } catch (err) {
       console.error('Error loading broker data:', err.message);
     } finally {
@@ -184,6 +195,14 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
       }, 4000);
 
       const result = await triggerFullBrokerSync(user.id, targetBroker.id, targetBroker.broker_name);
+      
+      // Save sync timing locally on success
+      const now = new Date();
+      localStorage.setItem(`broker_last_sync_${targetBroker.id}`, now.toISOString());
+      setLocalLastSynced(prev => ({
+        ...prev,
+        [targetBroker.id]: now
+      }));
       
       setTimeout(async () => {
         setIsSyncing(false);
