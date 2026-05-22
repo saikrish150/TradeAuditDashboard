@@ -775,8 +775,8 @@ export const TradingRulesModal = ({ isOpen, onClose }) => {
         className="grid grid-cols-1 lg:grid-cols-3 gap-6"
       >
         {rules.map((section, idx) => {
-          const barColor = section.color.includes('indigo') 
-            ? 'from-indigo-500 to-purple-500' 
+          const barColor = section.color.includes('gold') 
+            ? 'from-journal-gold to-yellow-600' 
             : section.color.includes('amber') 
             ? 'from-amber-500 to-yellow-500' 
             : 'from-rose-500 to-red-500';

@@ -4,9 +4,9 @@ export const TRADING_RULES = [
   {
     title: "Entry Protocols",
     icon: Zap,
-    color: "text-indigo-400",
-    bg: "bg-indigo-500/10",
-    border: "border-indigo-500/20",
+    color: "text-journal-gold",
+    bg: "bg-journal-gold/10",
+    border: "border-journal-gold/20",
     items: [
       { label: "1) Trend Alignment", desc: "Always align entry setups strictly with the primary macro trend direction." },
       { label: "2) Trap Validation", desc: "Identify and confirm clear liquidity sweeps or retail traps before initiating a trade." },

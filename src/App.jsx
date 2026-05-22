@@ -38,6 +38,7 @@ import BackgroundQuotes from './components/BackgroundQuotes';
 import { AIInsightsView } from './components/AIInsights/AIInsightsView';
 import MorningChecklist from './components/Journal/MorningChecklist';
 import AIAuditTab from './components/Journal/AIAuditTab';
+import BrokerSyncCenter from './components/Journal/BrokerSyncCenter';
 
 // Extracted Components
 import MobileNav from './components/Common/MobileNav';
@@ -54,7 +55,7 @@ const Badge = ({ children, color = "indigo" }) => {
   const colors = {
     emerald: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
     rose: "bg-rose-500/10 border-rose-500/20 text-rose-400",
-    indigo: "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
+    indigo: "bg-journal-gold/10 border-journal-gold/20 text-journal-gold",
     amber: "bg-amber-500/10 border-amber-500/20 text-amber-400",
     slate: "bg-slate-500/10 border-slate-500/20 text-slate-400"
   };
@@ -739,7 +740,7 @@ const App = () => {
             <div className="w-16 h-16 border-t-2 border-journal-gold rounded-full animate-spin shadow-[0_0_20px_rgba(212,175,55,0.3)]" />
             <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Syncing Cloud Terminal...</p>
           </div>
-        ) : (!rawTrades || rawTrades.length === 0) && !isParsing && !['journal', 'alerts', 'insights'].includes(activeSection) ? (
+        ) : (!rawTrades || rawTrades.length === 0) && !isParsing && !['journal', 'alerts', 'insights', 'brokers'].includes(activeSection) ? (
           <div className="min-h-[400px] flex items-center justify-center p-6 text-center">
             <Card className="max-w-xl w-full p-12 border-dashed border-2 border-slate-800">
               <div className="w-20 h-20 bg-journal-gold/10 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-pulse"><Signal className="text-journal-gold" size={40} /></div>
@@ -753,7 +754,7 @@ const App = () => {
               </button>
             </Card>
           </div>
-        ) : processedData?.isEmpty && !['journal', 'alerts', 'insights'].includes(activeSection) ? (
+        ) : processedData?.isEmpty && !['journal', 'alerts', 'insights', 'brokers'].includes(activeSection) ? (
           <div className="h-[400px] flex flex-col items-center justify-center gap-4"><Search size={48} className="text-slate-800" /><p className="text-slate-500 uppercase font-black text-xs tracking-[0.2em]">No data found for this selection.</p><button onClick={() => { setSelectedYear('All'); setSelectedMonth('All'); setDatePreset('CurrentMonth'); }} className="text-[10px] font-black uppercase text-journal-gold underline">Reset Filters</button></div>
         ) : (
           <Motion.main
@@ -829,15 +830,15 @@ const App = () => {
                          <Card className="p-8 border-rose-500/30 bg-rose-500/5 col-span-2 relative text-white">
                            <SectionHeader icon={Hammer} title="Diagnosis" color="text-rose-400" />
                            <div className="p-6 bg-slate-950/40 rounded-3xl border border-rose-500/20 mb-6">
-                             <div className="flex items-center gap-3 mb-2"><Terminal className="text-indigo-400" size= {16} /><h4 className="text-xs font-black uppercase text-indigo-400 tracking-widest">AI Institutional Brief</h4></div>
+                             <div className="flex items-center gap-3 mb-2"><Terminal className="text-journal-gold" size= {16} /><h4 className="text-xs font-black uppercase text-journal-gold tracking-widest">AI Institutional Brief</h4></div>
                              <p className="text-sm font-black text-white italic mb-2 uppercase tracking-tighter leading-none">Trader Profile: {String(aiBrief.profile)}</p>
                              <p className="text-xs text-slate-300 leading-relaxed font-medium mt-2">{String(aiBrief.narrative)}</p>
-                             <p className="text-xs text-indigo-300 font-bold mt-2 uppercase tracking-tighter italic">Verdict: {String(aiBrief.reviewStatement)}</p>
+                             <p className="text-xs text-journal-gold/90 font-bold mt-2 uppercase tracking-tighter italic">Verdict: {String(aiBrief.reviewStatement)}</p>
                            </div>
                            <div className="space-y-3">
-                             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><ListChecks size={14} /> Priority Action Steps</p>
+                             <p className="text-[10px] font-black text-journal-gold uppercase tracking-widest mb-2 flex items-center gap-2"><ListChecks size={14} /> Priority Action Steps</p>
                              {(aiBrief?.prioritySteps || []).map((step, i) => (
-                               <div key={i} className="flex gap-3 p-3 bg-slate-800/40 rounded-2xl border border-slate-700/50 text-xs font-bold leading-none items-center shadow-lg"><CheckSquare size={14} className="text-indigo-500" /> {String(step)}</div>
+                               <div key={i} className="flex gap-3 p-3 bg-slate-800/40 rounded-2xl border border-slate-700/50 text-xs font-bold leading-none items-center shadow-lg"><CheckSquare size={14} className="text-journal-gold" /> {String(step)}</div>
                              ))}
                            </div>
                          </Card>
@@ -849,7 +850,7 @@ const App = () => {
                                <div className="space-y-2">
                                  {aiSuggestions.map((s, i) => (
                                    <div key={i} className="flex gap-3 items-start p-2 animate-in slide-in-from-right duration-500">
-                                     <ArrowRightCircle className="text-indigo-400 mt-0.5 shrink-0" size={14} />
+                                     <ArrowRightCircle className="text-journal-gold mt-0.5 shrink-0" size={14} />
                                      <p className="text-[11px] text-slate-300 leading-tight font-medium"> {String(s)} </p>
                                    </div>
                                  ))}

@@ -402,7 +402,7 @@ export const Chart = React.memo(({ symbol, interval, alerts, autoLevels, onAddAl
             onAddAlert(crosshairPos.price);
           }}
           title={`Set alert at $${crosshairPos.price}`}
-          className="absolute z-[100] bg-indigo-600 hover:bg-indigo-500 text-white rounded-full shadow-xl transition-all flex items-center justify-center p-1 border-2 border-slate-900"
+          className="absolute z-[100] bg-journal-gold text-journal-bg hover:scale-[1.05] rounded-full shadow-xl transition-all flex items-center justify-center p-1 border-2 border-slate-900"
           style={{ 
             top: `${crosshairPos.y}px`, 
             right: '62px', 
@@ -456,7 +456,7 @@ export const Chart = React.memo(({ symbol, interval, alerts, autoLevels, onAddAl
               onAddAlert(contextMenu.price);
               setContextMenu(null);
             }}
-            className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-indigo-600 hover:text-white transition-colors border-b border-slate-800/50"
+            className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-journal-gold hover:text-journal-bg transition-colors border-b border-slate-800/50"
           >
             <BellPlus className="w-4 h-4" />
             Add Alert @ ${contextMenu.price}

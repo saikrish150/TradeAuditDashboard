@@ -82,8 +82,8 @@ const AuthShield = ({ children }) => {
     return (
       <div className="fixed inset-0 z-[1000] bg-[#020617] flex flex-col items-center justify-center gap-6">
         <div className="relative">
-          <div className="w-20 h-20 border-t-2 border-indigo-500 rounded-full animate-spin shadow-[0_0_30px_rgba(99,102,241,0.2)]" />
-          <ShieldIcon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-400/50 animate-pulse" size={24} />
+          <div className="w-20 h-20 border-t-2 border-journal-gold rounded-full animate-spin shadow-[0_0_30px_rgba(212,175,55,0.2)]" />
+          <ShieldIcon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-journal-gold/50 animate-pulse" size={24} />
         </div>
         <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">Establishing Secure Session...</p>
       </div>
@@ -99,12 +99,12 @@ const AuthShield = ({ children }) => {
         <Motion.div 
           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3], x: [0, 50, 0] }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-indigo-500/10 rounded-full blur-[150px]" 
+          className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-journal-gold/10 rounded-full blur-[150px]" 
         />
         <Motion.div 
           animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2], x: [0, -70, 0] }}
           transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] bg-blue-600/10 rounded-full blur-[150px]" 
+          className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] bg-amber-500/10 rounded-full blur-[150px]" 
         />
       </div>
 
@@ -113,19 +113,19 @@ const AuthShield = ({ children }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="max-w-[450px] w-full relative z-10"
       >
-        <div className="modern-glass p-8 md:p-12 rounded-[40px] border border-white/10 shadow-2xl shadow-indigo-500/10">
+        <div className="modern-glass p-8 md:p-12 rounded-[40px] border border-white/10 shadow-2xl shadow-journal-gold/10">
           {/* Header */}
           <div className="text-center mb-10">
-            <div className="w-20 h-20 bg-indigo-600/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-indigo-500/20 relative group">
-               <div className="absolute inset-0 bg-indigo-500/5 rounded-3xl blur-xl group-hover:bg-indigo-500/10 transition-all" />
-               <Lock className="text-indigo-400 relative z-10" size={32} />
+            <div className="w-20 h-20 bg-journal-gold/10 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-journal-gold/20 relative group">
+               <div className="absolute inset-0 bg-journal-gold/5 rounded-3xl blur-xl group-hover:bg-journal-gold/10 transition-all" />
+               <Lock className="text-journal-gold relative z-10" size={32} />
             </div>
 
             <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic leading-none mb-2">
-              Trader<span className="text-indigo-500">Dashboard</span>
+              Trader<span className="text-journal-gold">Dashboard</span>
             </h2>
             <p className="text-slate-500 text-[9px] font-black uppercase tracking-[0.4em] mb-2">Multi-User Terminal Access</p>
-            <div className="h-px w-12 bg-indigo-500/30 mx-auto mt-4" />
+            <div className="h-px w-12 bg-journal-gold/30 mx-auto mt-4" />
           </div>
 
           <form onSubmit={handleAuth} className="space-y-5">
@@ -133,14 +133,14 @@ const AuthShield = ({ children }) => {
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Identity (Email)</label>
               <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-400 transition-colors" size={18} />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-journal-gold transition-colors" size={18} />
                 <input 
                   type="email" 
                   required
                   placeholder="name@firm.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-black/40 border border-white/5 focus:border-indigo-500/50 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-white outline-none transition-all placeholder:text-slate-700"
+                  className="w-full bg-black/40 border border-white/5 focus:border-journal-gold/50 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-white outline-none transition-all placeholder:text-slate-700"
                 />
               </div>
             </div>
@@ -149,14 +149,14 @@ const AuthShield = ({ children }) => {
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Terminal Key (Password)</label>
               <div className="relative group">
-                <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-400 transition-colors" size={18} />
+                <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-journal-gold transition-colors" size={18} />
                 <input 
                   type="password" 
                   required
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-black/40 border border-white/5 focus:border-indigo-500/50 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-white outline-none transition-all placeholder:text-slate-700"
+                  className="w-full bg-black/40 border border-white/5 focus:border-journal-gold/50 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-white outline-none transition-all placeholder:text-slate-700"
                 />
               </div>
             </div>
@@ -189,7 +189,7 @@ const AuthShield = ({ children }) => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.2em] py-5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-wait mt-4 group"
+              className="w-full bg-gradient-to-r from-journal-gold to-yellow-600 text-[#050505] font-black uppercase tracking-[0.2em] py-5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-journal-gold/20 disabled:opacity-50 disabled:cursor-wait mt-4 group"
             >
               {isSubmitting ? (
                 <Loader2 className="animate-spin" size={18} />
@@ -207,7 +207,7 @@ const AuthShield = ({ children }) => {
           <div className="mt-8 text-center">
             <button 
               onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); setSuccess(null); }}
-              className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-400 transition-colors"
+              className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-journal-gold transition-colors"
             >
               {mode === 'login' ? "New operative? Create credentials" : "Already registered? Switch to login"}
             </button>

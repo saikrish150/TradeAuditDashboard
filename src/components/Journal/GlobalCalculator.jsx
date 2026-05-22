@@ -134,7 +134,7 @@ const GlobalCalculator = ({ isOpen, onClose }) => {
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
-          className="relative w-full max-w-sm journal-glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl shadow-indigo-500/20"
+          className="relative w-full max-w-sm journal-glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl shadow-journal-gold/20"
         >
           {/* Header & Tabs */}
           <div className="p-6 pb-0 flex flex-col gap-6">
@@ -263,9 +263,9 @@ const GlobalCalculator = ({ isOpen, onClose }) => {
                     </div>
                  </div>
 
-                 <div className="p-4 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 mt-4">
+                 <div className="p-4 rounded-3xl bg-journal-gold/10 border border-journal-gold/20 mt-4">
                     <div className="flex justify-between items-center mb-2">
-                       <span className="text-[8px] font-black text-indigo-300 uppercase tracking-widest">Total Risk</span>
+                       <span className="text-[8px] font-black text-journal-gold uppercase tracking-widest">Total Risk</span>
                        <span className="text-sm font-black text-white italic">{riskResults.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex justify-between items-center bg-white/5 p-3 rounded-2xl">
