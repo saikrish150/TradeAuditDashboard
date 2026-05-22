@@ -497,7 +497,26 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
                     </span>
                     {!isSyncing && categoryBrokers.length > 0 && lastSyncedTime && (
                       <span className="text-[8px] font-bold tracking-widest text-[#050505]/70 mt-0.5">
-                        Last synced: {lastSyncedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        Last synced: {(() => {
+                          const now = new Date();
+                          const isToday = lastSyncedTime.toDateString() === now.toDateString();
+                          const timeStr = lastSyncedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                          
+                          if (isToday) {
+                            return `Today, ${timeStr}`;
+                          }
+                          
+                          const yesterday = new Date(now);
+                          yesterday.setDate(yesterday.getDate() - 1);
+                          const isYesterday = lastSyncedTime.toDateString() === yesterday.toDateString();
+                          
+                          if (isYesterday) {
+                            return `Yesterday, ${timeStr}`;
+                          }
+                          
+                          const dateStr = lastSyncedTime.toLocaleDateString([], { day: '2-digit', month: 'short' });
+                          return `${dateStr}, ${timeStr}`;
+                        })()}
                       </span>
                     )}
                   </div>
