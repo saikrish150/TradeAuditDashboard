@@ -18,19 +18,15 @@ const UtilityHub = ({ user, trades = [], snapshots = [], notes = [] }) => {
       // Don't trigger if typing in an input/textarea
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
       
-      if (e.key.toLowerCase() === 'c') {
-        // If calculator is not open, open converter
-        // We check if calculator is open to avoid conflict (calculator uses 'c' for clear)
-        if (!showCalc) {
-          e.preventDefault();
-          setShowConverter(true);
-        }
+      if (e.key.toLowerCase() === 'x') {
+        e.preventDefault();
+        setShowCalc(prev => !prev);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showCalc]);
+  }, []);
   // NEW FEATURE END
 
   const generateSQLBackup = (data) => {
