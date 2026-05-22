@@ -108,6 +108,20 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
     return filtered;
   }, [reconstructed, categoryBrokers, dateFilter]);
 
+  // Compute the last time trades were synced for the current category
+  const lastSyncedTime = useMemo(() => {
+    const categoryBrokerIds = categoryBrokers.map(b => b.id);
+    const categoryTrades = reconstructed.filter(t => categoryBrokerIds.includes(t.broker_id));
+    
+    if (categoryTrades.length === 0) return null;
+    
+    const sortedByCreated = [...categoryTrades].sort((a, b) => 
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+    
+    return new Date(sortedByCreated[0].created_at);
+  }, [reconstructed, categoryBrokers]);
+
   // Load broker context
   useEffect(() => {
     if (user?.id) {
@@ -175,8 +189,6 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
         setIsSyncing(false);
         setSyncLogs([]);
         await loadBrokerContext();
-        // Dispatch global event so AlertsView can instantly refresh itself
-        window.dispatchEvent(new Event('refreshAlerts'));
         if (onImportSuccess) onImportSuccess();
       }, 5000);
     } catch (err) {
@@ -460,9 +472,16 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
               >
                 <div className="flex items-center gap-2">
                   <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
-                  <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isSyncing || categoryBrokers.length === 0 ? '' : 'text-[#050505]'}`}>
-                    {isSyncing ? 'Syncing Pipeline...' : categoryBrokers.length === 0 ? 'No API Keys' : `Launch Sync`}
-                  </span>
+                  <div className="flex flex-col items-center">
+                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isSyncing || categoryBrokers.length === 0 ? '' : 'text-[#050505]'}`}>
+                      {isSyncing ? 'Syncing Pipeline...' : categoryBrokers.length === 0 ? 'No API Keys' : `Launch Sync`}
+                    </span>
+                    {!isSyncing && categoryBrokers.length > 0 && lastSyncedTime && (
+                      <span className="text-[8px] font-bold tracking-widest text-[#050505]/70 mt-0.5">
+                        Last synced: {lastSyncedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Embedded latest log line */}
