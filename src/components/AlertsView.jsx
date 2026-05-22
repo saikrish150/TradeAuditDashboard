@@ -20,6 +20,13 @@ export const AlertsView = () => {
   const [testResult, setTestResult] = useState(null);
   const [toast, setToast] = useState(null);
   const [triggeredModal, setTriggeredModal] = useState(null);
+  const [autoLevels, setAutoLevels] = useState({ pdh: null, pdl: null, pwh: null, pwl: null });
+  const triggeredLevelsRef = useRef(new Set());
+  const autoLevelsRef = useRef(autoLevels);
+
+  useEffect(() => {
+    autoLevelsRef.current = autoLevels;
+  }, [autoLevels]);
   
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -95,6 +102,105 @@ export const AlertsView = () => {
   }, []);
 
   useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
+
+  useEffect(() => {
+    const calculateAutoLevels = async () => {
+      try {
+        triggeredLevelsRef.current.clear();
+
+        // 1. Fetch daily candles
+        const dailyCandles = await binanceService.getHistoricalData(selectedSymbol, '1d');
+        let pdh = null;
+        let pdl = null;
+        if (dailyCandles && dailyCandles.length >= 2) {
+          const yesterdayCandle = dailyCandles[dailyCandles.length - 2];
+          pdh = yesterdayCandle.high;
+          pdl = yesterdayCandle.low;
+        }
+
+        // 2. Fetch weekly candles
+        const weeklyCandles = await binanceService.getHistoricalData(selectedSymbol, '1w');
+        let pwh = null;
+        let pwl = null;
+        if (weeklyCandles && weeklyCandles.length >= 2) {
+          const lastWeekCandle = weeklyCandles[weeklyCandles.length - 2];
+          pwh = lastWeekCandle.high;
+          pwl = lastWeekCandle.low;
+        }
+
+        setAutoLevels({ pdh, pdl, pwh, pwl });
+
+        // Delete old auto levels first based on symbol and label in database
+        await supabase.from('alerts')
+          .delete()
+          .eq('symbol', selectedSymbol.id)
+          .in('label', ['PDH', 'PDL', 'PWH', 'PWL']);
+
+        // Prepare new auto levels to insert
+        const levelsToInsert = [];
+        const currentUserId = GUEST_USER_ID;
+        if (pdh) {
+          levelsToInsert.push({
+            symbol: selectedSymbol.id,
+            target_price: Number(pdh),
+            condition: 'gt',
+            status: 'active',
+            label: 'PDH',
+            user_id: currentUserId
+          });
+        }
+        if (pdl) {
+          levelsToInsert.push({
+            symbol: selectedSymbol.id,
+            target_price: Number(pdl),
+            condition: 'lt',
+            status: 'active',
+            label: 'PDL',
+            user_id: currentUserId
+          });
+        }
+        if (pwh) {
+          levelsToInsert.push({
+            symbol: selectedSymbol.id,
+            target_price: Number(pwh),
+            condition: 'gt',
+            status: 'active',
+            label: 'PWH',
+            user_id: currentUserId
+          });
+        }
+        if (pwl) {
+          levelsToInsert.push({
+            symbol: selectedSymbol.id,
+            target_price: Number(pwl),
+            condition: 'lt',
+            status: 'active',
+            label: 'PWL',
+            user_id: currentUserId
+          });
+        }
+
+        if (levelsToInsert.length > 0) {
+          const { data: insertedData, error: insertError } = await supabase
+            .from('alerts')
+            .insert(levelsToInsert)
+            .select();
+
+          if (!insertError && insertedData) {
+            setAlerts(prev => {
+              // Filter out older auto level items for this symbol
+              const filtered = prev.filter(a => !(a.symbol === selectedSymbol.id && ['PDH', 'PDL', 'PWH', 'PWL'].includes(a.label)));
+              return [...insertedData, ...filtered];
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[AutoLevels] Failed to calculate and save levels:', err);
+      }
+    };
+
+    calculateAutoLevels();
+  }, [selectedSymbol]);
 
   const playAlertSound = useCallback(() => {
     try {
@@ -173,19 +279,69 @@ export const AlertsView = () => {
     }
   };
 
+  const triggerAutoLevelAlert = (levelName, targetPrice) => {
+    const levelKey = `${selectedSymbol.id}-${levelName}-${targetPrice}`;
+    if (triggeredLevelsRef.current.has(levelKey)) return;
+    
+    triggeredLevelsRef.current.add(levelKey);
+    
+    const mockAlert = {
+      id: levelKey,
+      symbol: selectedSymbol.id,
+      target_price: targetPrice,
+      condition: levelName.endsWith('H') ? 'gt' : 'lt',
+      status: 'active',
+      isAutoLevel: true,
+      levelName: levelName
+    };
+    
+    setTriggeredModal(mockAlert);
+    playAlertSound();
+    
+    if (window.Notification && Notification.permission === "granted") {
+      new Notification(`🔔 ${selectedSymbol.id} ${levelName} Crossed!`, { 
+        body: `${selectedSymbol.id} crossed your automated ${levelName} level of $${targetPrice}` 
+      });
+    }
+  };
+
+  const handleSetTriggered = async (id, alertObj, currentPrice) => {
+    setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'triggered' } : a));
+    await supabase.from('alerts').update({ status: 'triggered' }).eq('id', id);
+
+    // Instantly fire Telegram notification via Edge Function
+    if (alertObj) {
+      try {
+        await supabase.functions.invoke('check-alerts', {
+          body: { record: alertObj, currentPrice }
+        });
+      } catch (e) {
+        console.error('Failed to trigger Telegram alert:', e);
+      }
+    }
+  };
+
   useEffect(() => {
     binanceService.connectAll(SUPPORTED_SYMBOLS, selectedInterval);
     
     const subscription = binanceService.getPriceStream().subscribe((update) => {
+      const prevPrice = currentPricesRef.current[update.symbol];
       currentPricesRef.current[update.symbol] = update.price;
       
       alertsRef.current.forEach((alert) => {
+        const isAuto = ['PDH', 'PDL', 'PWH', 'PWL'].includes(alert.label);
+
         if (alert.status === 'active' && alert.symbol === update.symbol) {
           const isTriggered = (alert.condition === 'gt' && update.price >= alert.target_price) || 
                             (alert.condition === 'lt' && update.price <= alert.target_price);
           
           if (isTriggered) {
-             triggerAlert(alert);
+             if (isAuto) {
+               triggerAutoLevelAlert(alert.label, alert.target_price);
+             } else {
+               triggerAlert(alert);
+             }
+             handleSetTriggered(alert.id, alert, update.price);
           }
         }
       });
@@ -348,6 +504,7 @@ export const AlertsView = () => {
               symbol={selectedSymbol} 
               interval={selectedInterval} 
               alerts={alerts} 
+              autoLevels={autoLevels}
               onAddAlert={handleAddAlert}
               onUpdateAlert={handleUpdateAlert}
               onDeleteAlert={handleDeleteAlert}
@@ -380,7 +537,9 @@ export const AlertsView = () => {
             <div className="w-20 h-20 bg-journal-gold/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-journal-gold/20 shadow-xl shadow-journal-gold/10">
               <TrendingUp className="w-10 h-10 text-journal-gold animate-bounce" />
             </div>
-            <h2 className="text-2xl font-black text-white mb-3 uppercase tracking-[0.2em] italic">Target Reached</h2>
+            <h2 className="text-2xl font-black text-white mb-3 uppercase tracking-[0.2em] italic">
+              {triggeredModal.isAutoLevel ? `${triggeredModal.levelName} Crossed` : 'Target Reached'}
+            </h2>
             <div className="text-5xl font-black text-journal-gold mb-8 tracking-tighter drop-shadow-lg gold-glow py-2">
               {triggeredModal.symbol}
             </div>
