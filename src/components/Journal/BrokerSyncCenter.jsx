@@ -319,7 +319,10 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
         trade_source: 'BROKER',
         broker_id: selectedReconstructedTrade.broker_id,
         linked_reconstructed_trade_id: selectedReconstructedTrade.id,
-        trade_hash: selectedReconstructedTrade.trade_hash
+        trade_hash: selectedReconstructedTrade.trade_hash,
+        fees: parseFloat(selectedReconstructedTrade.total_fees || 0),
+        entry_price: parseFloat(selectedReconstructedTrade.entry_price_avg || 0),
+        exit_price: parseFloat(selectedReconstructedTrade.exit_price_avg || 0)
       };
 
       let screenshotUrl = data.chartScreenshotUrl || null;
