@@ -98,7 +98,7 @@ export const UpcomingEvents = ({ events, loading }) => {
             >
               {/* Rank */}
               <div className="col-span-1">
-                <span className={`text-xs font-mono font-black tracking-widest ${isExtreme ? 'text-rose-400' : 'text-slate-600 group-hover:text-journal-gold transition-colors'}`}>
+                <span className="text-xs font-mono font-bold text-slate-500 group-hover:text-journal-gold transition-colors">
                   {String(index + 1).padStart(2, '0')}
                 </span>
               </div>
@@ -120,15 +120,13 @@ export const UpcomingEvents = ({ events, loading }) => {
 
               {/* Event Title + Date */}
               <div className="col-span-3 overflow-hidden">
-                <p className={`text-xs font-black tracking-tight leading-normal uppercase truncate transition-colors ${
-                  isExtreme ? 'text-rose-200 group-hover:text-rose-100' : 'text-white group-hover:text-journal-gold'
-                }`}>
+                <p className="text-sm font-semibold truncate leading-tight text-white group-hover:text-journal-gold transition-colors">
                   {event.title}
                 </p>
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <Clock size={10} className="text-slate-600" />
-                  <span className="text-[10px] font-bold font-mono text-slate-500 uppercase">
-                    {dateStr} <span className="text-slate-700">•</span> {timeStr}
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Clock size={10} className="text-slate-500" />
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {dateStr} • {timeStr}
                   </span>
                 </div>
               </div>
@@ -192,7 +190,7 @@ export const UpcomingEvents = ({ events, loading }) => {
               {/* Top Meta Row */}
               <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs font-mono font-black ${isExtreme ? 'text-rose-400' : 'text-slate-500'}`}>
+                  <span className="text-xs font-mono font-bold text-slate-500">
                     {String(index + 1).padStart(2, '0')}
                   </span>
                   {event.country === 'India' ? (
@@ -206,11 +204,11 @@ export const UpcomingEvents = ({ events, loading }) => {
 
               {/* Event Title and Time */}
               <div>
-                <h4 className={`text-xs font-black uppercase tracking-tight leading-normal ${isExtreme ? 'text-rose-200' : 'text-white'}`}>
+                <h4 className="text-sm font-semibold text-white">
                   {event.title}
                 </h4>
-                <div className="flex items-center gap-1.5 mt-2.5 text-[9px] text-slate-500 uppercase font-black">
-                  <Clock size={11} className="text-slate-600 shrink-0" />
+                <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-slate-400">
+                  <Clock size={11} className="text-slate-500 shrink-0" />
                   <span className="font-mono">{dateStr} • {timeStr}</span>
                 </div>
               </div>
