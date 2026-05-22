@@ -20,6 +20,10 @@ const UtilityHub = ({ user, trades = [], snapshots = [], notes = [] }) => {
       
       if (e.key.toLowerCase() === 'x') {
         e.preventDefault();
+        setShowConverter(prev => !prev);
+      }
+      if (e.key.toLowerCase() === 'z') {
+        e.preventDefault();
         setShowCalc(prev => !prev);
       }
     };
