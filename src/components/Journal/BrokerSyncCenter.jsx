@@ -391,7 +391,7 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
       >
         {/* Subtle glowing orb in background */}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-journal-gold/10 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#00f2fe]/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-journal-gold/5 rounded-full blur-[120px] pointer-events-none" />
         
         {/* Header Area */}
         <div className="p-4 md:p-6 border-b border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -420,7 +420,7 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
                 onClick={() => { setActiveCategory('crypto'); setBrokerName('Delta Exchange India'); }}
                 className={`flex-1 md:flex-none px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${
                   activeCategory === 'crypto' 
-                    ? 'bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-[#050505] shadow-[0_0_20px_rgba(0,242,254,0.4)] scale-[1.02]' 
+                    ? 'bg-gradient-to-r from-journal-gold to-yellow-600 text-[#050505] shadow-[0_0_20px_rgba(212,175,55,0.4)] scale-[1.02]' 
                     : 'text-slate-500 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -487,7 +487,7 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
                 onClick={handleSyncTrigger}
                 disabled={isSyncing || categoryBrokers.length === 0}
                 className={`relative overflow-hidden group px-6 py-3 rounded-xl flex flex-col items-center justify-center w-full md:w-auto md:min-w-[220px] max-w-full md:max-w-[280px] transition-all duration-300 ${
-                  isSyncing ? 'bg-slate-800/80 text-[#00f2fe] cursor-not-allowed border border-[#00f2fe]/30 shadow-[0_0_15px_rgba(0,242,254,0.15)]' 
+                  isSyncing ? 'bg-slate-800/80 text-journal-gold cursor-not-allowed border border-journal-gold/30 shadow-[0_0_15px_rgba(212,175,55,0.15)]' 
                   : categoryBrokers.length === 0 ? 'bg-[#1a1a1a] border border-white/10 text-slate-400 hover:text-white hover:border-white/30' 
                   : 'bg-gradient-to-r from-journal-gold to-yellow-500 hover:scale-[1.03] shadow-[0_0_20px_rgba(212,175,55,0.4)] text-[#050505]'
                 }`}
@@ -735,12 +735,12 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">API Key</label>
                       <input type="text" value={apiKey} onChange={e => setApiKey(e.target.value)} required
-                        className="w-full bg-[#111] border border-white/10 rounded-xl px-5 py-3.5 text-xs text-white focus:outline-none focus:border-[#00f2fe] shadow-inner transition-all" />
+                        className="w-full bg-[#111] border border-white/10 rounded-xl px-5 py-3.5 text-xs text-white focus:outline-none focus:border-journal-gold shadow-inner transition-all" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">API Secret</label>
                       <input type="password" value={apiSecret} onChange={e => setApiSecret(e.target.value)} required
-                        className="w-full bg-[#111] border border-white/10 rounded-xl px-5 py-3.5 text-xs text-white focus:outline-none focus:border-[#00f2fe] shadow-inner transition-all" />
+                        className="w-full bg-[#111] border border-white/10 rounded-xl px-5 py-3.5 text-xs text-white focus:outline-none focus:border-journal-gold shadow-inner transition-all" />
                     </div>
                   </>
                 )}
