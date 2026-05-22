@@ -152,69 +152,48 @@ export const AlertsView = () => {
 
         setAutoLevels({ pdh, pdl, pwh, pwl });
 
-        // Delete old auto levels first based on symbol and label in database
-        await supabase.from('alerts')
-          .delete()
+        const calculatedLevels = [];
+        const currentUserId = GUEST_USER_ID;
+        
+        if (pdh) calculatedLevels.push({ symbol: selectedSymbol.id, target_price: Number(pdh), condition: 'gt', status: 'active', label: 'PDH', user_id: currentUserId });
+        if (pdl) calculatedLevels.push({ symbol: selectedSymbol.id, target_price: Number(pdl), condition: 'lt', status: 'active', label: 'PDL', user_id: currentUserId });
+        if (pwh) calculatedLevels.push({ symbol: selectedSymbol.id, target_price: Number(pwh), condition: 'gt', status: 'active', label: 'PWH', user_id: currentUserId });
+        if (pwl) calculatedLevels.push({ symbol: selectedSymbol.id, target_price: Number(pwl), condition: 'lt', status: 'active', label: 'PWL', user_id: currentUserId });
+
+        // Fetch existing auto levels for this symbol
+        const { data: existingLevels, error: fetchError } = await supabase
+          .from('alerts')
+          .select('*')
           .eq('symbol', selectedSymbol.id)
           .in('label', ['PDH', 'PDL', 'PWH', 'PWL']);
 
-        // Prepare new auto levels to insert
+        if (fetchError) throw fetchError;
+
         const levelsToInsert = [];
-        const currentUserId = GUEST_USER_ID;
-        if (pdh) {
-          levelsToInsert.push({
-            symbol: selectedSymbol.id,
-            target_price: Number(pdh),
-            condition: 'gt',
-            status: 'active',
-            label: 'PDH',
-            user_id: currentUserId
-          });
-        }
-        if (pdl) {
-          levelsToInsert.push({
-            symbol: selectedSymbol.id,
-            target_price: Number(pdl),
-            condition: 'lt',
-            status: 'active',
-            label: 'PDL',
-            user_id: currentUserId
-          });
-        }
-        if (pwh) {
-          levelsToInsert.push({
-            symbol: selectedSymbol.id,
-            target_price: Number(pwh),
-            condition: 'gt',
-            status: 'active',
-            label: 'PWH',
-            user_id: currentUserId
-          });
-        }
-        if (pwl) {
-          levelsToInsert.push({
-            symbol: selectedSymbol.id,
-            target_price: Number(pwl),
-            condition: 'lt',
-            status: 'active',
-            label: 'PWL',
-            user_id: currentUserId
-          });
+        const idsToDelete = [];
+
+        calculatedLevels.forEach(calcLevel => {
+          const existing = existingLevels?.find(e => e.label === calcLevel.label);
+          
+          if (!existing) {
+            // Doesn't exist, insert new
+            levelsToInsert.push(calcLevel);
+          } else if (existing.target_price !== calcLevel.target_price) {
+            // Price changed (e.g. new day/week), delete old and insert new
+            idsToDelete.push(existing.id);
+            levelsToInsert.push(calcLevel);
+          }
+          // If it exists and price is same, do nothing (preserves 'triggered' status)
+        });
+
+        if (idsToDelete.length > 0) {
+          await supabase.from('alerts').delete().in('id', idsToDelete);
         }
 
         if (levelsToInsert.length > 0) {
-          const { data: insertedData, error: insertError } = await supabase
-            .from('alerts')
-            .insert(levelsToInsert)
-            .select();
-
-          if (!insertError && insertedData) {
-            setAlerts(prev => {
-              // Filter out older auto level items for this symbol
-              const filtered = prev.filter(a => !(a.symbol === selectedSymbol.id && ['PDH', 'PDL', 'PWH', 'PWL'].includes(a.label)));
-              return [...insertedData, ...filtered];
-            });
-          }
+          await supabase.from('alerts').insert(levelsToInsert);
+          // Rely on the Supabase Realtime subscription to update the UI
+          // The fetchAlerts on mount + realtime updates will handle the state perfectly
         }
       } catch (err) {
         console.error('[AutoLevels] Failed to calculate and save levels:', err);
