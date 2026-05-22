@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { generateDailyBriefing, detectAnomalies, runWhatIf, getScenarios } from '../../services/aiAuditEngine';
 import { geminiService } from '../../services/geminiService';
+import { DB_FIELDS } from '../../constants/fieldMappings';
 
 const Card = ({ children, className = "", title, icon: Icon, sub }) => (
   <div className={`modern-glass border border-white/10 rounded-[2rem] overflow-hidden flex flex-col ${className}`}>
@@ -14,7 +15,7 @@ const Card = ({ children, className = "", title, icon: Icon, sub }) => (
       <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
         <div className="flex items-center gap-3">
           {Icon && (
-            <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <div className="p-2 rounded-xl bg-journal-gold/10 border border-journal-gold/20 text-journal-gold">
               <Icon size={18} />
             </div>
           )}
@@ -198,7 +199,7 @@ const AIAuditTab = ({ trades = [] }) => {
             return <p key={i} className="text-white font-black uppercase tracking-wider mt-4 first:mt-0">{line.replace(/\*\*|##/g, '')}</p>;
           }
           if (line.startsWith('- ')) {
-            return <div key={i} className="flex gap-2 items-start ml-2"><div className="w-1 h-1 rounded-full bg-indigo-500 mt-1.5 shrink-0" /><span>{line.substring(2)}</span></div>;
+            return <div key={i} className="flex gap-2 items-start ml-2"><div className="w-1 h-1 rounded-full bg-journal-gold mt-1.5 shrink-0" /><span>{line.substring(2)}</span></div>;
           }
           return <p key={i}>{line}</p>;
         })}
@@ -213,8 +214,8 @@ const AIAuditTab = ({ trades = [] }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h2 className="text-2xl font-black italic tracking-tighter uppercase text-white flex items-center gap-3">
-            <BrainCircuit className="text-indigo-400" size={28} />
-            AI Audit <span className="text-indigo-500/50 not-italic text-sm ml-2 font-mono">v1.0.institutional</span>
+            <BrainCircuit className="text-journal-gold" size={28} />
+            AI Audit <span className="text-journal-gold/50 not-italic text-sm ml-2 font-mono">v1.0.institutional</span>
           </h2>
           <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mt-1">Algorithmic Math + Gemini Neural Intelligence</p>
         </div>
@@ -224,7 +225,7 @@ const AIAuditTab = ({ trades = [] }) => {
             <button
               onClick={runCompleteNeuralAudit}
               disabled={loading.deep || loading.strategy || loading.monthly}
-              className="flex-1 md:flex-initial flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-2xl bg-indigo-500 text-white font-black text-[10px] uppercase tracking-widest hover:bg-indigo-400 hover:shadow-[0_0_25px_rgba(99,102,241,0.35)] transition-all disabled:opacity-50"
+              className="flex-1 md:flex-initial flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-journal-gold to-yellow-600 text-[#050505] font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(212,175,55,0.4)] transition-all disabled:opacity-50"
             >
               <Sparkles size={14} className={loading.deep || loading.strategy || loading.monthly ? "animate-spin" : ""} />
               {loading.deep || loading.strategy || loading.monthly ? 'Auditing All Systems...' : 'Trigger Complete Neural Audit'}
@@ -236,7 +237,7 @@ const AIAuditTab = ({ trades = [] }) => {
             className={`flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-2xl border transition-all ${
               apiKey 
                 ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' 
-                : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.1)]'
+                : 'bg-journal-gold/10 border border-journal-gold/30 text-journal-gold hover:bg-journal-gold/20 shadow-[0_0_20px_rgba(212,175,55,0.1)]'
             }`}
           >
             {apiKey ? <ShieldAlert size={14} /> : <Key size={14} />}
@@ -263,9 +264,9 @@ const AIAuditTab = ({ trades = [] }) => {
             <div className="space-y-6">
               {/* Today's Edge */}
               {briefing.edge && (
-                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4 flex items-center justify-between">
+                <div className="bg-journal-gold/10 border border-journal-gold/20 rounded-2xl p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <div className="w-10 h-10 rounded-xl bg-journal-gold/20 flex items-center justify-center text-journal-gold">
                       <TrendingUp size={20} />
                     </div>
                     <div>
@@ -278,7 +279,7 @@ const AIAuditTab = ({ trades = [] }) => {
                     briefing.edge.verdict === 'weak' ? 'bg-rose-500/20 border-rose-500/30 text-rose-400' : 
                     'bg-slate-500/20 border-slate-500/30 text-slate-400'
                   }`}>
-                    {briefing.edge.verdict} Edge
+                    {briefing.edge.verdict} Verdict
                   </div>
                 </div>
               )}
@@ -308,7 +309,7 @@ const AIAuditTab = ({ trades = [] }) => {
 
               {/* Psychological Forecast */}
               <div className="p-4 bg-slate-900/40 border border-white/5 rounded-2xl">
-                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                <p className="text-[10px] font-black text-journal-gold uppercase tracking-widest mb-1.5 flex items-center gap-2">
                    <Sparkles size={12} /> Neural Forecast
                 </p>
                 <p className="text-[11px] text-slate-300 italic">"{briefing.forecast}"</p>
@@ -373,7 +374,7 @@ const AIAuditTab = ({ trades = [] }) => {
                 onClick={() => setSelectedScenario(s.id)}
                 className={`px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all ${
                   selectedScenario === s.id 
-                    ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-[0_0_15px_rgba(99,102,241,0.15)]' 
+                    ? 'bg-journal-gold/20 border-journal-gold/50 text-white shadow-[0_0_15px_rgba(212,175,55,0.15)]' 
                     : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'
                 }`}
               >
@@ -392,10 +393,10 @@ const AIAuditTab = ({ trades = [] }) => {
                   <p className="text-[9px] font-bold text-slate-500 mt-2">{whatIf.originalCount} Trades</p>
                 </div>
 
-                <div className="bg-indigo-500/5 rounded-2xl border border-indigo-500/20 p-5 flex flex-col justify-center text-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent pointer-events-none" />
-                  <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Projected Net P&L</p>
-                  <p className="text-2xl font-black text-indigo-400 italic">₹{whatIf.whatIfNet.toLocaleString()}</p>
+                <div className="bg-journal-gold/5 rounded-2xl border border-journal-gold/20 p-5 flex flex-col justify-center text-center relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-journal-gold/10 to-transparent pointer-events-none" />
+                  <p className="text-[9px] font-black text-journal-gold uppercase tracking-widest mb-1">Projected Net P&L</p>
+                  <p className="text-2xl font-black text-journal-gold italic">₹{whatIf.whatIfNet.toLocaleString()}</p>
                   <p className="text-[9px] font-bold text-slate-500 mt-2">{whatIf.filteredCount} Trades Remaining</p>
                 </div>
 
@@ -424,7 +425,7 @@ const AIAuditTab = ({ trades = [] }) => {
             <div className="flex-1">
               {loading.deep ? (
                 <div className="h-full flex flex-col items-center justify-center space-y-4 py-20">
-                  <Motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="text-indigo-400"><RefreshCcw size={32} /></Motion.div>
+                  <Motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="text-journal-gold"><RefreshCcw size={32} /></Motion.div>
                   <p className="text-xs font-black uppercase tracking-widest text-slate-500 animate-pulse">Scanning behavioral clusters...</p>
                 </div>
               ) : analysisResults.deep ? (
@@ -433,8 +434,8 @@ const AIAuditTab = ({ trades = [] }) => {
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center py-20 text-center space-y-6">
-                  <div className="w-20 h-20 rounded-full bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-center">
-                    <BrainCircuit className="text-indigo-500/40" size={40} />
+                  <div className="w-20 h-20 rounded-full bg-journal-gold/5 border border-journal-gold/10 flex items-center justify-center">
+                    <BrainCircuit className="text-journal-gold/40" size={40} />
                   </div>
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Neural Link Ready</p>
@@ -448,7 +449,7 @@ const AIAuditTab = ({ trades = [] }) => {
               <button
                 onClick={() => runLLMTask('deep')}
                 disabled={loading.deep}
-                className="w-full group relative overflow-hidden bg-indigo-500 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:bg-indigo-400 hover:shadow-[0_0_30px_rgba(99,102,241,0.4)] disabled:opacity-50"
+                className="w-full group relative overflow-hidden bg-gradient-to-r from-journal-gold to-yellow-600 text-[#050505] py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(212,175,55,0.4)] disabled:opacity-50"
               >
                 <div className="relative z-10 flex items-center justify-center gap-2">
                   <Sparkles size={16} />
@@ -466,7 +467,7 @@ const AIAuditTab = ({ trades = [] }) => {
             <div className="flex-1">
               {loading.strategy ? (
                 <div className="h-full flex flex-col items-center justify-center space-y-4 py-20">
-                  <Motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="text-indigo-400"><RefreshCcw size={32} /></Motion.div>
+                  <Motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="text-journal-gold"><RefreshCcw size={32} /></Motion.div>
                   <p className="text-xs font-black uppercase tracking-widest text-slate-500 animate-pulse">Synthesizing edge parameters...</p>
                 </div>
               ) : analysisResults.strategy ? (
@@ -475,8 +476,8 @@ const AIAuditTab = ({ trades = [] }) => {
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center py-20 text-center space-y-6">
-                  <div className="w-20 h-20 rounded-full bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-center">
-                    <ListChecks className="text-indigo-500/40" size={40} />
+                  <div className="w-20 h-20 rounded-full bg-journal-gold/5 border border-journal-gold/10 flex items-center justify-center">
+                    <ListChecks className="text-journal-gold/40" size={40} />
                   </div>
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Strategy Core Offline</p>
@@ -490,10 +491,10 @@ const AIAuditTab = ({ trades = [] }) => {
               <button
                 onClick={() => runLLMTask('strategy')}
                 disabled={loading.strategy}
-                className="w-full bg-slate-900 border border-white/10 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:bg-slate-800 hover:border-indigo-500/50"
+                className="w-full bg-slate-900 border border-white/10 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:bg-slate-800 hover:border-journal-gold/50"
               >
                 <div className="flex items-center justify-center gap-2">
-                  <ListChecks size={16} className="text-indigo-400" />
+                  <ListChecks size={16} className="text-journal-gold" />
                   {analysisResults.strategy ? 'Re-Architect Strategy' : 'Build Custom Rule-Set'}
                 </div>
               </button>
@@ -508,7 +509,7 @@ const AIAuditTab = ({ trades = [] }) => {
           <div className="flex-1">
             {loading.monthly ? (
               <div className="h-full flex flex-col items-center justify-center space-y-4 py-20">
-                <Motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="text-indigo-400"><RefreshCcw size={32} /></Motion.div>
+                <Motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="text-journal-gold"><RefreshCcw size={32} /></Motion.div>
                 <p className="text-xs font-black uppercase tracking-widest text-slate-500 animate-pulse">Aggregating monthly performance metrics...</p>
               </div>
             ) : analysisResults.monthly ? (() => {
@@ -525,8 +526,8 @@ const AIAuditTab = ({ trades = [] }) => {
               );
             })() : (
               <div className="h-full flex flex-col items-center justify-center py-24 text-center space-y-6">
-                <div className="w-24 h-24 rounded-3xl bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-center rotate-3">
-                  <BarChart3 className="text-indigo-500/40" size={48} />
+                <div className="w-24 h-24 rounded-3xl bg-journal-gold/5 border border-journal-gold/10 flex items-center justify-center rotate-3">
+                  <BarChart3 className="text-journal-gold/40" size={48} />
                 </div>
                 <div>
                   <h4 className="text-sm font-black uppercase text-white tracking-[0.3em] mb-2">Monthly Audit Portal</h4>
@@ -537,7 +538,7 @@ const AIAuditTab = ({ trades = [] }) => {
                 <button
                   onClick={() => runLLMTask('monthly')}
                   disabled={loading.monthly}
-                  className="px-10 py-4 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-500/20 transition-all flex items-center gap-3"
+                  className="px-10 py-4 bg-journal-gold/10 border border-journal-gold/30 text-journal-gold rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-journal-gold/20 transition-all flex items-center gap-3"
                 >
                   <Calendar size={18} /> Generate Monthly Audit
                 </button>
@@ -566,11 +567,11 @@ const AIAuditTab = ({ trades = [] }) => {
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-[201] p-4"
             >
               <div className="modern-glass border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-20 bg-indigo-500/10 blur-[60px] pointer-events-none" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-20 bg-journal-gold/10 blur-[60px] pointer-events-none" />
                 
                 <div className="flex justify-between items-center mb-8">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                    <div className="p-2.5 rounded-xl bg-journal-gold/10 border border-journal-gold/20 text-journal-gold">
                       <Lock size={18} />
                     </div>
                     <h3 className="text-sm font-black uppercase tracking-widest text-white">Gemini API Key</h3>
@@ -579,8 +580,8 @@ const AIAuditTab = ({ trades = [] }) => {
                 </div>
 
                 <div className="space-y-6">
-                  <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
-                    <p className="text-[11px] text-indigo-300 leading-relaxed font-medium">
+                  <div className="p-4 bg-journal-gold/5 border border-journal-gold/10 rounded-2xl">
+                    <p className="text-[11px] text-journal-gold leading-relaxed font-medium">
                       Your key is stored <strong>locally</strong> in your browser and is never sent to our servers. It is used exclusively to fetch AI insights for your data.
                     </p>
                   </div>
@@ -592,14 +593,14 @@ const AIAuditTab = ({ trades = [] }) => {
                       placeholder="AIzaSy..."
                       value={tempKey}
                       onChange={e => setTempKey(e.target.value)}
-                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-indigo-500/50 transition-all"
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-xs font-mono text-white outline-none focus:border-journal-gold/50 transition-all"
                     />
                   </div>
 
                   <div className="flex flex-col gap-3">
                     <button 
                       onClick={handleSaveKey}
-                      className="w-full bg-indigo-500 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:bg-indigo-400 transition-all"
+                      className="w-full bg-gradient-to-r from-journal-gold to-yellow-600 text-[#050505] py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-journal-gold/20 hover:scale-[1.01] transition-all"
                     >
                       Connect Neural Engine
                     </button>
@@ -607,7 +608,7 @@ const AIAuditTab = ({ trades = [] }) => {
                       href="https://aistudio.google.com/app/apikey" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-center py-2 text-[9px] font-black uppercase text-slate-500 hover:text-indigo-400 transition-all flex items-center justify-center gap-2"
+                      className="text-center py-2 text-[9px] font-black uppercase text-slate-500 hover:text-journal-gold transition-all flex items-center justify-center gap-2"
                     >
                       Get your free key from Google AI Studio <ChevronRight size={10} />
                     </a>
