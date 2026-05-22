@@ -32,3 +32,14 @@ dist-ssr
 .env
 .env
 .env
+
+# Supabase CLI temp files
+supabase/.temp/
+
+# Planning and Documentation
+blueprint.md
+dhan_integration_plan.md
+walkthrough.md
+
+# Temporary scratch scripts
+scratch/
