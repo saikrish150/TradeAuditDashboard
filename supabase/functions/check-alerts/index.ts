@@ -104,6 +104,21 @@ serve(async (req) => {
         (alert.condition === 'lt' && currentPrice <= alert.target_price);
 
       if (isTriggered) {
+        // Optimistic locking: Try to update status to 'triggered' FIRST
+        // This only succeeds if it's currently 'active', preventing race conditions 
+        // if two cron jobs or webhooks fire at the exact same millisecond.
+        const { data: updatedAlerts, error: updateError } = await supabaseClient
+          .from('alerts')
+          .update({ status: 'triggered' })
+          .eq('id', alert.id)
+          .eq('status', 'active')
+          .select();
+
+        if (updateError || !updatedAlerts || updatedAlerts.length === 0) {
+          // Another process already marked this as triggered, skip to prevent duplicates!
+          continue;
+        }
+
         const labelEmoji = alert.label ? `🚨 [${alert.label} LEVEL]` : '🔔 [PRICE ALERT]';
         const conditionText = alert.condition === 'gt' ? 'Crossed Above ⬆️' : 'Crossed Below ⬇️';
 
@@ -124,10 +139,6 @@ serve(async (req) => {
         });
 
         if (res.ok) {
-          await supabaseClient
-            .from('alerts')
-            .update({ status: 'triggered' })
-            .eq('id', alert.id);
           alertsSent++;
         } else {
           console.error(`Failed to send alert for ${alert.symbol}`);
