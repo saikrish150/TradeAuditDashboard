@@ -265,84 +265,11 @@ export const AlertsView = () => {
     }
   }, []);
 
-  const triggerAlert = (alert) => {
-    if (triggeredCountRef.current.has(alert.id)) return;
-    
-    triggeredCountRef.current.add(alert.id);
-    
-    setTriggeredModal(alert);
-    playAlertSound(); // Fire the audio cue
-    
-    // Web audio or notification can be added here
-    if (window.Notification && Notification.permission === "granted") {
-      new Notification(`🔔 ${alert.symbol} Alert!`, { body: `${alert.symbol} hit your target of $${alert.target_price}` });
-    }
-  };
-
-  const triggerAutoLevelAlert = (levelName, targetPrice) => {
-    const levelKey = `${selectedSymbol.id}-${levelName}-${targetPrice}`;
-    if (triggeredLevelsRef.current.has(levelKey)) return;
-    
-    triggeredLevelsRef.current.add(levelKey);
-    
-    const mockAlert = {
-      id: levelKey,
-      symbol: selectedSymbol.id,
-      target_price: targetPrice,
-      condition: levelName.endsWith('H') ? 'gt' : 'lt',
-      status: 'active',
-      isAutoLevel: true,
-      levelName: levelName
-    };
-    
-    setTriggeredModal(mockAlert);
-    playAlertSound();
-    
-    if (window.Notification && Notification.permission === "granted") {
-      new Notification(`🔔 ${selectedSymbol.id} ${levelName} Crossed!`, { 
-        body: `${selectedSymbol.id} crossed your automated ${levelName} level of $${targetPrice}` 
-      });
-    }
-  };
-
-  const handleSetTriggered = async (id, alertData, currentPrice) => {
-    // 1. Send Telegram instantly via Edge Function BEFORE marking as triggered
-    try {
-      supabase.functions.invoke('check-alerts', {
-        body: { alert: alertData, currentPrice }
-      });
-    } catch (e) {
-      console.error('Telegram notification failed:', e);
-    }
-    // 2. Then mark as triggered in UI + database
-    setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'triggered' } : a));
-    await supabase.from('alerts').update({ status: 'triggered' }).eq('id', id);
-  };
-
   useEffect(() => {
     binanceService.connectAll(SUPPORTED_SYMBOLS, selectedInterval);
     
     const subscription = binanceService.getPriceStream().subscribe((update) => {
-      const prevPrice = currentPricesRef.current[update.symbol];
       currentPricesRef.current[update.symbol] = update.price;
-      
-      alertsRef.current.forEach((alert) => {
-        const isAuto = ['PDH', 'PDL', 'PWH', 'PWL'].includes(alert.label);
-
-        if (alert.status === 'active' && alert.symbol === update.symbol) {
-          const isTriggered = (alert.condition === 'gt' && update.price >= alert.target_price) || 
-                            (alert.condition === 'lt' && update.price <= alert.target_price);
-          
-          if (isTriggered) {
-             if (isAuto) {
-               triggerAutoLevelAlert(alert.label, alert.target_price);
-             } else {
-               triggerAlert(alert);
-             }
-             handleSetTriggered(alert.id, alert, update.price);
-          }
-        }
-      });
     });
     
     return () => {
