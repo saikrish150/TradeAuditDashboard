@@ -4,7 +4,7 @@ import { Pin, CheckSquare, Square, X, Sun, Sparkles } from 'lucide-react';
 
 const STORAGE_KEY = 'tr_morning_checklist_date';
 
-const MorningChecklist = ({ notes = [] }) => {
+const MorningChecklist = ({ notes = [], onShowActive }) => {
   const [show, setShow] = useState(false);
   const [checked, setChecked] = useState({});
 
@@ -23,15 +23,19 @@ const MorningChecklist = ({ notes = [] }) => {
     // Show only once per day
     if (lastShown !== today) {
       // Small delay so app renders first
-      const timer = setTimeout(() => setShow(true), 1500);
+      const timer = setTimeout(() => {
+        setShow(true);
+        if (onShowActive) onShowActive(true);
+      }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [pinnedNotes.length]);
+  }, [pinnedNotes.length, onShowActive]);
 
   const handleDismiss = () => {
     const today = new Date().toDateString();
     localStorage.setItem(STORAGE_KEY, today);
     setShow(false);
+    if (onShowActive) onShowActive(false);
   };
 
   const toggleCheck = (id) => {

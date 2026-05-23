@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Plus, Camera, FileText, ShieldCheck } from 'lucide-react';
+import { X, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Plus, Camera, FileText, ShieldCheck, RefreshCw } from 'lucide-react';
 import { supabaseService, normalizeRow } from '../../services/supabaseService';
 
 // Journal Sub-components
@@ -13,6 +13,7 @@ import MasterTable from './MasterTable';
 import SnapshotSection from './SnapshotSection';
 import NotesSection from './NotesSection';
 import CalendarSection from './CalendarSection';
+import BrokerSyncCenter from './BrokerSyncCenter';
 import { AddTradeModal, AddSnapshotModal, AddNoteModal, TradingRulesModal } from './JournalModals';
 import { SNAPSHOT_TAG_OPTIONS, NOTE_CATEGORY_OPTIONS } from '../../constants/journalOptions';
 import { TRADE_SCHEMA_MAP, SNAPSHOT_SCHEMA_MAP, NOTE_SCHEMA_MAP } from '../../constants/fieldMappings';
@@ -37,6 +38,7 @@ const TradingJournal = ({
   const [showSnapshotModal, setShowSnapshotModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
+  const [showBrokerSyncModal, setShowBrokerSyncModal] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [editingSnapshot, setEditingSnapshot] = useState(null);
   const [editingNote, setEditingNote] = useState(null);
@@ -355,6 +357,7 @@ const TradingJournal = ({
         onAddSnapshot={() => setShowSnapshotModal(true)} 
         onAddNote={() => setShowNoteModal(true)} 
         onOpenRules={() => setShowRulesModal(true)}
+        onOpenBrokerSync={() => setShowBrokerSyncModal(true)}
       />
 
       {/* ── Mobile Action Bar (below header, above content) ── */}
@@ -365,6 +368,7 @@ const TradingJournal = ({
             { label: 'Screenshot', icon: Camera,      action: () => setShowSnapshotModal(true), color: 'text-journal-gold' },
             { label: 'Notes',      icon: FileText,    action: () => setShowNoteModal(true),     color: 'text-slate-400' },
             { label: 'Rules',      icon: ShieldCheck, action: () => setShowRulesModal(true),    color: 'text-journal-gold' },
+            { label: 'Sync',       icon: RefreshCw,   action: () => setShowBrokerSyncModal(true), color: 'text-journal-gold' },
           ].map((btn, i) => (
             <button
               key={i}
@@ -484,6 +488,20 @@ const TradingJournal = ({
         isOpen={showRulesModal}
         onClose={() => setShowRulesModal(false)}
       />
+
+      <AnimatePresence>
+        {showBrokerSyncModal && (
+          <BrokerSyncCenter 
+            user={user} 
+            liveRate={liveRate} 
+            onClose={() => setShowBrokerSyncModal(false)}
+            onImportSuccess={() => {
+              showToast('Trades imported successfully via Sync!', 'success');
+              // Close the modal or leave it open? Up to user preference. Usually close after success is nice.
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Full-screen Image Viewer */}
       <AnimatePresence>

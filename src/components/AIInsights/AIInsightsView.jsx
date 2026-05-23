@@ -153,30 +153,30 @@ export const AIInsightsView = () => {
                     initial={{ opacity: 0, y: -20, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     whileHover={{ scale: 1.01 }}
-                    className="relative overflow-hidden bg-gradient-to-br from-[#06140e] to-[#0a0a0a] border border-emerald-500/20 p-6 rounded-3xl flex items-center justify-between group cursor-pointer shadow-[0_0_30px_rgba(16,185,129,0.05)] hover:shadow-[0_0_40px_rgba(16,185,129,0.15)] transition-all duration-500"
+                    className="relative overflow-hidden bg-gradient-to-br from-[#06140e] to-[#0a0a0a] border border-emerald-500/20 p-5 sm:p-6 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 group cursor-pointer shadow-[0_0_30px_rgba(16,185,129,0.05)] hover:shadow-[0_0_40px_rgba(16,185,129,0.15)] transition-all duration-500"
                   >
                     <div className="absolute -right-20 -top-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] group-hover:bg-emerald-400/20 group-hover:scale-150 transition-all duration-1000" />
                     <div className="absolute -left-20 -bottom-20 w-48 h-48 bg-teal-500/5 rounded-full blur-[60px]" />
                     
-                    <div className="relative z-10 flex items-center gap-6">
-                      <div className="w-16 h-16 bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-2xl flex items-center justify-center text-emerald-400 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.2)] group-hover:scale-110 group-hover:rotate-6 group-hover:text-emerald-300 transition-all duration-500">
-                        <Coffee size={28} />
+                    <div className="relative z-10 flex items-center gap-4 sm:gap-6">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-2xl flex items-center justify-center text-emerald-400 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.2)] group-hover:scale-110 group-hover:rotate-6 group-hover:text-emerald-300 transition-all duration-500 shrink-0">
+                        <Coffee className="w-5 h-5 sm:w-7 sm:h-7" />
                       </div>
                       <div>
-                        <h3 className="text-white font-black italic tracking-tighter uppercase text-xl flex items-center gap-2">
+                        <h3 className="text-white font-black italic tracking-tighter uppercase text-base sm:text-xl flex flex-wrap items-center gap-1.5 leading-tight">
                           Next Market <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">Holiday</span>
                         </h3>
-                        <p className="text-emerald-500/70 text-[10px] font-black uppercase tracking-[0.2em] mt-1.5 flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Exchange: <span className="text-emerald-400">{nextHoliday.exchange} ({nextHoliday.country})</span>
+                        <p className="text-emerald-500/70 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] mt-1.5 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                          Exchange: <span className="text-emerald-400 truncate max-w-[170px] sm:max-w-none">{nextHoliday.exchange} ({nextHoliday.country})</span>
                         </p>
                       </div>
                     </div>
-                    <div className="relative z-10 text-right">
-                      <p className="text-emerald-400 font-black text-2xl tabular-nums tracking-tighter drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]">
+                    <div className="relative z-10 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto pt-3 sm:pt-0 border-t border-white/5 sm:border-t-0 gap-1.5">
+                      <p className="text-emerald-400 font-black text-lg sm:text-2xl tabular-nums tracking-tighter drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]">
                         {nextHoliday.date}
                       </p>
-                      <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mt-1.5 italic border border-white/5 bg-black/50 px-2 py-1 rounded-md inline-block">
+                      <p className="text-slate-400 text-[8px] sm:text-[9px] font-black uppercase tracking-widest italic border border-white/5 bg-black/50 px-2 py-1 rounded-md inline-block">
                         {nextHoliday.name}
                       </p>
                     </div>

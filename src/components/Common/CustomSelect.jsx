@@ -2,7 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 
-export const CustomSelect = ({ value, options, onChange, className = "", triggerClassName, dropdownPosition = "bottom" }) => {
+export const CustomSelect = ({ 
+  value, 
+  options, 
+  onChange, 
+  className = "", 
+  triggerClassName, 
+  dropdownPosition = "bottom",
+  fontSize = "text-[11px]",
+  chevronSize = 14
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
   
@@ -40,8 +49,8 @@ export const CustomSelect = ({ value, options, onChange, className = "", trigger
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between gap-2 cursor-pointer px-3 py-2 rounded-xl transition-colors ${triggerClassName !== undefined ? triggerClassName : 'bg-slate-950/80 hover:bg-black border border-white/10 shadow-inner'}`}
       >
-        <span className="text-slate-100 text-[11px] font-black uppercase tracking-widest truncate">{selectedLabel}</span>
-        <ChevronDown size={14} className={`text-journal-gold shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        <span className={`text-slate-100 font-black uppercase tracking-widest truncate ${fontSize}`}>{selectedLabel}</span>
+        <ChevronDown size={chevronSize} className={`text-journal-gold shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
       </div>
       
       <AnimatePresence>

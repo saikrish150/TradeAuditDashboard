@@ -65,7 +65,7 @@ export const UpcomingEvents = ({ events, loading }) => {
   return (
     <div className="space-y-4">
       {/* Desktop Table View (hidden on mobile) */}
-      <div className="hidden md:block bg-[#050505]/90 backdrop-blur-3xl rounded-[2rem] border border-white/10 overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)]">
+      <div className="hidden md:block bg-[#0e0f14]/90 backdrop-blur-3xl rounded-[2rem] border border-white/10 overflow-hidden shadow-[0_35px_100px_rgba(0,0,0,0.7)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
         {/* Table Header */}
         <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 bg-white/[0.01]">
           <div className="col-span-1 text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">#</div>
@@ -183,9 +183,9 @@ export const UpcomingEvents = ({ events, loading }) => {
               transition={{ delay: index * 0.08 }}
               className={`relative overflow-hidden bg-gradient-to-br ${
                 isExtreme
-                  ? 'from-rose-500/10 to-[#0c0505] border border-rose-500/20'
-                  : 'from-[#0a0a0a] to-[#050505] border border-white/5'
-              } p-5 rounded-[2rem] flex flex-col gap-4 shadow-2xl`}
+                  ? 'from-rose-500/10 to-[#0f0a0a] border border-rose-500/20'
+                  : 'from-[#0e0f14] to-[#09090c] border border-white/10'
+              } p-5 rounded-[2rem] flex flex-col gap-4 shadow-2xl` }
             >
               {/* Top Meta Row */}
               <div className="flex items-center justify-between border-b border-white/5 pb-3">

@@ -37,6 +37,7 @@ import { MONTH_MAP, COLORS, cleanCurrency, formatCurrency, parseCSV, getMarketCa
 import BackgroundQuotes from './components/BackgroundQuotes';
 import { AIInsightsView } from './components/AIInsights/AIInsightsView';
 import MorningChecklist from './components/Journal/MorningChecklist';
+import DailyBriefingPopup from './components/Journal/DailyBriefingPopup';
 import AIAuditTab from './components/Journal/AIAuditTab';
 import BrokerSyncCenter from './components/Journal/BrokerSyncCenter';
 
@@ -119,6 +120,7 @@ const CustomMobileSelect = ({ value, options, onChange }) => {
 
 const App = () => {
   const [activeSection, setActiveSection] = useState('journal');
+  const [checklistActive, setChecklistActive] = useState(false);
   const [activeTab, setActiveTab] = useState('performance');
   const [rawTrades, setRawTrades] = useState(() => {
     try {
@@ -511,13 +513,9 @@ const App = () => {
           <div className="flex items-center gap-6 z-20 w-full md:w-auto justify-between md:justify-start">
             <div className="flex items-center gap-3">
 
-              <div className="flex flex-col">
-                <div className="flex items-baseline gap-2">
-                  <h1 className="text-lg md:text-xl font-black tracking-[0.4em] uppercase text-white italic drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">Trader</h1>
-                </div>
-                <div className="flex items-center gap-3">
-                   <h2 className="text-xl md:text-3xl font-black italic tracking-tighter uppercase leading-none glow-text text-transparent bg-clip-text bg-gradient-to-r from-journal-gold via-white to-journal-gold pr-2">Dashboard</h2>
-                </div>
+              <div className="flex flex-col select-none">
+                <h1 className="text-[13px] md:text-[15px] font-black tracking-[0.4em] uppercase text-white italic leading-none drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">Trader</h1>
+                <h2 className="text-lg md:text-2xl font-black italic tracking-tighter uppercase leading-none glow-text text-transparent bg-clip-text bg-gradient-to-r from-journal-gold via-white to-journal-gold pr-2 mt-1">Dashboard</h2>
               </div>
 
               <button 
@@ -525,7 +523,7 @@ const App = () => {
                 className="modern-glass p-2.5 text-journal-text-secondary hover:text-journal-red transition-all flex items-center justify-center border border-white/5 active:scale-95 group/logout"
                 title="Disconnect Dashboard"
               >
-                <LogOut size={16} className="group-hover/logout:-translate-x-0.5 transition-transform" />
+                <LogOut size={15} className="group-hover/logout:-translate-x-0.5 transition-transform" />
               </button>
             </div>
 
@@ -658,14 +656,16 @@ const App = () => {
 
         
         {rawTrades.length > 0 && activeSection === 'audit' && (
-          <div className="hidden md:flex flex-wrap items-center justify-center md:justify-end gap-2 mb-8 mt-2 relative z-10 w-full bg-transparent p-1 rounded-2xl border border-white/5">
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
-              <Clock size={12} className="text-slate-500 ml-2" />
+          <div className="hidden md:flex flex-wrap items-center justify-center md:justify-end gap-1.5 mb-8 mt-2 relative z-10 w-full bg-transparent p-0.5 rounded-lg border border-white/5">
+            <div className="flex items-center gap-1 bg-white/5 border border-white/10 py-0 px-1.5 rounded-md hover:bg-white/10 transition-colors">
+              <Clock size={10} className="text-slate-500 ml-1" />
               <CustomSelect
                 value={datePreset}
                 onChange={setDatePreset}
-                className="w-32"
-                triggerClassName="bg-transparent border-none shadow-none px-1 py-0.5"
+                className="w-fit"
+                triggerClassName="bg-transparent border-none shadow-none px-1 py-0"
+                fontSize="text-[9px]"
+                chevronSize={10}
                 options={[
                   { value: 'All', label: 'All Time' },
                   { value: 'CurrentMonth', label: 'Current Month' },
@@ -677,56 +677,64 @@ const App = () => {
               />
             </div>
             {datePreset === 'Custom' && (
-              <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} onClick={(e) => e.target.showPicker?.()} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
-                <span className="text-slate-500 text-[10px]">-</span>
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={(e) => e.target.showPicker?.()} className="bg-transparent text-slate-100 text-[10px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
+              <div className="flex items-center gap-1 bg-white/5 border border-white/10 py-0 px-1.5 rounded-md hover:bg-white/10 transition-colors">
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} onClick={(e) => e.target.showPicker?.()} className="bg-transparent text-slate-100 text-[9px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
+                <span className="text-slate-500 text-[9px]">-</span>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={(e) => e.target.showPicker?.()} className="bg-transparent text-slate-100 text-[9px] font-black uppercase outline-none cursor-pointer [color-scheme:dark] border-none" />
               </div>
             )}
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
-              <Globe size={12} className="text-slate-500 ml-2" />
+            <div className="flex items-center gap-1 bg-white/5 border border-white/10 py-0 px-1.5 rounded-md hover:bg-white/10 transition-colors">
+              <Globe size={10} className="text-slate-500 ml-1" />
               <CustomSelect
                 value={selectedCategory}
                 onChange={setSelectedCategory}
-                className="w-32"
-                triggerClassName="bg-transparent border-none shadow-none px-1 py-0.5"
+                className="w-fit"
+                triggerClassName="bg-transparent border-none shadow-none px-1 py-0"
+                fontSize="text-[9px]"
+                chevronSize={10}
                 options={[
-                  { value: 'All', label: 'Type: All' },
-                  { value: 'Indian', label: 'Indian Markets' },
-                  { value: 'Other', label: 'Other Markets' }
+                  { value: 'All', label: 'Market' },
+                  { value: 'Indian', label: 'Indian' },
+                  { value: 'Other', label: 'Other' }
                 ]}
               />
             </div>
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
-              <Hash size={12} className="text-slate-500 ml-2" />
+            <div className="flex items-center gap-1 bg-white/5 border border-white/10 py-0 px-1.5 rounded-md hover:bg-white/10 transition-colors">
+              <Hash size={10} className="text-slate-500 ml-1" />
               <CustomSelect
                 value={selectedAsset}
                 onChange={setSelectedAsset}
-                className="w-28"
-                triggerClassName="bg-transparent border-none shadow-none px-1 py-0.5"
-                options={(availableAssets || []).map(a => ({ value: a, label: a === 'All' ? 'Asset: All' : a }))}
+                className="w-fit"
+                triggerClassName="bg-transparent border-none shadow-none px-1 py-0"
+                fontSize="text-[9px]"
+                chevronSize={10}
+                options={(availableAssets || []).map(a => ({ value: a, label: a === 'All' ? 'Asset' : a }))}
               />
             </div>
             {datePreset === 'All' && (
               <>
-                <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
-                  <Filter size={12} className="text-slate-500 ml-2" />
+                <div className="flex items-center gap-1 bg-white/5 border border-white/10 py-0 px-1.5 rounded-md hover:bg-white/10 transition-colors">
+                  <Filter size={10} className="text-slate-500 ml-1" />
                   <CustomSelect
                     value={selectedYear}
                     onChange={setSelectedYear}
-                    className="w-24"
-                    triggerClassName="bg-transparent border-none shadow-none px-1 py-0.5"
-                    options={(availableYears || []).map(y => ({ value: y, label: y === 'All' ? 'Year: All' : y }))}
+                    className="w-fit"
+                    triggerClassName="bg-transparent border-none shadow-none px-1 py-0"
+                    fontSize="text-[9px]"
+                    chevronSize={10}
+                    options={(availableYears || []).map(y => ({ value: y, label: y === 'All' ? 'Year' : y }))}
                   />
                 </div>
-                <div className="flex items-center gap-2 bg-white/5 border border-white/10 p-1.5 rounded-xl hover:bg-white/10 transition-colors">
-                  <CalendarDays size={12} className="text-slate-500 ml-2" />
+                <div className="flex items-center gap-1 bg-white/5 border border-white/10 py-0 px-1.5 rounded-md hover:bg-white/10 transition-colors">
+                  <CalendarDays size={10} className="text-slate-500 ml-1" />
                   <CustomSelect
                     value={selectedMonth}
                     onChange={setSelectedMonth}
-                    className="w-28"
-                    triggerClassName="bg-transparent border-none shadow-none px-1 py-0.5"
-                    options={(availableMonths || []).map(m => ({ value: m, label: m === 'All' ? 'Month: All' : m }))}
+                    className="w-fit"
+                    triggerClassName="bg-transparent border-none shadow-none px-1 py-0"
+                    fontSize="text-[9px]"
+                    chevronSize={10}
+                    options={(availableMonths || []).map(m => ({ value: m, label: m === 'All' ? 'Month' : m }))}
                   />
                 </div>
               </>
@@ -1469,7 +1477,7 @@ const App = () => {
                  )}
 
                   {activeTab === 'ai_audit' && (
-                    <AIAuditTab trades={rawTrades} />
+                    <AIAuditTab trades={rawTrades} snapshots={rawSnapshots} notes={notes} />
                   )}
                </div>
              )}
@@ -1481,7 +1489,8 @@ const App = () => {
       <AnimatePresence>
       </AnimatePresence>
       <UtilityHub user={user} trades={rawTrades} snapshots={rawSnapshots} notes={notes} />
-      <MorningChecklist notes={notes} />
+      <MorningChecklist notes={notes} onShowActive={setChecklistActive} />
+      <DailyBriefingPopup trades={rawTrades} snapshots={rawSnapshots} notes={notes} checklistActive={checklistActive} />
     </div>
   </AuthShield>
   );

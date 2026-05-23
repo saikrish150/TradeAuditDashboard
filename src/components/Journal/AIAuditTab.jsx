@@ -32,7 +32,7 @@ const Card = ({ children, className = "", title, icon: Icon, sub }) => (
   </div>
 );
 
-const AIAuditTab = ({ trades = [] }) => {
+const AIAuditTab = ({ trades = [], snapshots = [], notes = [] }) => {
   const [apiKey, setApiKey] = useState(geminiService.getApiKey());
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [tempKey, setTempKey] = useState('');
@@ -43,6 +43,16 @@ const AIAuditTab = ({ trades = [] }) => {
     monthly: geminiService.getCachedAnalysis('monthly')
   });
   const [selectedScenario, setSelectedScenario] = useState('skip_c_quality');
+
+  // New Mode States for Interactive Toggling
+  const [briefingMode, setBriefingMode] = useState('math'); // 'math' | 'neural'
+  const [anomalyMode, setAnomalyMode] = useState('math'); // 'math' | 'neural'
+
+  // Neural Briefing & Anomaly Scan Data States
+  const [neuralBriefing, setNeuralBriefing] = useState(geminiService.getCachedAnalysis('daily_briefing'));
+  const [neuralAnomaly, setNeuralAnomaly] = useState(geminiService.getCachedAnalysis('anomaly_scan'));
+  const [loadingNeuralBriefing, setLoadingNeuralBriefing] = useState(false);
+  const [loadingNeuralAnomaly, setLoadingNeuralAnomaly] = useState(false);
 
   // Clear any legacy/truncated cache items on load to force a clean full fetch
   useEffect(() => {
@@ -85,6 +95,40 @@ const AIAuditTab = ({ trades = [] }) => {
     setTempKey('');
   };
 
+  const triggerNeuralBriefing = async (force = true) => {
+    if (!apiKey) {
+      setShowKeyModal(true);
+      return;
+    }
+    setLoadingNeuralBriefing(true);
+    try {
+      const res = await geminiService.dailyBriefing(trades, snapshots, notes, force);
+      setNeuralBriefing(res.text);
+    } catch (e) {
+      console.error("Neural briefing error:", e);
+      alert(`Error: ${e.message}`);
+    } finally {
+      setLoadingNeuralBriefing(false);
+    }
+  };
+
+  const triggerNeuralAnomaly = async (force = true) => {
+    if (!apiKey) {
+      setShowKeyModal(true);
+      return;
+    }
+    setLoadingNeuralAnomaly(true);
+    try {
+      const res = await geminiService.anomalyScan(trades, snapshots, notes, force);
+      setNeuralAnomaly(res.text);
+    } catch (e) {
+      console.error("Neural anomaly error:", e);
+      alert(`Error: ${e.message}`);
+    } finally {
+      setLoadingNeuralAnomaly(false);
+    }
+  };
+
   const runLLMTask = async (taskType) => {
     if (!apiKey) {
       setShowKeyModal(true);
@@ -115,9 +159,11 @@ const AIAuditTab = ({ trades = [] }) => {
     
     // Set all loaders active concurrently
     setLoading({ deep: true, strategy: true, monthly: true });
+    setLoadingNeuralBriefing(true);
+    setLoadingNeuralAnomaly(true);
     
     try {
-      // Trigger all three concurrently in parallel
+      // Trigger all five concurrently in parallel
       await Promise.all([
         (async () => {
           try {
@@ -147,6 +193,26 @@ const AIAuditTab = ({ trades = [] }) => {
             console.error('Monthly Audit failed:', e);
           } finally {
             setLoading(prev => ({ ...prev, monthly: false }));
+          }
+        })(),
+        (async () => {
+          try {
+            const res = await geminiService.dailyBriefing(trades, snapshots, notes, true);
+            setNeuralBriefing(res.text);
+          } catch (e) {
+            console.error('Neural Briefing failed:', e);
+          } finally {
+            setLoadingNeuralBriefing(false);
+          }
+        })(),
+        (async () => {
+          try {
+            const res = await geminiService.anomalyScan(trades, snapshots, notes, true);
+            setNeuralAnomaly(res.text);
+          } catch (e) {
+            console.error('Neural Anomaly failed:', e);
+          } finally {
+            setLoadingNeuralAnomaly(false);
           }
         })()
       ]);
@@ -220,28 +286,28 @@ const AIAuditTab = ({ trades = [] }) => {
           <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mt-1">Algorithmic Math + Gemini Neural Intelligence</p>
         </div>
         
-        <div className="flex items-center gap-3 self-stretch md:self-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 self-stretch md:self-auto w-full md:w-auto">
           {apiKey && (
             <button
               onClick={runCompleteNeuralAudit}
               disabled={loading.deep || loading.strategy || loading.monthly}
-              className="flex-1 md:flex-initial flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-journal-gold to-yellow-600 text-[#050505] font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(212,175,55,0.4)] transition-all disabled:opacity-50"
+              className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-2xl bg-gradient-to-r from-journal-gold to-yellow-600 text-[#050505] font-black text-[9px] sm:text-[10px] uppercase tracking-widest hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(212,175,55,0.4)] transition-all disabled:opacity-50 whitespace-nowrap"
             >
-              <Sparkles size={14} className={loading.deep || loading.strategy || loading.monthly ? "animate-spin" : ""} />
+              <Sparkles size={13} className={loading.deep || loading.strategy || loading.monthly ? "animate-spin shrink-0" : "shrink-0"} />
               {loading.deep || loading.strategy || loading.monthly ? 'Auditing All Systems...' : 'Trigger Complete Neural Audit'}
             </button>
           )}
 
           <button 
             onClick={() => setShowKeyModal(true)}
-            className={`flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-2xl border transition-all ${
+            className={`flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-2xl border transition-all whitespace-nowrap ${
               apiKey 
                 ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' 
                 : 'bg-journal-gold/10 border border-journal-gold/30 text-journal-gold hover:bg-journal-gold/20 shadow-[0_0_20px_rgba(212,175,55,0.1)]'
             }`}
           >
-            {apiKey ? <ShieldAlert size={14} /> : <Key size={14} />}
-            <span className="text-[10px] font-black uppercase tracking-widest">
+            {apiKey ? <ShieldAlert size={13} className="shrink-0" /> : <Key size={13} className="shrink-0" />}
+            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
               {apiKey ? 'Neural Engine Active' : 'Connect Gemini API'}
             </span>
           </button>
@@ -251,119 +317,303 @@ const AIAuditTab = ({ trades = [] }) => {
       {/* ─── TOP ROW: DAILY BRIEFING & ANOMALIES ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* 1. Daily Briefing (Math-Based) */}
+        {/* 1. Daily Market Briefing */}
         <Card title="Daily Market Briefing" icon={Calendar} sub="Historical Performance Alignment">
-          {briefing.insufficient ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <Info className="text-slate-600 mb-4" size={32} />
-              <p className="text-xs text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
-                Insufficient Data<br />Trade at least 5 times to unlock briefing.
-              </p>
-            </div>
+          {/* Segmented Mode Control Switcher */}
+          <div className="flex bg-[#0b0f19]/80 p-1 rounded-2xl border border-white/5 backdrop-blur-md mb-6 w-full shadow-inner">
+            <button
+              onClick={() => setBriefingMode('math')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                briefingMode === 'math' 
+                  ? 'bg-gradient-to-r from-journal-gold to-yellow-600 text-black shadow-lg shadow-journal-gold/20' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <BarChart3 size={11} /> Algorithmic Mode
+            </button>
+            <button
+              onClick={() => setBriefingMode('neural')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                briefingMode === 'neural' 
+                  ? 'bg-gradient-to-r from-journal-gold to-yellow-600 text-black shadow-lg shadow-journal-gold/20' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <BrainCircuit size={11} /> Neural AI Mode
+            </button>
+          </div>
+
+          {briefingMode === 'math' ? (
+            briefing.insufficient ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <Info className="text-slate-600 mb-4" size={32} />
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
+                  Insufficient Data<br />Trade at least 5 times to unlock briefing.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Today's Edge */}
+                {briefing.edge && (
+                  <div className="bg-journal-gold/10 border border-journal-gold/20 rounded-2xl p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-journal-gold/20 flex items-center justify-center text-journal-gold">
+                        <TrendingUp size={20} />
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Today's Probability ({briefing.edge.dayName})</p>
+                        <p className="text-xl font-black text-white">{briefing.edge.winRate}% <span className="text-xs font-bold text-slate-400 not-italic ml-1">Win Rate</span></p>
+                      </div>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                      briefing.edge.verdict === 'strong' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' : 
+                      briefing.edge.verdict === 'weak' ? 'bg-rose-500/20 border-rose-500/30 text-rose-400' : 
+                      'bg-slate-500/20 border-slate-500/30 text-slate-400'
+                    }`}>
+                      {briefing.edge.verdict} Verdict
+                    </div>
+                  </div>
+                )}
+
+                {/* Warnings/Dangers */}
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-2">
+                    <AlertTriangle size={14} /> Cognitive Dangers Today
+                  </p>
+                  {briefing.dangers.map((danger, i) => (
+                    <div key={i} className="p-3 bg-rose-500/5 border border-rose-500/10 rounded-xl text-[11px] font-medium text-slate-300 leading-relaxed italic">
+                      {danger}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Streak Advice */}
+                {briefing.streak && (
+                  <div className={`p-4 rounded-2xl border ${briefing.streak.type === 'win' ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-amber-500/5 border-amber-500/20'}`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <Zap size={16} className={briefing.streak.type === 'win' ? 'text-emerald-400' : 'text-amber-400'} />
+                      <p className="text-[10px] font-black text-white uppercase tracking-widest">{briefing.streak.count}-Trade {briefing.streak.type.toUpperCase()} Streak</p>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">{briefing.streak.advice}</p>
+                  </div>
+                )}
+
+                {/* Psychological Forecast */}
+                <div className="p-4 bg-slate-900/40 border border-white/5 rounded-2xl">
+                  <p className="text-[10px] font-black text-journal-gold uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                     <Sparkles size={12} /> Neural Forecast
+                  </p>
+                  <p className="text-[11px] text-slate-300 italic">"{briefing.forecast}"</p>
+                </div>
+              </div>
+            )
           ) : (
-            <div className="space-y-6">
-              {/* Today's Edge */}
-              {briefing.edge && (
-                <div className="bg-journal-gold/10 border border-journal-gold/20 rounded-2xl p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-journal-gold/20 flex items-center justify-center text-journal-gold">
-                      <TrendingUp size={20} />
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Today's Probability ({briefing.edge.dayName})</p>
-                      <p className="text-xl font-black text-white">{briefing.edge.winRate}% <span className="text-xs font-bold text-slate-400 not-italic ml-1">Win Rate</span></p>
-                    </div>
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                    briefing.edge.verdict === 'strong' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' : 
-                    briefing.edge.verdict === 'weak' ? 'bg-rose-500/20 border-rose-500/30 text-rose-400' : 
-                    'bg-slate-500/20 border-slate-500/30 text-slate-400'
-                  }`}>
-                    {briefing.edge.verdict} Verdict
+            // Neural AI Mode for Daily Briefing
+            <div className="flex flex-col h-full min-h-[300px]">
+              {loadingNeuralBriefing ? (
+                <div className="h-full flex-1 flex flex-col items-center justify-center space-y-4 py-16">
+                  <Motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="text-journal-gold"><RefreshCcw size={28} /></Motion.div>
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-500 animate-pulse">Running Neural Attribution...</p>
+                </div>
+              ) : neuralBriefing ? (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-y-auto max-h-[360px] pr-2 no-scrollbar">
+                  <MarkdownText text={neuralBriefing} />
+                  <div className="mt-6 pt-4 border-t border-white/5 flex justify-end">
+                    <button 
+                      onClick={() => triggerNeuralBriefing(true)} 
+                      className="flex items-center gap-1.5 text-[9px] font-black uppercase text-slate-500 hover:text-white transition-all"
+                    >
+                      <RefreshCcw size={12} /> Re-Generate AI Briefing
+                    </button>
                   </div>
                 </div>
-              )}
-
-              {/* Warnings/Dangers */}
-              <div className="space-y-3">
-                <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-2">
-                  <AlertTriangle size={14} /> Cognitive Dangers Today
-                </p>
-                {briefing.dangers.map((danger, i) => (
-                  <div key={i} className="p-3 bg-rose-500/5 border border-rose-500/10 rounded-xl text-[11px] font-medium text-slate-300 leading-relaxed italic">
-                    {danger}
+              ) : (
+                <div className="h-full flex-1 flex flex-col items-center justify-center py-12 text-center space-y-6">
+                  <div className="w-16 h-16 rounded-full bg-journal-gold/5 border border-journal-gold/10 flex items-center justify-center">
+                    <BrainCircuit className="text-journal-gold/40" size={32} />
                   </div>
-                ))}
-              </div>
-
-              {/* Streak Advice */}
-              {briefing.streak && (
-                <div className={`p-4 rounded-2xl border ${briefing.streak.type === 'win' ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-amber-500/5 border-amber-500/20'}`}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <Zap size={16} className={briefing.streak.type === 'win' ? 'text-emerald-400' : 'text-amber-400'} />
-                    <p className="text-[10px] font-black text-white uppercase tracking-widest">{briefing.streak.count}-Trade {briefing.streak.type.toUpperCase()} Streak</p>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Neural Briefing Ready</p>
+                    <p className="text-[10px] text-slate-400 max-w-xs mx-auto leading-relaxed">
+                      Gemini will analyze your recent trade log, journal notes, and habit compliance snapshots to produce an elite-level Daily Briefing.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">{briefing.streak.advice}</p>
+                  <button
+                    onClick={() => triggerNeuralBriefing(true)}
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-journal-gold to-yellow-600 text-black font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] transition-all"
+                  >
+                    <Sparkles size={12} />
+                    Generate AI Briefing
+                  </button>
                 </div>
               )}
-
-              {/* Psychological Forecast */}
-              <div className="p-4 bg-slate-900/40 border border-white/5 rounded-2xl">
-                <p className="text-[10px] font-black text-journal-gold uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                   <Sparkles size={12} /> Neural Forecast
-                </p>
-                <p className="text-[11px] text-slate-300 italic">"{briefing.forecast}"</p>
-              </div>
             </div>
           )}
         </Card>
 
-        {/* 2. Anomaly Detector (Math-Based) */}
+        {/* 2. Anomaly Detector */}
         <Card title="Pattern Anomaly Detector" icon={AlertTriangle} sub="Behavioral Deviation Alerts">
-          <div className="space-y-3 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
-            {anomalies.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
-                <ShieldAlert size={40} className="text-emerald-500 mb-4" />
-                <p className="text-xs font-black uppercase tracking-widest">System Stable — No Anomalies</p>
-              </div>
-            ) : (
-              anomalies.map((anom, i) => (
-                <Motion.div 
-                  key={i} 
-                  initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
-                  className={`p-4 rounded-2xl border flex items-start gap-4 ${
-                    anom.severity === 'CRITICAL' ? 'bg-rose-500/10 border-rose-500/30' : 
-                    anom.severity === 'WARNING' ? 'bg-amber-500/10 border-amber-500/30' : 
-                    'bg-slate-500/5 border-slate-500/20'
-                  }`}
-                >
-                  <div className={`mt-1 p-1.5 rounded-lg border ${
-                    anom.severity === 'CRITICAL' ? 'border-rose-500/40 text-rose-500' : 
-                    anom.severity === 'WARNING' ? 'border-amber-500/40 text-amber-500' : 
-                    'border-slate-500/40 text-slate-500'
-                  }`}>
-                    <AlertTriangle size={14} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center mb-1">
-                      <p className={`text-[10px] font-black uppercase tracking-widest ${
-                        anom.severity === 'CRITICAL' ? 'text-rose-400' : 
-                        anom.severity === 'WARNING' ? 'text-amber-400' : 
-                        'text-slate-400'
-                      }`}>{anom.type.replace('_', ' ')}</p>
-                      <span className="text-[8px] font-mono font-bold bg-white/5 px-1.5 py-0.5 rounded border border-white/10 uppercase">{anom.severity}</span>
-                    </div>
-                    <p className="text-[11px] font-medium text-slate-200 leading-tight mb-2">{anom.message}</p>
-                    <p className="text-[9px] font-mono text-slate-500 font-bold">DATA POINT: {anom.stat}</p>
-                  </div>
-                </Motion.div>
-              ))
-            )}
+          {/* Segmented Mode Control Switcher */}
+          <div className="flex bg-[#0b0f19]/80 p-1 rounded-2xl border border-white/5 backdrop-blur-md mb-6 w-full shadow-inner">
+            <button
+              onClick={() => setAnomalyMode('math')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                anomalyMode === 'math' 
+                  ? 'bg-gradient-to-r from-journal-gold to-yellow-600 text-black shadow-lg shadow-journal-gold/20' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <BarChart3 size={11} /> Standard Alerts
+            </button>
+            <button
+              onClick={() => setAnomalyMode('neural')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                anomalyMode === 'neural' 
+                  ? 'bg-gradient-to-r from-journal-gold to-yellow-600 text-black shadow-lg shadow-journal-gold/20' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <BrainCircuit size={11} /> Neural AI Scan
+            </button>
           </div>
+
+          {anomalyMode === 'math' ? (
+            <div className="space-y-3 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
+              {anomalies.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
+                  <ShieldAlert size={40} className="text-emerald-500 mb-4" />
+                  <p className="text-xs font-black uppercase tracking-widest">System Stable — No Anomalies</p>
+                </div>
+              ) : (
+                anomalies.map((anom, i) => (
+                  <Motion.div 
+                    key={i} 
+                    initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
+                    className={`p-4 rounded-2xl border flex items-start gap-4 ${
+                      anom.severity === 'CRITICAL' ? 'bg-rose-500/10 border-rose-500/30' : 
+                      anom.severity === 'WARNING' ? 'bg-amber-500/10 border-amber-500/30' : 
+                      'bg-slate-500/5 border-slate-500/20'
+                    }`}
+                  >
+                    <div className={`mt-1 p-1.5 rounded-lg border ${
+                      anom.severity === 'CRITICAL' ? 'border-rose-500/40 text-rose-500' : 
+                      anom.severity === 'WARNING' ? 'border-amber-500/40 text-amber-500' : 
+                      'border-slate-500/40 text-slate-500'
+                    }`}>
+                      <AlertTriangle size={14} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${
+                          anom.severity === 'CRITICAL' ? 'text-rose-400' : 
+                          anom.severity === 'WARNING' ? 'text-amber-400' : 
+                          'text-slate-400'
+                        }`}>{anom.type.replace('_', ' ')}</p>
+                        <span className="text-[8px] font-mono font-bold bg-white/5 px-1.5 py-0.5 rounded border border-white/10 uppercase">{anom.severity}</span>
+                      </div>
+                      <p className="text-[11px] font-medium text-slate-200 leading-tight mb-2">{anom.message}</p>
+                      <p className="text-[9px] font-mono text-slate-500 font-bold">DATA POINT: {anom.stat}</p>
+                    </div>
+                  </Motion.div>
+                ))
+              )}
+            </div>
+          ) : (
+            // Neural AI Mode for Pattern Anomalies
+            <div className="flex flex-col h-full min-h-[300px]">
+              {loadingNeuralAnomaly ? (
+                <div className="h-full flex-1 flex flex-col items-center justify-center space-y-4 py-16">
+                  <Motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="text-journal-gold"><RefreshCcw size={28} /></Motion.div>
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-500 animate-pulse">Running Neural Risk Attribution...</p>
+                </div>
+              ) : neuralAnomaly ? (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-y-auto max-h-[360px] pr-2 no-scrollbar">
+                  <MarkdownText text={neuralAnomaly} />
+                  <div className="mt-6 pt-4 border-t border-white/5 flex justify-end">
+                    <button 
+                      onClick={() => triggerNeuralAnomaly(true)} 
+                      className="flex items-center gap-1.5 text-[9px] font-black uppercase text-slate-500 hover:text-white transition-all"
+                    >
+                      <RefreshCcw size={12} /> Re-Run Neural Scan
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-full flex-1 flex flex-col items-center justify-center py-12 text-center space-y-6">
+                  <div className="w-16 h-16 rounded-full bg-journal-gold/5 border border-journal-gold/10 flex items-center justify-center">
+                    <AlertTriangle className="text-journal-gold/40" size={32} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Neural Scan Ready</p>
+                    <p className="text-[10px] text-slate-400 max-w-xs mx-auto leading-relaxed">
+                      Gemini will run a deep audit on all raw trades, snapshots, and psychology note logs to detect structural discipline breakdowns, sizing anomalies, or focus leakages.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => triggerNeuralAnomaly(true)}
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-journal-gold to-yellow-600 text-black font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] transition-all"
+                  >
+                    <Sparkles size={12} />
+                    Run Neural Anomaly Scan
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       </div>
 
-      {/* ─── SECOND ROW: WHAT-IF ENGINE ─── */}
+      {/* ─── SECOND ROW: MONTHLY REPORT (Swapped to be above What-If Engine) ─── */}
+      <Card title="Monthly AI Growth & Performance Audit" icon={Calendar} sub="Institutional Growth Audit">
+        <div className="flex flex-col h-full min-h-[400px]">
+          <div className="flex-1">
+            {loading.monthly ? (
+              <div className="h-full flex flex-col items-center justify-center space-y-4 py-20">
+                <Motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="text-journal-gold"><RefreshCcw size={32} /></Motion.div>
+                <p className="text-xs font-black uppercase tracking-widest text-slate-500 animate-pulse">Aggregating monthly performance metrics...</p>
+              </div>
+            ) : analysisResults.monthly ? (() => {
+              const { col1, col2 } = splitMonthlyReport(analysisResults.monthly);
+              return (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 grid grid-cols-1 lg:grid-cols-2 gap-10">
+                  <div className="space-y-6">
+                    <MarkdownText text={col1} />
+                  </div>
+                  <div className="space-y-6">
+                    <MarkdownText text={col2} />
+                  </div>
+                </div>
+              );
+            })() : (
+              <div className="h-full flex flex-col items-center justify-center py-24 text-center space-y-6">
+                <div className="w-24 h-24 rounded-3xl bg-journal-gold/5 border border-journal-gold/10 flex items-center justify-center rotate-3">
+                  <BarChart3 className="text-journal-gold/40" size={48} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black uppercase text-white tracking-[0.3em] mb-2">Monthly Audit Portal</h4>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                    A comprehensive AI-generated performance audit of your trading growth, edges, capital leaks, and emotional habits over the current month.
+                  </p>
+                </div>
+                <button
+                  onClick={() => runLLMTask('monthly')}
+                  disabled={loading.monthly}
+                  className="px-10 py-4 bg-journal-gold/10 border border-journal-gold/30 text-journal-gold rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-journal-gold/20 transition-all flex items-center gap-3"
+                >
+                  <Calendar size={18} /> Generate Monthly Audit
+                </button>
+              </div>
+            )}
+          </div>
+          {analysisResults.monthly && (
+            <div className="pt-10 flex justify-center">
+               <button onClick={() => runLLMTask('monthly')} className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-500 hover:text-white transition-all"><RefreshCcw size={14} /> Refresh Audit</button>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* ─── THIRD ROW: WHAT-IF ENGINE ─── */}
       <Card title="'What-If' Scenario Engine" icon={BarChart3} sub="Mathematical Simulation of Process Change">
         <div className="space-y-5">
           {/* Compact Horizontal Selectors */}
@@ -416,7 +666,7 @@ const AIAuditTab = ({ trades = [] }) => {
         </div>
       </Card>
 
-      {/* ─── THIRD ROW: GEMINI NEURAL ANALYSIS (LLM-BASED) ─── */}
+      {/* ─── FOURTH ROW: GEMINI NEURAL ANALYSIS (LLM-BASED) ─── */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         
         {/* 4. Deep Performance Analysis */}
@@ -502,56 +752,6 @@ const AIAuditTab = ({ trades = [] }) => {
           </div>
         </Card>
       </div>
-
-      {/* ─── FOURTH ROW: MONTHLY REPORT ─── */}
-      <Card title="Monthly AI Growth & Performance Audit" icon={Calendar} sub="Institutional Growth Audit">
-        <div className="flex flex-col h-full min-h-[400px]">
-          <div className="flex-1">
-            {loading.monthly ? (
-              <div className="h-full flex flex-col items-center justify-center space-y-4 py-20">
-                <Motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="text-journal-gold"><RefreshCcw size={32} /></Motion.div>
-                <p className="text-xs font-black uppercase tracking-widest text-slate-500 animate-pulse">Aggregating monthly performance metrics...</p>
-              </div>
-            ) : analysisResults.monthly ? (() => {
-              const { col1, col2 } = splitMonthlyReport(analysisResults.monthly);
-              return (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 grid grid-cols-1 lg:grid-cols-2 gap-10">
-                  <div className="space-y-6">
-                    <MarkdownText text={col1} />
-                  </div>
-                  <div className="space-y-6">
-                    <MarkdownText text={col2} />
-                  </div>
-                </div>
-              );
-            })() : (
-              <div className="h-full flex flex-col items-center justify-center py-24 text-center space-y-6">
-                <div className="w-24 h-24 rounded-3xl bg-journal-gold/5 border border-journal-gold/10 flex items-center justify-center rotate-3">
-                  <BarChart3 className="text-journal-gold/40" size={48} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-black uppercase text-white tracking-[0.3em] mb-2">Monthly Audit Portal</h4>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                    A comprehensive AI-generated performance audit of your trading growth, edges, capital leaks, and emotional habits over the current month.
-                  </p>
-                </div>
-                <button
-                  onClick={() => runLLMTask('monthly')}
-                  disabled={loading.monthly}
-                  className="px-10 py-4 bg-journal-gold/10 border border-journal-gold/30 text-journal-gold rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-journal-gold/20 transition-all flex items-center gap-3"
-                >
-                  <Calendar size={18} /> Generate Monthly Audit
-                </button>
-              </div>
-            )}
-          </div>
-          {analysisResults.monthly && (
-            <div className="pt-10 flex justify-center">
-               <button onClick={() => runLLMTask('monthly')} className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-500 hover:text-white transition-all"><RefreshCcw size={14} /> Refresh Audit</button>
-            </div>
-          )}
-        </div>
-      </Card>
 
       {/* ─── API KEY MODAL ─── */}
       <AnimatePresence>

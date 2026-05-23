@@ -7,7 +7,11 @@
 const MONTH_MAP = { January: 0, February: 1, March: 2, April: 3, May: 4, June: 5, July: 6, August: 7, September: 8, October: 9, November: 10, December: 11 };
 
 const getPL = (t) => parseFloat(t.pl) || 0;
-const getDate = (t) => t.jsDate || new Date(t.date || t.fullDate);
+const getDate = (t) => {
+  const d = t.jsDate || t.date || t.fullDate;
+  if (!d) return new Date(NaN);
+  return d instanceof Date ? d : new Date(d);
+};
 const getDayOfWeek = (t) => {
   const d = getDate(t);
   return isNaN(d.getTime()) ? 0 : d.getDay();

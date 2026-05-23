@@ -74,13 +74,16 @@ const DataField = ({ label, value, icon: Icon, color = "slate", isMultiline = fa
 
   return (
     <div className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0 group/field">
-      <div className="flex items-center gap-2.5">
-        <div className={`w-6 h-6 rounded-lg flex items-center justify-center bg-white/5 border border-white/10 ${currentColor} opacity-80 group-hover/field:opacity-100 transition-all`}>
+      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+        <div className={`w-6 h-6 rounded-lg flex items-center justify-center bg-white/5 border border-white/10 ${currentColor} opacity-80 group-hover/field:opacity-100 transition-all shrink-0`}>
           <Icon size={11} />
         </div>
-        <p className={`text-[11px] md:text-[10px] font-black uppercase tracking-tighter ${variant === 'highlight' ? 'text-white' : 'text-slate-100'}`}>
-          {value || '—'}
-        </p>
+        <div className="flex flex-col min-w-0">
+          <span className="text-[8px] md:text-[7px] font-black uppercase tracking-widest text-slate-500 leading-none mb-0.5">{label}</span>
+          <p className={`text-[11px] md:text-[10px] font-black uppercase tracking-tighter truncate ${variant === 'highlight' ? 'text-white' : 'text-slate-100'}`}>
+            {value || '—'}
+          </p>
+        </div>
       </div>
       {variant === 'highlight' && <div className={`w-1 h-4 rounded-full ${currentColor.replace('text-', 'bg-')}/60 shadow-[0_0_10px_rgba(255,255,255,0.1)]`} />}
     </div>
@@ -98,6 +101,7 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
   const [voteFeedback, setVoteFeedback] = useState(null); // noteId of recently voted
   const [isPinning, setIsPinning] = useState(null);
   const [pinStates, setPinStates] = useState({}); // { noteId: boolean }
+  const [psychologyView, setPsychologyView] = useState('categorized'); // categorized, ranked
 
   const galleryFiltersTemplate = {
     emotion: 'All',
@@ -424,7 +428,9 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
 
     // Sort: Pinned first, then by date desc
     return [...result].sort((a, b) => {
-      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      const aPinned = a.pinned === true || a.pinned === 'Yes';
+      const bPinned = b.pinned === true || b.pinned === 'Yes';
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
       const aDate = getComparisonDate(a.date || a.fullDate)?.getTime() || 0;
       const bDate = getComparisonDate(b.date || b.fullDate)?.getTime() || 0;
       return bDate - aDate;
@@ -441,7 +447,9 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
     const sortNotes = (arr) => {
       return [...arr].sort((a, b) => {
         // 1. Pinned first
-        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        const aPinned = a.pinned === true || a.pinned === 'Yes';
+        const bPinned = b.pinned === true || b.pinned === 'Yes';
+        if (aPinned !== bPinned) return aPinned ? -1 : 1;
 
         // 2. Then by votes
         const aTotalVotes = (a.votes || 0) + (optimisticVotes[a.id] || 0);
@@ -480,6 +488,21 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
     };
   }, [processedNotes, optimisticVotes]);
 
+  const rankedPsychologyNotes = useMemo(() => {
+    return [...processedNotes].sort((a, b) => {
+      // 1. Sorted STRICTLY by votes desc (Pin status is ignored in this view's sorting)
+      const aTotalVotes = (a.votes || 0) + (optimisticVotes[a.id] || 0);
+      const bTotalVotes = (b.votes || 0) + (optimisticVotes[b.id] || 0);
+      const voteDiff = bTotalVotes - aTotalVotes;
+      if (voteDiff !== 0) return voteDiff;
+
+      // 2. Date desc as tie-breaker
+      const aDate = getComparisonDate(a);
+      const bDate = getComparisonDate(b);
+      return (bDate?.getTime() || 0) - (aDate?.getTime() || 0);
+    });
+  }, [processedNotes, optimisticVotes]);
+
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
@@ -503,6 +526,22 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
 
             {/* Note Filter Bar */}
             <div className="flex flex-wrap gap-2 items-center w-full md:w-auto">
+              {/* Psychology View Segmented Controls */}
+              <div className="flex bg-journal-secondary/50 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md shrink-0">
+                <button
+                  onClick={() => setPsychologyView('categorized')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${psychologyView === 'categorized' ? 'bg-journal-gold text-journal-bg shadow-md shadow-journal-gold/20' : 'text-journal-text-muted hover:text-white'}`}
+                >
+                  By Category
+                </button>
+                <button
+                  onClick={() => setPsychologyView('ranked')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${psychologyView === 'ranked' ? 'bg-journal-gold text-journal-bg shadow-md shadow-journal-gold/20' : 'text-journal-text-muted hover:text-white'}`}
+                >
+                  By Votes
+                </button>
+              </div>
+
               <div className="relative group flex-1 md:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-journal-text-muted group-focus-within:text-journal-gold transition-colors" size={14} />
                 <input
@@ -513,15 +552,19 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
                   className="w-full bg-journal-secondary/50 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-[10px] font-bold text-white outline-none focus:border-journal-gold/50 transition-all"
                 />
               </div>
-              <CustomSelect
-                value={noteFilters.category}
-                onChange={e => setNoteFilters(prev => ({ ...prev, category: e }))}
-                className="w-48"
-                options={[
-                  { value: 'All', label: 'All Categories' },
-                  ...NOTE_CATEGORY_OPTIONS.map(opt => ({ value: opt, label: opt }))
-                ]}
-              />
+
+              {psychologyView === 'categorized' && (
+                <CustomSelect
+                  value={noteFilters.category}
+                  onChange={e => setNoteFilters(prev => ({ ...prev, category: e }))}
+                  className="w-48"
+                  options={[
+                    { value: 'All', label: 'All Categories' },
+                    ...NOTE_CATEGORY_OPTIONS.map(opt => ({ value: opt, label: opt }))
+                  ]}
+                />
+              )}
+
               {hasActiveNoteFilters && (
                 <button
                   onClick={() => setNoteFilters({ search: '', category: 'All' })}
@@ -533,172 +576,306 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
             </div>
           </div>
 
-          <div className="flex flex-col gap-4">
-            {[
-              { id: 'mistakes', label: 'STOP DOING (BEHAVIORAL TAX)', icon: AlertTriangle, color: 'journal-red', data: insightColumns.mistakes, accent: 'Urgent Fix Required' },
-              { id: 'learnings', label: 'KEEP DOING (EDGE REINFORCEMENT)', icon: Lightbulb, color: 'journal-green', data: insightColumns.learnings, accent: 'Edge Documentation' },
-              { id: 'observations', label: 'MARKET PULSE (OBSERVATIONS)', icon: LayoutDashboard, color: 'journal-gold', data: insightColumns.observations, accent: 'Execution Context' }
-            ].map((section) => (
-              <div key={section.id} className="space-y-4">
-                <button
-                  onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
-                  className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all ${expandedSection === section.id
-                    ? `bg-${section.color}/10 border-${section.color}/40 shadow-xl`
-                    : 'bg-white/5 border-white/10 hover:bg-white/10'
-                    }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-${section.color}/20 text-${section.color}`}>
-                      <section.icon size={24} />
-                    </div>
-                    <div className="text-left">
-                      <h4 className={`text-[11px] font-black uppercase tracking-[0.2em] ${expandedSection === section.id ? `text-${section.color}` : 'text-journal-text-muted'}`}>
-                        {section.label}
-                      </h4>
-                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">
-                        {section.data.length} archived {section.data.length === 1 ? 'entry' : 'entries'}
-                      </p>
-                    </div>
-                  </div>
-                  <motion.div
-                    animate={{ rotate: expandedSection === section.id ? 180 : 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className="text-slate-600"
+          {psychologyView === 'categorized' ? (
+            <div className="flex flex-col gap-4">
+              {[
+                { id: 'mistakes', label: 'STOP DOING (BEHAVIORAL TAX)', icon: AlertTriangle, color: 'journal-red', data: insightColumns.mistakes, accent: 'Urgent Fix Required' },
+                { id: 'learnings', label: 'KEEP DOING (EDGE REINFORCEMENT)', icon: Lightbulb, color: 'journal-green', data: insightColumns.learnings, accent: 'Edge Documentation' },
+                { id: 'observations', label: 'MARKET PULSE (OBSERVATIONS)', icon: LayoutDashboard, color: 'journal-gold', data: insightColumns.observations, accent: 'Execution Context' }
+              ].map((section) => (
+                <div key={section.id} className="space-y-4">
+                  <button
+                    onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
+                    className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all ${expandedSection === section.id
+                      ? `bg-${section.color}/10 border-${section.color}/40 shadow-xl`
+                      : 'bg-white/5 border-white/10 hover:bg-white/10'
+                      }`}
                   >
-                    <ChevronDown size={20} />
-                  </motion.div>
-                </button>
-
-                <AnimatePresence>
-                  {expandedSection === section.id && (
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-${section.color}/20 text-${section.color}`}>
+                        <section.icon size={24} />
+                      </div>
+                      <div className="text-left">
+                        <h4 className={`text-[11px] font-black uppercase tracking-[0.2em] ${expandedSection === section.id ? `text-${section.color}` : 'text-journal-text-muted'}`}>
+                          {section.label}
+                        </h4>
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                          {section.data.length} archived {section.data.length === 1 ? 'entry' : 'entries'}
+                        </p>
+                      </div>
+                    </div>
                     <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                      className="overflow-hidden"
+                      animate={{ rotate: expandedSection === section.id ? 180 : 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="text-slate-600"
                     >
-                      <div className="flex flex-col gap-3 pt-2 pb-6">
-                        {section.data.map((note, i) => (
-                          <motion.div
-                            key={note.id || `${section.id}-${i}`}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                          >
-                            <Card className={`p-5 relative group hover:shadow-2xl transition-all border-${section.color}/10 hover:border-${section.color}/30`}>
-                              <div className={`absolute left-0 top-0 bottom-0 w-1 bg-${section.color}/30 group-hover:bg-${section.color} transition-all`} />
+                      <ChevronDown size={20} />
+                    </motion.div>
+                  </button>
 
-                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10 w-full">
-                                <div className="flex-1 space-y-2">
-                                  <div className="flex items-center gap-3">
-                                    <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
-                                      <Clock size={10} /> {String(note.date || note.Date || '-')}
+                  <AnimatePresence>
+                    {expandedSection === section.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex flex-col gap-3 pt-2 pb-6">
+                          {section.data.map((note, i) => (
+                            <motion.div
+                              key={note.id || `${section.id}-${i}`}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.05 }}
+                            >
+                              <Card className={`p-5 relative group hover:shadow-2xl transition-all border-${section.color}/10 hover:border-${section.color}/30`}>
+                                <div className={`absolute left-0 top-0 bottom-0 w-1 bg-${section.color}/30 group-hover:bg-${section.color} transition-all`} />
+
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10 w-full">
+                                  <div className="flex-1 space-y-2">
+                                    <div className="flex items-center gap-3">
+                                      <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
+                                        <Clock size={10} /> {String(note.date || note.Date || '-')}
+                                      </p>
+                                      <Badge color={section.color}>{note.category || note.Select || 'Entry'}</Badge>
+                                    </div>
+                                    <p className={`text-[13px] text-slate-200 leading-relaxed ${section.id === 'mistakes' ? 'font-bold italic' : section.id === 'learnings' ? 'font-black uppercase tracking-tight text-slate-100' : 'font-medium'}`}>
+                                      {section.id === 'mistakes' && '"'}{note.content || note.Note || 'Empty Note'}{section.id === 'mistakes' && '"'}
                                     </p>
-                                    <Badge color={section.color}>{note.category || note.Select || 'Entry'}</Badge>
                                   </div>
-                                  <p className={`text-[13px] text-slate-200 leading-relaxed ${section.id === 'mistakes' ? 'font-bold italic' : section.id === 'learnings' ? 'font-black uppercase tracking-tight text-slate-100' : 'font-medium'}`}>
-                                    {section.id === 'mistakes' && '"'}{note.content || note.Note || 'Empty Note'}{section.id === 'mistakes' && '"'}
-                                  </p>
-                                </div>
 
-                                <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l border-white/5 pt-3 md:pt-0 md:pl-6 shrink-0">
-                                  <div className="flex flex-col items-center gap-2">
-                                    <button
-                                      onClick={() => handleTogglePin(note)}
-                                      disabled={isPinning === note.id}
-                                      className={`w-10 h-10 rounded-xl transition-all active:scale-95 flex items-center justify-center border ${note.pinned
-                                        ? 'bg-journal-gold border-journal-gold text-journal-bg shadow-[0_0_15px_rgba(212,175,55,0.4)]'
-                                        : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-400 hover:text-journal-gold hover:border-journal-gold/30'
-                                        }`}
-                                      title={note.pinned ? "Unpin Insight" : "Pin to Top"}
-                                    >
-                                      <PinIcon size={14} className={note.pinned ? "fill-current" : ""} />
-                                    </button>
-
-                                    {/* Vote Button */}
-                                    <div className="flex flex-col items-center relative">
+                                  <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l border-white/5 pt-3 md:pt-0 md:pl-6 shrink-0">
+                                    <div className="flex flex-col items-center gap-2">
                                       <button
-                                        onClick={() => handleVote(note.id, note.votes)}
-                                        disabled={isVoting && voteFeedback !== note.id}
-                                        className={`w-10 h-10 rounded-xl transition-all group/vbtn active:scale-90 flex items-center justify-center border ${voteFeedback === note.id
-                                          ? 'bg-journal-green/20 border-journal-green/40 text-journal-green'
-                                          : 'bg-white/5 hover:bg-journal-gold/20 border-white/10 hover:border-journal-gold/30 text-journal-text-muted hover:text-journal-gold'
+                                        onClick={() => handleTogglePin(note)}
+                                        disabled={isPinning === note.id}
+                                        className={`w-10 h-10 rounded-xl transition-all active:scale-95 flex items-center justify-center border ${note.pinned
+                                          ? 'bg-journal-gold border-journal-gold text-journal-bg shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                                          : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-400 hover:text-journal-gold hover:border-journal-gold/30'
                                           }`}
-                                        title="Upvote Insight"
+                                        title={note.pinned ? "Unpin Insight" : "Pin to Top"}
                                       >
-                                        <AnimatePresence mode="wait">
-                                          {voteFeedback === note.id ? (
+                                        <PinIcon size={14} className={note.pinned ? "fill-current" : ""} />
+                                      </button>
+
+                                      {/* Vote Button */}
+                                      <div className="flex flex-col items-center relative">
+                                        <button
+                                          onClick={() => handleVote(note.id, note.votes)}
+                                          disabled={isVoting && voteFeedback !== note.id}
+                                          className={`w-10 h-10 rounded-xl transition-all group/vbtn active:scale-90 flex items-center justify-center border ${voteFeedback === note.id
+                                            ? 'bg-journal-green/20 border-journal-green/40 text-journal-green'
+                                            : 'bg-white/5 hover:bg-journal-gold/20 border-white/10 hover:border-journal-gold/30 text-journal-text-muted hover:text-journal-gold'
+                                            }`}
+                                          title="Upvote Insight"
+                                        >
+                                          <AnimatePresence mode="wait">
+                                            {voteFeedback === note.id ? (
+                                              <motion.div
+                                                key="check"
+                                                initial={{ scale: 0.5, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                exit={{ scale: 0.5, opacity: 0 }}
+                                              >
+                                                <Check size={20} />
+                                              </motion.div>
+                                            ) : (
+                                              <motion.div
+                                                key="up"
+                                                initial={{ scale: 0.8, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                className="group-hover/vbtn:-translate-y-0.5 transition-transform"
+                                              >
+                                                <ChevronUp size={20} />
+                                              </motion.div>
+                                            )}
+                                          </AnimatePresence>
+                                        </button>
+
+                                        <span className={`text-[10px] font-black mt-1 transition-colors ${voteFeedback === note.id ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                          {(note.votes || 0) + (optimisticVotes[note.id] || 0)}
+                                        </span>
+
+                                        {/* Floating +1 Animation */}
+                                        <AnimatePresence>
+                                          {voteFeedback === note.id && (
                                             <motion.div
-                                              key="check"
-                                              initial={{ scale: 0.5, opacity: 0 }}
-                                              animate={{ scale: 1, opacity: 1 }}
-                                              exit={{ scale: 0.5, opacity: 0 }}
+                                              initial={{ y: 0, opacity: 1 }}
+                                              animate={{ y: -30, opacity: 0 }}
+                                              exit={{ opacity: 0 }}
+                                              className="absolute top-0 text-emerald-400 text-[10px] font-black"
                                             >
-                                              <Check size={20} />
-                                            </motion.div>
-                                          ) : (
-                                            <motion.div
-                                              key="up"
-                                              initial={{ scale: 0.8, opacity: 0 }}
-                                              animate={{ scale: 1, opacity: 1 }}
-                                              className="group-hover/vbtn:-translate-y-0.5 transition-transform"
-                                            >
-                                              <ChevronUp size={20} />
+                                              +1
                                             </motion.div>
                                           )}
                                         </AnimatePresence>
-                                      </button>
+                                      </div>
+                                    </div>
 
-                                      <span className={`text-[10px] font-black mt-1 transition-colors ${voteFeedback === note.id ? 'text-emerald-400' : 'text-slate-400'}`}>
-                                        {(note.votes || 0) + (optimisticVotes[note.id] || 0)}
-                                      </span>
-
-                                      {/* Floating +1 Animation */}
-                                      <AnimatePresence>
-                                        {voteFeedback === note.id && (
-                                          <motion.div
-                                            initial={{ y: 0, opacity: 1 }}
-                                            animate={{ y: -30, opacity: 0 }}
-                                            exit={{ opacity: 0 }}
-                                            className="absolute top-0 text-emerald-400 text-[10px] font-black"
-                                          >
-                                            +1
-                                          </motion.div>
-                                        )}
-                                      </AnimatePresence>
+                                    <div className="text-right ml-2">
+                                      <span className={`text-[8px] font-black uppercase tracking-tighter text-${section.color}-500/50 block`}>{section.accent}</span>
+                                      <span className="text-[7px] text-slate-600 font-bold uppercase tracking-widest">Behavioral Anchor</span>
+                                    </div>
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-${section.color}-500/5 text-${section.color}-500/30`}>
+                                      {section.id === 'mistakes' ? <ArrowDownRight size={14} /> :
+                                        section.id === 'learnings' ? <Check size={14} /> :
+                                          <ArrowUpRight size={14} />}
                                     </div>
                                   </div>
-
-                                  <div className="text-right ml-2">
-                                    <span className={`text-[8px] font-black uppercase tracking-tighter text-${section.color}-500/50 block`}>{section.accent}</span>
-                                    <span className="text-[7px] text-slate-600 font-bold uppercase tracking-widest">Behavioral Anchor</span>
-                                  </div>
-                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-${section.color}-500/5 text-${section.color}-500/30`}>
-                                    {section.id === 'mistakes' ? <ArrowDownRight size={14} /> :
-                                      section.id === 'learnings' ? <Check size={14} /> :
-                                        <ArrowUpRight size={14} />}
-                                  </div>
                                 </div>
-                              </div>
-                            </Card>
-                          </motion.div>
-                        ))}
-                        {section.data.length === 0 && (
-                          <div className="col-span-full py-12 flex flex-col items-center justify-center gap-3 opacity-30">
-                            <StickyNote size={32} />
-                            <p className="text-[10px] font-black uppercase tracking-widest">No entries archived in this segment</p>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
-          </div>
+                              </Card>
+                            </motion.div>
+                          ))}
+                          {section.data.length === 0 && (
+                            <div className="col-span-full py-12 flex flex-col items-center justify-center gap-3 opacity-30">
+                              <StickyNote size={32} />
+                              <p className="text-[10px] font-black uppercase tracking-widest">No entries archived in this segment</p>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {rankedPsychologyNotes.map((note, idx) => {
+                const cat = String(note.category || note.Select || '').toLowerCase().trim();
+                const isMistake = cat.includes('mistake') || cat.includes('error') || cat.includes('leak');
+                const isLearning = cat.includes('learning') || cat.includes('edge') || cat.includes('win');
+                const color = isMistake ? 'journal-red' : isLearning ? 'journal-green' : 'journal-gold';
+                const accent = isMistake ? 'Urgent Fix Required' : isLearning ? 'Edge Documentation' : 'Execution Context';
+                
+                return (
+                  <motion.div
+                    key={note.id || `ranked-${idx}`}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.04, ease: "easeOut" }}
+                  >
+                    <Card className={`p-5 relative group hover:shadow-2xl transition-all border-${color}/10 hover:border-${color}/30 bg-white/5`}>
+                      <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-${color}/30 group-hover:bg-${color} transition-all`} />
 
-          {(insightColumns.mistakes.length + insightColumns.observations.length + insightColumns.learnings.length) === 0 && (
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10 w-full">
+                        <div className="flex items-start gap-4 flex-1">
+                          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
+                            idx === 0 ? 'bg-journal-gold/15 border-journal-gold text-journal-gold shadow-lg shadow-journal-gold/10' :
+                            idx === 1 ? 'bg-white/10 border-white/20 text-white/90' :
+                            idx === 2 ? 'bg-amber-900/10 border-amber-900 text-amber-500' :
+                            'bg-white/5 border-white/5 text-slate-500'
+                          }`}>
+                            <span className="text-[11px] font-black italic">#{idx + 1}</span>
+                          </div>
+
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center flex-wrap gap-2.5">
+                              <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-1.5">
+                                <Clock size={10} /> {String(note.date || note.Date || '-')}
+                              </p>
+                              <Badge color={color}>{note.category || note.Select || 'Entry'}</Badge>
+                            </div>
+                            <p className={`text-[13px] text-slate-200 leading-relaxed ${isMistake ? 'font-bold italic' : isLearning ? 'font-black uppercase tracking-tight text-slate-100' : 'font-medium'}`}>
+                              {isMistake && '"'}{note.content || note.Note || 'Empty Note'}{isMistake && '"'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l border-white/5 pt-3 md:pt-0 md:pl-6 shrink-0">
+                          <div className="flex flex-col items-center gap-2">
+                            <button
+                              onClick={() => handleTogglePin(note)}
+                              disabled={isPinning === note.id}
+                              className={`w-10 h-10 rounded-xl transition-all active:scale-95 flex items-center justify-center border ${note.pinned
+                                ? 'bg-journal-gold border-journal-gold text-journal-bg shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                                : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-400 hover:text-journal-gold hover:border-journal-gold/30'
+                                }`}
+                              title={note.pinned ? "Unpin Insight" : "Pin to Top"}
+                            >
+                              <PinIcon size={14} className={note.pinned ? "fill-current" : ""} />
+                            </button>
+
+                            <div className="flex flex-col items-center relative">
+                              <button
+                                onClick={() => handleVote(note.id, note.votes)}
+                                disabled={isVoting && voteFeedback !== note.id}
+                                className={`w-10 h-10 rounded-xl transition-all group/vbtn active:scale-90 flex items-center justify-center border ${voteFeedback === note.id
+                                  ? 'bg-journal-green/20 border-journal-green/40 text-journal-green'
+                                  : 'bg-white/5 hover:bg-journal-gold/20 border-white/10 hover:border-journal-gold/30 text-journal-text-muted hover:text-journal-gold'
+                                  }`}
+                                title="Upvote Insight"
+                              >
+                                <AnimatePresence mode="wait">
+                                  {voteFeedback === note.id ? (
+                                    <motion.div
+                                      key="check"
+                                      initial={{ scale: 0.5, opacity: 0 }}
+                                      animate={{ scale: 1, opacity: 1 }}
+                                      exit={{ scale: 0.5, opacity: 0 }}
+                                    >
+                                      <Check size={20} />
+                                    </motion.div>
+                                  ) : (
+                                    <motion.div
+                                      key="up"
+                                      initial={{ scale: 0.8, opacity: 0 }}
+                                      animate={{ scale: 1, opacity: 1 }}
+                                      className="group-hover/vbtn:-translate-y-0.5 transition-transform"
+                                    >
+                                      <ChevronUp size={20} />
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </button>
+
+                              <span className={`text-[10px] font-black mt-1 transition-colors ${voteFeedback === note.id ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                {(note.votes || 0) + (optimisticVotes[note.id] || 0)}
+                              </span>
+
+                              <AnimatePresence>
+                                {voteFeedback === note.id && (
+                                  <motion.div
+                                    initial={{ y: 0, opacity: 1 }}
+                                    animate={{ y: -30, opacity: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute top-0 text-emerald-400 text-[10px] font-black"
+                                  >
+                                    +1
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </div>
+
+                          <div className="text-right ml-2">
+                            <span className={`text-[8px] font-black uppercase tracking-tighter text-${color}-500/50 block`}>{accent}</span>
+                            <span className="text-[7px] text-slate-600 font-bold uppercase tracking-widest">Behavioral Anchor</span>
+                          </div>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-${color}-500/5 text-${color}-500/30`}>
+                            {isMistake ? <ArrowDownRight size={14} /> :
+                              isLearning ? <Check size={14} /> :
+                                <ArrowUpRight size={14} />}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+              {rankedPsychologyNotes.length === 0 && (
+                <div className="py-12 flex flex-col items-center justify-center gap-3 opacity-30">
+                  <StickyNote size={32} />
+                  <p className="text-[10px] font-black uppercase tracking-widest">No entries archived in this segment</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {((psychologyView === 'categorized' && (insightColumns.mistakes.length + insightColumns.observations.length + insightColumns.learnings.length) === 0) ||
+            (psychologyView === 'ranked' && rankedPsychologyNotes.length === 0)) && (
             <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-50 modern-glass rounded-[2rem] border border-dashed border-white/10">
               <StickyNote size={48} className="text-slate-800" />
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">No behavioral data archived for this selection</p>
@@ -1027,6 +1204,15 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
                       ) : (
                         <>
                           <DataField label="Snapshot Date" value={lightbox.item?.date} icon={Calendar} />
+                          {getSnapshotStats(lightbox.item) && (
+                            <DataField 
+                              label="Total Day P&L" 
+                              value={`${getSnapshotStats(lightbox.item).pl >= 0 ? '+' : ''}₹${getSnapshotStats(lightbox.item).pl.toFixed(2)}`} 
+                              icon={DollarSign} 
+                              variant="highlight" 
+                              color={getSnapshotStats(lightbox.item).pl >= 0 ? 'emerald' : 'rose'} 
+                            />
+                          )}
                           <DataField label="Total Trades" value={lightbox.item?.noOfTrades} icon={Activity} />
                           <DataField label="Rules Followed" value={lightbox.item?.rulesFollowed} icon={ShieldCheck} color={lightbox.item?.rulesFollowed === 'Yes' ? 'emerald' : 'rose'} />
                           <DataField label="Emotions Control" value={lightbox.item?.emotionsInControl} icon={Brain} color={lightbox.item?.emotionsInControl === 'Yes' ? 'emerald' : 'rose'} />

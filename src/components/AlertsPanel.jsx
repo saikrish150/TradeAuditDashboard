@@ -27,64 +27,88 @@ export const AlertsPanel = React.memo(({ alerts, onDelete }) => {
             <p className="text-journal-text-muted/40 text-[9px] mt-2 uppercase tracking-widest">Place markers on chart</p>
           </div>
         ) : (
-          alerts.filter(a => a.status === 'active').map((alert) => (
-            <div 
-              key={alert.id}
-              className={`p-4 rounded-2xl border bg-black/40 backdrop-blur-sm border-white/5 transition-all hover:bg-black/60 hover:border-journal-gold/30 group relative overflow-hidden ${
-                alert.status === 'triggered' ? 'opacity-60 grayscale-[0.5]' : ''
-              }`}
-            >
-              {/* Highlight bar for active alerts */}
-              {alert.status === 'active' && (
-                <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                  alert.condition === 'gt' ? 'bg-journal-green shadow-[0_0_10px_rgba(46,204,113,0.5)]' : 'bg-journal-red shadow-[0_0_10px_rgba(230,57,70,0.5)]'
-                }`} />
-              )}
+          alerts.filter(a => a.status === 'active').map((alert) => {
+            const isAuto = ['PDH', 'PDL', 'PWH', 'PWL'].includes(alert.label);
+            const baseSymbol = alert.symbol;
+            const levelName = alert.label;
 
-              <div className="flex justify-between items-start pl-2">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Coins className="w-3.5 h-3.5 text-journal-gold" />
-                    <h3 className="font-black text-[11px] text-white tracking-widest uppercase">{alert.symbol}</h3>
-                    <span className="text-[9px] text-journal-text-muted hidden group-hover:inline-block transition-all font-black uppercase tracking-tighter">
-                      • {getSymbolName(alert.symbol)}
-                    </span>
+            return (
+              <div 
+                key={alert.id}
+                className={`p-4 rounded-2xl border bg-black/40 backdrop-blur-sm border-white/5 transition-all hover:bg-black/60 hover:border-journal-gold/30 group relative overflow-hidden ${
+                  alert.status === 'triggered' ? 'opacity-60 grayscale-[0.5]' : ''
+                }`}
+              >
+                {/* Highlight bar for active alerts */}
+                {alert.status === 'active' && (
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                    alert.condition === 'gt' ? 'bg-journal-green shadow-[0_0_10px_rgba(46,204,113,0.5)]' : 'bg-journal-red shadow-[0_0_10px_rgba(230,57,70,0.5)]'
+                  }`} />
+                )}
+
+                <div className="flex justify-between items-start pl-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Coins className="w-3.5 h-3.5 text-journal-gold" />
+                      <h3 className="font-black text-[11px] text-white tracking-widest uppercase">{baseSymbol}</h3>
+                      <span className="text-[9px] text-journal-text-muted hidden group-hover:inline-block transition-all font-black uppercase tracking-tighter">
+                        • {getSymbolName(baseSymbol)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {isAuto ? (
+                        <span className={`text-[8px] px-2 py-0.5 rounded-lg font-black uppercase tracking-widest ${
+                          levelName.startsWith('PD') 
+                          ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' 
+                          : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                        }`}>
+                          {levelName} LEVEL
+                        </span>
+                      ) : (
+                        <span className={`text-[8px] px-2 py-0.5 rounded-lg font-black uppercase tracking-widest ${
+                          alert.condition === 'gt' ? 'bg-journal-green/10 text-journal-green border border-journal-green/20' : 'bg-journal-red/10 text-journal-red border border-journal-red/20'
+                        }`}>
+                          {alert.condition === 'gt' ? 'Greater Than' : 'Less Than'}
+                        </span>
+                      )}
+                      <span className="text-sm font-black text-white italic tracking-tighter">${alert.target_price.toLocaleString()}</span>
+                    </div>
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[8px] px-2 py-0.5 rounded-lg font-black uppercase tracking-widest ${
-                      alert.condition === 'gt' ? 'bg-journal-green/10 text-journal-green border border-journal-green/20' : 'bg-journal-red/10 text-journal-red border border-journal-red/20'
-                    }`}>
-                      {alert.condition === 'gt' ? 'Greater Than' : 'Less Than'}
-                    </span>
-                    <span className="text-sm font-black text-white italic tracking-tighter">${alert.target_price.toLocaleString()}</span>
-                  </div>
+                    <div className="flex flex-col gap-2">
+                      {isAuto ? (
+                        <span className="text-[8px] font-black uppercase tracking-widest text-journal-text-muted/40 p-2 border border-white/5 rounded-xl bg-white/5 shadow-inner">
+                          Auto
+                        </span>
+                      ) : (
+                        <button 
+                          onClick={() => onDelete(alert.id)}
+                          className="p-3 -m-1.5 text-journal-text-muted hover:text-journal-red hover:bg-journal-red/5 rounded-2xl transition-all active:scale-95"
+                          title="Delete Alert"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                 </div>
-                
-                  <div className="flex flex-col gap-2">
-                    <button 
-                      onClick={() => onDelete(alert.id)}
-                      className="p-3 -m-1.5 text-journal-text-muted hover:text-journal-red hover:bg-journal-red/5 rounded-2xl transition-all active:scale-95"
-                      title="Delete Alert"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-              </div>
 
               <div className="flex items-center justify-between mt-4 pl-2 text-[9px] font-black uppercase tracking-[0.2em] text-journal-text-muted/40 font-mono">
                 <span className="flex items-center gap-2">
-                  {alert.status === 'active' ? (
+                  {isAuto ? (
+                    <Clock className={`w-3 h-3 ${levelName.startsWith('PD') ? 'text-amber-500' : 'text-rose-500'}`} />
+                  ) : alert.status === 'active' ? (
                     <Clock className="w-3 h-3 text-journal-gold" />
                   ) : (
                     <CheckCircle className="w-3 h-3 text-journal-green" />
                   )}
-                  {alert.status}
+                  {isAuto ? `active (${levelName})` : alert.status}
                 </span>
-                <span>{new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>{isAuto ? 'Realtime' : new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
-            </div>
-          ))
+              </div>
+            );
+          })
         )}
       </div>
     </div>

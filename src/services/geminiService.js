@@ -398,6 +398,109 @@ Keep the entire audit under 450 words. Be blunt, mathematical, direct, and compl
     this._setCache(cacheKey, text);
     return { text, fromCache: false };
   }
+
+  async dailyBriefing(trades, snapshots, notes, forceRefresh = false) {
+    if (!forceRefresh) {
+      const cached = this._getCache('daily_briefing');
+      if (cached) return { text: cached, fromCache: true };
+    }
+
+    const stats = this._buildTradeStats(trades);
+    const rawTradeData = this._buildRawTradeList(trades);
+    
+    // Format snapshots and notes compactly for full AI context
+    const snapshotSummary = snapshots && snapshots.length > 0 
+      ? snapshots.slice(-15).map((s, idx) => `${idx+1}. [${new Date(s.date || s.dateAdded).toLocaleDateString()}] Rules: ${s.rulesFollowed || 'N/A'} | Emotions: ${s.emotionsInControl || 'N/A'} | Progress: ${s.progress || 'N/A'}`).join('\n')
+      : 'No daily snapshots recorded.';
+      
+    const notesSummary = notes && notes.length > 0
+      ? notes.slice(-15).map((n, idx) => `${idx+1}. [${new Date(n.date || n.Date || n.noteDate).toLocaleDateString()}] (${n.category || n.Select || 'Entry'}): "${n.content || n.Note || 'Empty content'}"`).join('\n')
+      : 'No psychology notes recorded.';
+
+    const prompt = `You are a world-class trading performance coach. Deliver a simple, clean, and highly actionable AI Daily Market Briefing based on this trader's data.
+
+AGGREGATED METRICS:
+${stats}
+
+RECENT RAW TRADES LOG:
+${rawTradeData}
+
+RECENT DAILY SNAPSHOTS (Rule compliance):
+${snapshotSummary}
+
+RECENT PSYCHOLOGY JOURNAL NOTES (Mistakes & emotional patterns):
+${notesSummary}
+
+CRITICAL: Keep the briefing EXTREMELY short, simple, and clean. Use basic, plain words. Absolutely NO long paragraphs or complex terms. Use single-sentence bullet points (maximum 10 words per bullet). The entire response must be under 80 words total!
+
+Structure it EXACTLY as follows:
+
+1. **🚫 AVOID TODAY**:
+   - [Short bullet 1]
+   - [Short bullet 2]
+
+2. **🎯 FOCUS TODAY**:
+   - [Short bullet 1]
+   - [Short bullet 2]
+
+3. **⚡ VERDICT**:
+   - [Single short sentence posture + 1 simple reason]`;
+
+    const text = await this._callGemini(prompt);
+    this._setCache('daily_briefing', text);
+    return { text, fromCache: false };
+  }
+
+  async anomalyScan(trades, snapshots, notes, forceRefresh = false) {
+    if (!forceRefresh) {
+      const cached = this._getCache('anomaly_scan');
+      if (cached) return { text: cached, fromCache: true };
+    }
+
+    const stats = this._buildTradeStats(trades);
+    const rawTradeData = this._buildRawTradeList(trades);
+    
+    const snapshotSummary = snapshots && snapshots.length > 0 
+      ? snapshots.slice(-20).map((s, idx) => `${idx+1}. [${new Date(s.date || s.dateAdded).toLocaleDateString()}] Rules: ${s.rulesFollowed || 'N/A'} | Emotions: ${s.emotionsInControl || 'N/A'} | Setup Followed: ${s.setup || s.snapshotSetup || 'N/A'}`).join('\n')
+      : 'No daily snapshots recorded.';
+      
+    const notesSummary = notes && notes.length > 0
+      ? notes.slice(-20).map((n, idx) => `${idx+1}. [${new Date(n.date || n.Date || n.noteDate).toLocaleDateString()}] (${n.category || n.Select || 'Entry'}): "${n.content || n.Note || 'Empty content'}"`).join('\n')
+      : 'No psychology notes recorded.';
+
+    const prompt = `You are a Senior Quantitative Risk Attribution Systems Director. Conduct a high-level anomaly detection scan on this trader's data to detect structural, behavioral, or statistical deviations.
+
+AGGREGATED METRICS:
+${stats}
+
+RECENT RAW TRADES LOG:
+${rawTradeData}
+
+RECENT DAILY SNAPSHOTS (Rule adherence & setups):
+${snapshotSummary}
+
+RECENT PSYCHOLOGY JOURNAL NOTES (Emotional triggers & leaks):
+${notesSummary}
+
+Analyze all elements concurrently to detect anomalies (such as revenge trading indicators, size spikes, market focus decay, rules-compliance drops, emotional deterioration, or setup quality drift). 
+
+Deliver a highly professional, blunt Anomaly Report containing:
+
+1. **🔴 CRITICAL BEHAVIORAL ANOMALIES**:
+   - List any highly severe anomalies where structural discipline is actively breaking down (e.g., sudden sizing spikes, ignoring rules despite snapshots saying "Yes", consecutive day-losses, or high concentrations of FOMO/Anger notes). Prove with exact numbers and dates.
+
+2. **🟡 STATISTICAL & PROCESS DEVIATIONS**:
+   - Identify warning-level anomalies (e.g., trading low-win-rate days, setups showing declining win rates, or taking excessive trades relative to historical daily averages).
+
+3. **🟢 SYSTEM STABILITY SCORE**:
+   - Give an overall system stability percentage (e.g., 85% stable) with a brief, mathematical reason why.
+
+Keep it under 350 words. Be clinical, quantitative, direct, and completely numbers-backed.`;
+
+    const text = await this._callGemini(prompt);
+    this._setCache('anomaly_scan', text);
+    return { text, fromCache: false };
+  }
 }
 
 export const geminiService = new GeminiService();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion as Motion } from 'framer-motion';
-import { Signal, Brain, History, ShieldCheck } from 'lucide-react';
+import { Signal, Brain, History, ShieldCheck, Activity } from 'lucide-react';
 
 const MobileNav = ({ activeSection, setActiveSection }) => {
   const tabs = [

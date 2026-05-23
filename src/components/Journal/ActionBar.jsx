@@ -1,14 +1,15 @@
 import React from 'react';
-import { Plus, Camera, FileText, ShieldCheck } from 'lucide-react';
+import { Plus, Camera, FileText, ShieldCheck, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenRules }) => {
+const ActionBar = ({ onAddTrade, onAddSnapshot, onAddNote, onOpenRules, onOpenBrokerSync }) => {
 
   const buttons = [
     { id: 'trade',    label: 'Add Trade',    icon: Plus,        action: onAddTrade,    color: 'journal-red' },
     { id: 'snapshot', label: 'Screenshot',   icon: Camera,      action: onAddSnapshot, color: 'journal-gold' },
     { id: 'note',     label: 'Add Notes',    icon: FileText,    action: onAddNote,     color: 'journal-text-secondary' },
     { id: 'rules',    label: 'Rules',        icon: ShieldCheck, action: onOpenRules,   color: 'journal-gold' },
+    { id: 'brokersync',label: 'Broker Sync', icon: RefreshCw,   action: onOpenBrokerSync,color: 'journal-gold' },
   ];
 
   return (

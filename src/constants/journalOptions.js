@@ -1,5 +1,5 @@
 export const MARKET_OPTIONS = [
-  'NIFTY', 'BTC', 'ETH', 'GOLD'
+  'NIFTY', 'SENSEX', 'BTC', 'ETH', 'GOLD'
 ];
 
 export const MARKET_CATEGORIES = [
