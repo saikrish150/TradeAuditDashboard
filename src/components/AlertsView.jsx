@@ -125,82 +125,28 @@ export const AlertsView = () => {
     };
   }, [fetchAlerts]);
 
+  // Handled globally by useAutoLevelsSync in App.jsx
+
   useEffect(() => {
-    const calculateAutoLevels = async () => {
+    const updateLocalAutoLevels = async () => {
       try {
-        triggeredLevelsRef.current.clear();
-
-        // 1. Fetch daily candles
         const dailyCandles = await binanceService.getHistoricalData(selectedSymbol, '1d');
-        let pdh = null;
-        let pdl = null;
-        if (dailyCandles && dailyCandles.length >= 2) {
-          const yesterdayCandle = dailyCandles[dailyCandles.length - 2];
-          pdh = yesterdayCandle.high;
-          pdl = yesterdayCandle.low;
-        }
-
-        // 2. Fetch weekly candles
         const weeklyCandles = await binanceService.getHistoricalData(selectedSymbol, '1w');
-        let pwh = null;
-        let pwl = null;
+        let pdh = null, pdl = null, pwh = null, pwl = null;
+        if (dailyCandles && dailyCandles.length >= 2) {
+          pdh = dailyCandles[dailyCandles.length - 2].high;
+          pdl = dailyCandles[dailyCandles.length - 2].low;
+        }
         if (weeklyCandles && weeklyCandles.length >= 2) {
-          const lastWeekCandle = weeklyCandles[weeklyCandles.length - 2];
-          pwh = lastWeekCandle.high;
-          pwl = lastWeekCandle.low;
+          pwh = weeklyCandles[weeklyCandles.length - 2].high;
+          pwl = weeklyCandles[weeklyCandles.length - 2].low;
         }
-
         setAutoLevels({ pdh, pdl, pwh, pwl });
-
-        const calculatedLevels = [];
-        const currentUserId = GUEST_USER_ID;
-        
-        if (pdh) calculatedLevels.push({ symbol: selectedSymbol.id, target_price: Number(pdh), condition: 'gt', status: 'active', label: 'PDH', user_id: currentUserId });
-        if (pdl) calculatedLevels.push({ symbol: selectedSymbol.id, target_price: Number(pdl), condition: 'lt', status: 'active', label: 'PDL', user_id: currentUserId });
-        if (pwh) calculatedLevels.push({ symbol: selectedSymbol.id, target_price: Number(pwh), condition: 'gt', status: 'active', label: 'PWH', user_id: currentUserId });
-        if (pwl) calculatedLevels.push({ symbol: selectedSymbol.id, target_price: Number(pwl), condition: 'lt', status: 'active', label: 'PWL', user_id: currentUserId });
-
-        // Fetch existing auto levels for this symbol
-        const { data: existingLevels, error: fetchError } = await supabase
-          .from('alerts')
-          .select('*')
-          .eq('symbol', selectedSymbol.id)
-          .in('label', ['PDH', 'PDL', 'PWH', 'PWL']);
-
-        if (fetchError) throw fetchError;
-
-        const levelsToInsert = [];
-        const idsToDelete = [];
-
-        calculatedLevels.forEach(calcLevel => {
-          const existing = existingLevels?.find(e => e.label === calcLevel.label);
-          
-          if (!existing) {
-            // Doesn't exist, insert new
-            levelsToInsert.push(calcLevel);
-          } else if (existing.target_price !== calcLevel.target_price) {
-            // Price changed (e.g. new day/week), delete old and insert new
-            idsToDelete.push(existing.id);
-            levelsToInsert.push(calcLevel);
-          }
-          // If it exists and price is same, do nothing (preserves 'triggered' status)
-        });
-
-        if (idsToDelete.length > 0) {
-          await supabase.from('alerts').delete().in('id', idsToDelete);
-        }
-
-        if (levelsToInsert.length > 0) {
-          await supabase.from('alerts').insert(levelsToInsert);
-          // Rely on the Supabase Realtime subscription to update the UI
-          // The fetchAlerts on mount + realtime updates will handle the state perfectly
-        }
-      } catch (err) {
-        console.error('[AutoLevels] Failed to calculate and save levels:', err);
+      } catch (e) {
+        console.error('[AutoLevels] Failed to update local levels:', e);
       }
     };
-
-    calculateAutoLevels();
+    updateLocalAutoLevels();
   }, [selectedSymbol]);
 
   const playAlertSound = useCallback(() => {

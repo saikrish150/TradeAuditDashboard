@@ -14,7 +14,9 @@ export const JOURNAL_COLUMNS = [
   { key: 'positionType', label: 'Position Type', type: 'cat' },
   { key: 'tradeQuality', label: 'Trade Quality', type: 'cat' },
   { key: 'tradeStatus', label: 'Trade Status', type: 'cat' },
-  { key: 'tradeMode', label: 'Trade mode (Buying/Selling)', type: 'cat' }
+  { key: 'tradeMode', label: 'Trade mode (Buying/Selling)', type: 'cat' },
+  { key: 'tradeTime', label: 'Trade Time', type: 'text' },
+  { key: 'brokerage', label: 'Brokerage / Fees', type: 'num' }
 ];
 
 export const SNAPSHOT_COLUMNS = [

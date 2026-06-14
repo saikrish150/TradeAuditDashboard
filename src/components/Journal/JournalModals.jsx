@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, Check, ChevronDown, Plus, Trash2, IndianRupee, History, Target, ShieldAlert, Calendar, Clock as ClockIcon } from 'lucide-react';
+import { X, Upload, Check, ChevronDown, Plus, Trash2, IndianRupee, Target, ShieldAlert, Calendar, Clock as ClockIcon } from 'lucide-react';
 import TerminalClockPicker from './TerminalClockPicker';
 import AutoSuggestTextarea from '../Common/AutoSuggestTextarea';
 import { supabaseService } from '../../services/supabaseService';
@@ -24,7 +24,7 @@ import {
   DEFAULT_NOTE_FORM, mapNoteToForm 
 } from '../../constants/formDefaults';
 
-const ModalWrapper = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl' }) => {
+const ModalWrapper = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl', headerActions }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-2 sm:p-4 bg-journal-bg/95 backdrop-blur-md">
@@ -35,7 +35,10 @@ const ModalWrapper = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl'
         className={`relative w-full ${maxWidth} max-h-[95vh] overflow-y-auto journal-glass rounded-[2rem] border-journal-gold/30 shadow-[0_0_50px_rgba(212,175,55,0.1)] flex flex-col`}
       >
         <div className="sticky top-0 z-10 flex items-center justify-between p-4 md:p-6 border-b border-white/5 bg-journal-bg/90 backdrop-blur-md">
-          <h2 className="text-sm md:text-xl font-black text-white uppercase tracking-widest">{title}</h2>
+          <div className="flex items-center gap-4">
+            <h2 className="text-sm md:text-xl font-black text-white uppercase tracking-widest">{title}</h2>
+            {headerActions && <div>{headerActions}</div>}
+          </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-white/5 text-slate-500 hover:text-white transition-all">
             <X size={20} />
           </button>
@@ -266,14 +269,8 @@ const SingleSelect = ({ label, options, value, onChange }) => {
   );
 };
 
-export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, liveRate = 92.87 }) => {
+export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, onNext, onPrev, onViewImage }) => {
   const [isClockOpen, setIsClockOpen] = useState(false);
-  const [customRate, setCustomRate] = useState(liveRate);
-  const [showRateInput, setShowRateInput] = useState(false);
-
-  useEffect(() => {
-    if (!showRateInput) setCustomRate(liveRate);
-  }, [liveRate]);
 
   const [formData, setFormData] = useState(DEFAULT_TRADE_FORM);
 
@@ -310,10 +307,25 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
     }
   };
 
-  const [isUsd, setIsUsd] = useState(false);
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isOpen || !editingTrade) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+      
+      if (e.key === 'ArrowRight' && onNext) {
+        e.preventDefault();
+        onNext();
+      } else if (e.key === 'ArrowLeft' && onPrev) {
+        e.preventDefault();
+        onPrev();
+      }
+    };
 
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, editingTrade, onNext, onPrev]);
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} title="Add Trade">
+    <ModalWrapper isOpen={isOpen} onClose={onClose} title={editingTrade ? "Edit Trade" : "Add Trade"}>
       <div className="space-y-4 md:space-y-5 pb-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
           {/* Execution Date & Time */}
@@ -393,42 +405,10 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
               <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Net P&L (INR)</label>
-              {formData.market !== 'NIFTY' && (
-                <div className="flex items-center gap-2">
-                  {showRateInput ? (
-                    <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded px-1">
-                      <input 
-                        type="number" 
-                        onWheel={(e) => e.target.blur()} 
-                        value={customRate || ''} 
-                        onChange={e => setCustomRate(parseFloat(e.target.value))}
-                        className="w-12 bg-transparent text-[9px] text-white outline-none font-bold"
-                      />
-                      <button onClick={() => setShowRateInput(false)} className="text-[10px] text-emerald-400">✓</button>
-                    </div>
-                  ) : (
-                    <button 
-                      onClick={() => {
-                        if (formData.pl) {
-                          const usdVal = parseFloat(formData.pl);
-                          const inrVal = Math.round(usdVal * customRate);
-                          setFormData({...formData, pl: inrVal.toString()});
-                        }
-                      }}
-                      className="text-[9px] font-black uppercase text-journal-gold hover:underline flex items-center gap-1 bg-journal-gold/5 px-2 py-1 rounded"
-                    >
-                      <Plus size={8} /> Convert $ to ₹ (Rate: {customRate.toFixed(2)})
-                    </button>
-                  )}
-                  <button onClick={() => setShowRateInput(!showRateInput)} className="text-slate-600 hover:text-slate-400 p-1">
-                    <History size={10} />
-                  </button>
-                </div>
-              )}
             </div>
             <div className="relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                {isUsd ? '$' : <IndianRupee size={14} />}
+                <IndianRupee size={14} />
               </div>
               <input 
                 type="number" 
@@ -451,7 +431,12 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
                 <>
                   <img 
                     src={formData.screenshot ? URL.createObjectURL(formData.screenshot) : formData.chartScreenshotUrl} 
-                    className="w-full h-full object-contain" 
+                    className="w-full h-full object-contain cursor-pointer" 
+                    onClick={() => {
+                      if (onViewImage) {
+                        onViewImage(formData.screenshot ? URL.createObjectURL(formData.screenshot) : formData.chartScreenshotUrl);
+                      }
+                    }}
                   />
                   <button 
                     onClick={(e) => { 
@@ -533,11 +518,19 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
 
         {/* Additional Selects */}
         <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
+           {/* Top Row */}
            <div className="flex flex-col gap-2">
               <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Position Size</label>
               <input type="number" step="any" onWheel={(e) => e.target.blur()} value={formData.positionSize || ''} onChange={e => setFormData({...formData, positionSize: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-3 text-xs font-bold text-white outline-none" placeholder="Lots" />
            </div>
-           
+
+           <SingleSelect 
+             label="Emotions"
+             options={EMOTION_OPTIONS}
+             value={formData.emotions || ''}
+             onChange={val => setFormData({...formData, emotions: val})}
+           />
+
            <SingleSelect 
              label="Trade Quality"
              options={TRADE_QUALITY_OPTIONS}
@@ -550,13 +543,6 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
              options={TRADE_STATUS_OPTIONS}
              value={formData.tradeStatus || ''}
              onChange={val => setFormData({...formData, tradeStatus: val})}
-           />
-
-           <SingleSelect 
-             label="Emotions"
-             options={EMOTION_OPTIONS}
-             value={formData.emotions || ''}
-             onChange={val => setFormData({...formData, emotions: val})}
            />
 
            <div className="flex flex-col gap-2">
@@ -578,6 +564,7 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
               </div>
            </div>
 
+           {/* Bottom Row */}
            <div className="flex flex-col gap-2">
               <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Trade Mode</label>
               <div className="flex gap-2 h-[40px]">
@@ -595,6 +582,16 @@ export const AddTradeModal = ({ isOpen, onClose, onSave, trades, editingTrade, l
                   </button>
                 ))}
               </div>
+           </div>
+
+           <div className="flex flex-col gap-2">
+              <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Trade Time</label>
+              <input type="text" value={formData.tradeTime || ''} onChange={e => setFormData({...formData, tradeTime: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-3 text-xs font-bold text-white outline-none" placeholder="e.g. 45m" />
+           </div>
+
+           <div className="flex flex-col gap-2">
+              <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Brokerage / Fees</label>
+              <input type="number" step="0.01" value={formData.brokerage || ''} onChange={e => setFormData({...formData, brokerage: e.target.value})} className="bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-3 text-xs font-bold text-white outline-none" placeholder="0.00" />
            </div>
         </div>
 

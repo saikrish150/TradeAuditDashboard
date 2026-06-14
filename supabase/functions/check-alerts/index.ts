@@ -83,7 +83,8 @@ serve(async (req) => {
 
     await Promise.all(symbolsToFetch.map(async (symbol) => {
       try {
-        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT`);
+        const querySymbol = symbol === 'GOLD' ? 'PAXG' : symbol;
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${querySymbol}USDT`);
         const data = await res.json();
         if (data.price) {
           currentPrices[symbol] = parseFloat(data.price);

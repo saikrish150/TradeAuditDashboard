@@ -22,6 +22,8 @@ export const DB_FIELDS = {
   positionType: 'Position Type',
   direction: 'Direction',
   tradeMode: 'Trade mode (Buying/Selling)',
+  tradeTime: 'Trade Time',
+  fees: 'fees',
   chartScreenshotUrl: 'Chart Screenshot',
 
   // Snapshot Columns
@@ -72,6 +74,8 @@ export const TRADE_SCHEMA_MAP = {
   positionType: DB_FIELDS.positionType,
   direction: DB_FIELDS.direction,
   tradeMode: DB_FIELDS.tradeMode,
+  tradeTime: DB_FIELDS.tradeTime,
+  brokerage: DB_FIELDS.fees,
   chartScreenshotUrl: DB_FIELDS.chartScreenshotUrl
 };
 

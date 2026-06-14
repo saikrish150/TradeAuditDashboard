@@ -108,6 +108,10 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
     return filtered;
   }, [reconstructed, categoryBrokers, dateFilter]);
 
+  const totalPnL = useMemo(() => {
+    return filteredReconstructed.reduce((sum, trade) => sum + (parseFloat(trade.net_pnl) || 0), 0);
+  }, [filteredReconstructed]);
+
   const [localLastSynced, setLocalLastSynced] = useState({});
 
   // Compute the last time trades were synced for the current category
@@ -273,10 +277,24 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
     }
   }
 
+  // Helper to format duration
+  function formatDuration(ms) {
+    if (!ms || ms < 0) return '0m';
+    const totalMins = Math.floor(ms / 60000);
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  }
+
   // Handle opening prefilled manual trade modal on Approve click
   async function handleApproveClick(trade, mappedMarket) {
+    const entryDate = new Date(trade.entry_time);
+    const exitDate = trade.exit_time ? new Date(trade.exit_time) : entryDate;
+    const holdDurationMs = exitDate.getTime() - entryDate.getTime();
+    
     const prefillObj = {
-      jsDate: new Date(trade.entry_time),
+      jsDate: entryDate,
       market: mappedMarket,
       direction: trade.direction ? trade.direction.toUpperCase() : 'LONG',
       isWin: trade.net_pnl >= 0 ? 'WIN' : 'LOSS',
@@ -285,6 +303,8 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
       tradeStatus: trade.net_pnl >= 0 ? 'Target' : 'StopLoss',
       positionType: 'Intraday',
       tradeMode: 'Buying',
+      tradeTime: formatDuration(holdDurationMs),
+      brokerage: Math.abs(trade.total_fees || 0).toString(),
       reason: ''
     };
 
@@ -316,11 +336,12 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
         [DB_FIELDS.tradeStatus]: data.tradeStatus || null,
         [DB_FIELDS.positionType]: data.positionType || null,
         [DB_FIELDS.tradeMode]: data.tradeMode || null,
+        [DB_FIELDS.tradeTime]: data.tradeTime || null,
+        [DB_FIELDS.fees]: data.brokerage ? parseFloat(data.brokerage) : null,
         trade_source: 'BROKER',
         broker_id: selectedReconstructedTrade.broker_id,
         linked_reconstructed_trade_id: selectedReconstructedTrade.id,
         trade_hash: selectedReconstructedTrade.trade_hash,
-        fees: parseFloat(selectedReconstructedTrade.total_fees || 0),
         entry_price: parseFloat(selectedReconstructedTrade.entry_price_avg || 0),
         exit_price: parseFloat(selectedReconstructedTrade.exit_price_avg || 0)
       };
@@ -481,10 +502,20 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
               ))}
             </div>
 
-            {/* Compact Sync Button */}
-            <div className="flex flex-col items-center md:items-end w-full md:w-auto">
-              <button
-                onClick={handleSyncTrigger}
+            {/* Total P&L & Sync Button */}
+            <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
+              {/* Total PnL for selected filter */}
+              <div className="flex flex-col items-start md:items-center justify-center px-2 md:px-6 md:border-l md:border-r border-white/5">
+                <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1">Total P&L</span>
+                <span className={`text-xl font-black font-mono tracking-tighter leading-none ${totalPnL >= 0 ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'text-rose-400 drop-shadow-[0_0_10px_rgba(244,63,94,0.3)]'}`}>
+                  {totalPnL >= 0 ? '+' : ''}{formatCurrency(totalPnL)}
+                </span>
+              </div>
+
+              {/* Compact Sync Button */}
+              <div className="flex flex-col items-end w-auto">
+                <button
+                  onClick={handleSyncTrigger}
                 disabled={isSyncing || categoryBrokers.length === 0}
                 className={`relative overflow-hidden group px-6 py-3 rounded-xl flex flex-col items-center justify-center w-full md:w-auto md:min-w-[220px] max-w-full md:max-w-[280px] transition-all duration-300 ${
                   isSyncing ? 'bg-slate-800/80 text-journal-gold cursor-not-allowed border border-journal-gold/30 shadow-[0_0_15px_rgba(212,175,55,0.15)]' 
@@ -543,8 +574,9 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
               </button>
             </div>
           </div>
+        </div>
 
-          {/* TRADES TABLE */}
+        {/* TRADES TABLE */}
           <div className="relative z-10 flex-1 bg-[#0a0a0a]/60 backdrop-blur-md rounded-[2rem] border border-white/10 flex flex-col overflow-hidden shadow-2xl">
             {loading ? (
               <div className="flex-1 flex items-center justify-center py-20">
@@ -570,8 +602,9 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
                       <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">W/L</th>
                       <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Direction</th>
                       <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">P/L</th>
-                      <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Qty / Fees</th>
-                      <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Status</th>
+                      <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Qty</th>
+                      <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Fees</th>
+                      <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Hold Time</th>
                       <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 text-right">Action</th>
                     </tr>
                   </thead>
@@ -623,25 +656,19 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
                             </span>
                           </td>
                           <td className="p-4">
-                            <p className="text-xs font-black text-white">{trade.quantity}</p>
-                            <p className="text-[9px] text-slate-500 font-bold mt-0.5">{formatCurrency(trade.total_fees)}</p>
+                            <span className="text-xs font-black text-white">{trade.quantity}</span>
                           </td>
                           <td className="p-4">
-                            {isApproved ? (
-                              <div className="flex items-center gap-1.5 px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-cyan-400 max-w-fit">
-                                <CheckCircle size={10} />
-                                <span className="text-[8px] font-black uppercase tracking-wider">Synced</span>
-                              </div>
-                            ) : isDup ? (
-                              <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 max-w-fit">
-                                <AlertTriangle size={10} />
-                                <span className="text-[8px] font-black uppercase tracking-wider">Dupe Check</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1 text-emerald-500 text-[8px] font-black uppercase tracking-wider">
-                                <CheckCircle size={10} /> Valid
-                              </div>
-                            )}
+                            <span className="text-[11px] font-black text-slate-300">{formatCurrency(trade.total_fees)}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-[10px] font-bold text-slate-400">
+                              {(() => {
+                                const entryDate = new Date(trade.entry_time);
+                                const exitDate = trade.exit_time ? new Date(trade.exit_time) : entryDate;
+                                return formatDuration(exitDate.getTime() - entryDate.getTime());
+                              })()}
+                            </span>
                           </td>
                           <td className="p-4 text-right">
                             <div className="flex gap-2 justify-end">
@@ -764,7 +791,6 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
           onClose={() => { setShowPrefillModal(false); setSelectedReconstructedTrade(null); }}
           onSave={handleSaveTradeFromPrefill}
           editingTrade={prefillTradeData}
-          liveRate={liveRate}
           trades={reconstructed}
           isPrefilled={true}
         />

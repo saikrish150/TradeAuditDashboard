@@ -282,7 +282,15 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
       if (gallerySort.startsWith('date')) {
         const aDate = getComparisonDate(a.fullDate || a.date)?.getTime() || 0;
         const bDate = getComparisonDate(b.fullDate || b.date)?.getTime() || 0;
-        return gallerySort === 'date-desc' ? bDate - aDate : aDate - bDate;
+        const dateDiff = gallerySort === 'date-desc' ? bDate - aDate : aDate - bDate;
+        
+        if (dateDiff === 0) {
+          // If dates match exactly, sort chronologically (ascending) by creation time
+          const aCreated = new Date(a.created_at || 0).getTime();
+          const bCreated = new Date(b.created_at || 0).getTime();
+          return aCreated - bCreated;
+        }
+        return dateDiff;
       }
       if (gallerySort.startsWith('pl')) {
         const aPL = parseFloat(String(a.pl || 0).replace(/[₹\s,]/g, '')) || 0;
@@ -350,7 +358,15 @@ const ReviewTab = ({ trades = [], snapshots = [], notes = [], user, setNotes }) 
       if (gallerySort.startsWith('date')) {
         const aDate = getComparisonDate(a)?.getTime() || 0;
         const bDate = getComparisonDate(b)?.getTime() || 0;
-        return gallerySort === 'date-desc' ? bDate - aDate : aDate - bDate;
+        const dateDiff = gallerySort === 'date-desc' ? bDate - aDate : aDate - bDate;
+        
+        if (dateDiff === 0) {
+          // If dates match exactly, sort chronologically (ascending) by creation time
+          const aCreated = new Date(a.created_at || 0).getTime();
+          const bCreated = new Date(b.created_at || 0).getTime();
+          return aCreated - bCreated;
+        }
+        return dateDiff;
       }
       if (gallerySort.startsWith('pl')) {
         const aStats = getSnapshotStats(a);

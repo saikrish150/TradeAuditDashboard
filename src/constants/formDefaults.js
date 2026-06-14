@@ -49,6 +49,8 @@ export const DEFAULT_TRADE_FORM = {
   tradeStatus: 'StopLoss',
   positionType: 'Intraday',
   tradeMode: 'Buying',
+  tradeTime: '',
+  brokerage: '',
   chartScreenshotUrl: ''
 };
 
@@ -76,6 +78,8 @@ export const mapTradeToForm = (editingTrade) => {
     tradeStatus: getSmartVal('status') || 'Neutral',
     positionType: getSmartVal('positionType') || 'Intraday',
     tradeMode: getSmartVal('tradeMode') || 'Buying',
+    tradeTime: getSmartVal('tradeTime') || '',
+    brokerage: getSmartVal('brokerage') || '',
     chartScreenshotUrl: getSmartVal('chartScreenshotUrl')
   };
 };

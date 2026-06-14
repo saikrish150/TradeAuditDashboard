@@ -88,6 +88,17 @@ const BackgroundQuotes = () => {
         className: 'quote-red font-mono tracking-wider',
         opacity: 0.25
       }
+    },
+    {
+      text: "PATIENCE IS THE STRENGTH",
+      parallaxSpeed: 0.12,
+      style: {
+        top: '30%',
+        right: '15%',
+        fontSize: 'clamp(1rem, 5vw, 3rem)',
+        className: 'quote-watermark font-mono tracking-widest',
+        opacity: 0.04
+      }
     }
   ], []);
 

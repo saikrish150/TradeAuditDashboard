@@ -43,6 +43,7 @@ const TradingJournal = ({
   const [editingSnapshot, setEditingSnapshot] = useState(null);
   const [editingNote, setEditingNote] = useState(null);
   const [viewerState, setViewerState] = useState({ isOpen: false, currentImage: null, images: [], index: 0 });
+  const [tableTrades, setTableTrades] = useState([]);
 
   const handleViewImage = useCallback((image, allImages = []) => {
     const images = allImages.filter(img => !!img);
@@ -141,6 +142,8 @@ const TradingJournal = ({
         [TRADE_SCHEMA_MAP.tradeStatus]: data.tradeStatus,
         [TRADE_SCHEMA_MAP.positionType]: data.positionType,
         [TRADE_SCHEMA_MAP.tradeMode]: data.tradeMode,
+        [TRADE_SCHEMA_MAP.tradeTime]: data.tradeTime,
+        [TRADE_SCHEMA_MAP.brokerage]: data.brokerage ? parseFloat(data.brokerage) : 0,
         [TRADE_SCHEMA_MAP.chartScreenshotUrl]: screenshotUrl,
         [TRADE_SCHEMA_MAP.date]: formatToGMT530(data.date)
       };
@@ -425,6 +428,7 @@ const TradingJournal = ({
                     setIsFullHistory(true);
                   }
                 }}
+                onFilteredTradesChange={setTableTrades}
               />
             </motion.div>
           )}
@@ -463,14 +467,25 @@ const TradingJournal = ({
 
 
       {/* Modals */}
-      <AddTradeModal 
-        isOpen={showTradeModal} 
-        onClose={() => { setShowTradeModal(false); setEditingTrade(null); }} 
-        onSave={handleSaveTrade}
-        trades={trades}
-        editingTrade={editingTrade}
-        liveRate={liveRate}
-      />
+      {(() => {
+        const sourceArray = tableTrades.length > 0 ? tableTrades : trades;
+        const editIdx = editingTrade ? sourceArray.findIndex(t => t.id === editingTrade.id) : -1;
+        const hasNext = editIdx >= 0 && editIdx < sourceArray.length - 1;
+        const hasPrev = editIdx > 0;
+
+        return (
+          <AddTradeModal 
+            isOpen={showTradeModal} 
+            onClose={() => { setShowTradeModal(false); setEditingTrade(null); }} 
+            onSave={handleSaveTrade}
+            trades={sourceArray}
+            editingTrade={editingTrade}
+            onNext={hasNext ? () => setEditingTrade(sourceArray[editIdx + 1]) : null}
+            onPrev={hasPrev ? () => setEditingTrade(sourceArray[editIdx - 1]) : null}
+            onViewImage={handleViewImage}
+          />
+        );
+      })()}
       <AddSnapshotModal 
         isOpen={showSnapshotModal} 
         onClose={() => { setShowSnapshotModal(false); setEditingSnapshot(null); }} 

@@ -10,7 +10,7 @@ import { DB_FIELDS } from '../../constants/fieldMappings';
 import { formatCurrency } from '../../utils';
 import { FullTextModal } from './JournalModals';
 
-const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabChange }) => {
+const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabChange, onFilteredTradesChange }) => {
   const [activeTab, setActiveTab] = useState('This Month');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
@@ -191,6 +191,12 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
 
     return result;
   }, [filteredByTab, searchTerm, sortConfig, filters, customDateRange]);
+
+  useEffect(() => {
+    if (onFilteredTradesChange) {
+      onFilteredTradesChange(processedTrades);
+    }
+  }, [processedTrades, onFilteredTradesChange]);
 
   // Pagination
   const totalPages = Math.ceil(processedTrades.length / itemsPerPage);
@@ -457,6 +463,14 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                       const numVal = parseFloat(val?.toString().replace(/[₹,]/g, '')) || 0;
                       return (
                         <span className={`text-[11px] font-black tabular-nums ${numVal >= 0 ? 'text-journal-green' : 'text-journal-red'}`}>
+                          {formatCurrency(numVal)}
+                        </span>
+                      );
+                    }
+                    if (col.key === 'brokerage') {
+                      const numVal = parseFloat(val?.toString().replace(/[₹,]/g, '')) || 0;
+                      return (
+                        <span className="text-[11px] font-black tabular-nums text-slate-300">
                           {formatCurrency(numVal)}
                         </span>
                       );

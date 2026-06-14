@@ -16,7 +16,7 @@ import {
   Compass, BarChartHorizontal, CalendarRange, Signal, BarChart3, IndianRupee,
   Terminal, AlertCircle, Lightbulb, ListChecks, CheckSquare,
   ArrowRightCircle, Sparkles as SparklesIcon, Plus,
-  Smile, Play, ShieldAlert, LogOut, ZapOff as ZapOffIcon
+  Smile, Play, ShieldAlert, LogOut, ZapOff as ZapOffIcon, Hourglass, Wallet
 } from 'lucide-react';
 
 import Card from './components/Card';
@@ -48,6 +48,7 @@ import { CustomSelect } from './components/Common/CustomSelect';
 
 // Hooks
 import { useTradeData } from './hooks/useTradeData';
+
 
 
 
@@ -122,6 +123,9 @@ const App = () => {
   const [activeSection, setActiveSection] = useState('journal');
   const [checklistActive, setChecklistActive] = useState(false);
   const [activeTab, setActiveTab] = useState('performance');
+
+  // Sync Auto Levels Globally On App Load
+
   const [rawTrades, setRawTrades] = useState(() => {
     try {
       const cached = localStorage.getItem('tr_trades_v7');
@@ -315,7 +319,7 @@ const App = () => {
     qualityStats = [], setupAnalysis = [], emotionStats = [], errors = [], 
     dynamicAudit = { start: [], continue: [] }, learnings = [], 
     weekdayEdge = [], bestDay, worstDay, aiBrief = {},
-    trades = [], snapshots = [], filteredNotes = []
+    trades = [], snapshots = [], filteredNotes = [], holdTimeAnalysis = []
   } = processedData || {};
 
   // NEW FEATURE START: Time Analysis Calculation
@@ -1042,6 +1046,39 @@ const App = () => {
                       </Motion.div>
                       {/* NEW FEATURE END */}
 
+                      {/* HOLD TIME ANALYSIS START */}
+                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                        <Card className="p-6 md:p-8 border-t border-white/5 bg-slate-900/50">
+                          <SectionHeader icon={Hourglass} title="Hold Time Analysis" sub="P&L Distribution by Trade Duration" />
+                          <div className="h-64 mt-8">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={holdTimeAnalysis} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                <XAxis 
+                                  dataKey="label" 
+                                  tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} 
+                                  axisLine={false} tickLine={false} 
+                                  angle={0}
+                                />
+                                <YAxis 
+                                  tickFormatter={(v) => `₹${Math.abs(v / 1000)}k`} 
+                                  tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} 
+                                  axisLine={false} tickLine={false} width={40}
+                                />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                                <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
+                                <Bar dataKey="pl" radius={[4, 4, 4, 4]} maxBarSize={40}>
+                                  {holdTimeAnalysis.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.pl >= 0 ? COLORS.emerald : COLORS.rose} />
+                                  ))}
+                                </Bar>
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </Card>
+                      </Motion.div>
+                      {/* HOLD TIME ANALYSIS END */}
+
                        <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                          <Card className="p-8 border-t border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
                          <SectionHeader icon={Activity} title="Scorecard" sub="Behavioral Grade Summary" />
@@ -1106,7 +1143,9 @@ const App = () => {
                   <MetricCard title="Max Win" value={formatCurrency(metrics.maxProfit || 0)} icon={Flame} colorClass="text-emerald-500" />
                   <MetricCard title="Max Loss" value={formatCurrency(metrics.maxLoss || 0)} icon={ZapOff} colorClass="text-rose-500" />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <MetricCard title="Avg Hold Time" value={String(metrics.avgTimeHolded || '0m')} icon={Hourglass} colorClass="text-purple-400" />
+                  <MetricCard title="Brokerage" value={formatCurrency(metrics.brokeragePaid || 0)} icon={Wallet} colorClass="text-amber-400" />
                   <MetricCard title="R:R" value={`1:${String(metrics.overallRR)}`} icon={Scale} colorClass="text-indigo-400" />
                   <MetricCard title="Expectancy" value={`₹${String(metrics.expectancy)}`} icon={Zap} colorClass={metrics.expectancy >= 0 ? "text-emerald-400" : "text-rose-400"} />
                 </div>

@@ -22,11 +22,14 @@ const MorningChecklist = ({ notes = [], onShowActive }) => {
 
     // Show only once per day
     if (lastShown !== today) {
+      // Immediately tell App that checklist is active to block other popups
+      if (onShowActive) onShowActive(true);
+      
       // Small delay so app renders first
       const timer = setTimeout(() => {
         setShow(true);
-        if (onShowActive) onShowActive(true);
       }, 1500);
+      
       return () => clearTimeout(timer);
     }
   }, [pinnedNotes.length, onShowActive]);

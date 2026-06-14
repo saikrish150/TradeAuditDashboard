@@ -89,11 +89,29 @@ export const useTradeData = ({
 
     let cumulativePL = 0, winCount = 0, winTotal = 0, lossTotal = 0, ruleAlignedCount = 0, revengeLoss = 0;
     let peakEquity = 0, maxDDValue = 0, maxLosingStreak = 0, currentLosingStreak = 0, maxWinningStreak = 0, currentWinningStreak = 0;
+    let totalHoldMinutes = 0, tradesWithHoldTimeCount = 0, totalBrokerage = 0;
 
     const equityArr = [], errorMap = {}, learningVault = [];
     const yearData = {}, monthData = {}, dayData = {}, dateData = {};
     const activeMonthsSet = new Set();
     const emotionalPnlMap = {}, qualityPnlMap = {}, statusPnlMap = {}, symbolSizingMap = {}, setupAnalysisMap = {};
+
+    const holdTimeBuckets = [
+      { label: '< 5m', maxMins: 5 },
+      { label: '5-10m', maxMins: 10 },
+      { label: '10-20m', maxMins: 20 },
+      { label: '20-30m', maxMins: 30 },
+      { label: '30m-1h', maxMins: 60 },
+      { label: '1h-2h', maxMins: 120 },
+      { label: '2h-4h', maxMins: 240 },
+      { label: '4h-1d', maxMins: 1440 },
+      { label: '> 1d', maxMins: Infinity }
+    ];
+    
+    const holdTimeAnalysisMap = holdTimeBuckets.reduce((acc, b) => {
+      acc[b.label] = { label: b.label, pl: 0, count: 0, wins: 0 };
+      return acc;
+    }, {});
 
     const weekDayStatsRaw = {
       1: { name: 'Monday', wins: 0, total: 0, pl: 0 }, 2: { name: 'Tuesday', wins: 0, total: 0, pl: 0 },
@@ -141,6 +159,34 @@ export const useTradeData = ({
       const symKey = t.market || 'Unknown';
       if (!symbolSizingMap[symKey]) symbolSizingMap[symKey] = { totalLots: 0, count: 0 };
       symbolSizingMap[symKey].totalLots += (parseFloat(t.lots || t.positionSize) || 0); symbolSizingMap[symKey].count += 1;
+
+      // Brokerage calculation
+      totalBrokerage += (parseFloat(t.brokerage) || 0);
+
+      // Hold time calculation
+      if (t.tradeTime) {
+        const timeStr = String(t.tradeTime).toLowerCase().trim();
+        let mins = 0;
+        let valid = false;
+        
+        const hMatch = timeStr.match(/(\d+(?:\.\d+)?)\s*h/);
+        if (hMatch) { mins += parseFloat(hMatch[1]) * 60; valid = true; }
+        
+        const mMatch = timeStr.match(/(\d+(?:\.\d+)?)\s*m/);
+        if (mMatch) { mins += parseFloat(mMatch[1]); valid = true; }
+
+        if (valid) {
+          totalHoldMinutes += mins;
+          tradesWithHoldTimeCount += 1;
+          
+          const bucket = holdTimeBuckets.find(b => mins <= b.maxMins);
+          if (bucket) {
+            holdTimeAnalysisMap[bucket.label].pl += tPL;
+            holdTimeAnalysisMap[bucket.label].count += 1;
+            if (isActuallyWin) holdTimeAnalysisMap[bucket.label].wins += 1;
+          }
+        }
+      }
 
       const mIdx = MONTH_MAP[t.month] ?? 0;
       const checkDate = new Date(Date.UTC(parseInt(t.year) || 2024, mIdx, parseInt(t.dayNum) || 1, 12, 0, 0));
@@ -217,6 +263,7 @@ export const useTradeData = ({
 
     const errorStats = Object.entries(errorMap).sort((a, b) => a[1].impact - b[1].impact).map(([cat, d]) => ({ cat: String(cat), impact: d.impact }));
     const eStats = Object.entries(emotionalPnlMap).map(([name, d]) => ({ name: String(name), pl: d.pl, trades: d.count, absImpact: Math.abs(d.pl) || 1 }));
+    const holdTimeAnalysis = holdTimeBuckets.map(b => holdTimeAnalysisMap[b.label]);
 
     const generateBrief = (wr, rr) => {
       const topMistake = errorStats.length > 0 ? errorStats[0] : null;
@@ -284,8 +331,17 @@ export const useTradeData = ({
     if (bestSetup && bestSetup[1].pl > 0) keepDoing.push(`KEEP Focused on ${bestSetup[0]} (Best Edge: ${formatCurrency(bestSetup[1].pl)})`);
     if (bestEmotion && bestEmotion.pl > 0) keepDoing.push(`KEEP Trading in ${bestEmotion.name} state (Profit: ${formatCurrency(bestEmotion.pl)})`);
 
+    const avgHoldTimeStr = tradesWithHoldTimeCount > 0 ? (totalHoldMinutes / tradesWithHoldTimeCount) : 0;
+    const formatAvgHoldTime = (mins) => {
+        if (!mins) return '0m';
+        if (mins < 60) return `${Math.round(mins)}m`;
+        const h = Math.floor(mins / 60);
+        const m = Math.round(mins % 60);
+        return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    };
+
     return {
-      metrics: { net: cumulativePL, winRate: winRateValue, total: tradeTotalCount, avgWin, avgLoss, overallRR: overallRRValue, maxProfit: Math.max(...filtered.map(t => t.pl > 0 ? t.pl : 0), 0), maxLoss: Math.max(...filtered.map(t => t.pl < 0 ? Math.abs(t.pl) : 0), 0), pf: (winTotal / (lossTotal || 1)).toFixed(2), expectancy: (cumulativePL / tradeTotalCount).toFixed(0), maxLosingStreak, maxWinningStreak, peakDD: maxDDValue, profitDD: (cumulativePL / (Math.abs(maxDDValue) || 1)).toFixed(2), mindsetEfficiency: Math.round(((winTotal - Math.abs(revengeLoss)) / (winTotal || 1)) * 100), maxTradesInDay: Math.max(...Object.values(dateData).map(d => d.count), 0), avgTradesPerActiveDay: Object.keys(dateData).length > 0 ? (tradeTotalCount / Object.keys(dateData).length).toFixed(1) : 0 },
+      metrics: { net: cumulativePL, winRate: winRateValue, total: tradeTotalCount, avgWin, avgLoss, overallRR: overallRRValue, maxProfit: Math.max(...filtered.map(t => t.pl > 0 ? t.pl : 0), 0), maxLoss: Math.max(...filtered.map(t => t.pl < 0 ? Math.abs(t.pl) : 0), 0), pf: (winTotal / (lossTotal || 1)).toFixed(2), expectancy: (cumulativePL / tradeTotalCount).toFixed(0), maxLosingStreak, maxWinningStreak, peakDD: maxDDValue, profitDD: (cumulativePL / (Math.abs(maxDDValue) || 1)).toFixed(2), mindsetEfficiency: Math.round(((winTotal - Math.abs(revengeLoss)) / (winTotal || 1)) * 100), maxTradesInDay: Math.max(...Object.values(dateData).map(d => d.count), 0), avgTradesPerActiveDay: Object.keys(dateData).length > 0 ? (tradeTotalCount / Object.keys(dateData).length).toFixed(1) : 0, avgTimeHolded: formatAvgHoldTime(avgHoldTimeStr), brokeragePaid: totalBrokerage },
       scores: { risk: Math.min(100, Math.max(0, (winTotal / (lossTotal || 1)) * 40)), discipline: Math.round((ruleAlignedCount / (tradeTotalCount || 1)) * 100), psychology: Math.min(100, Math.max(0, 100 - (Math.abs(revengeLoss) / (winTotal || 1) * 100))), consistency: Math.min(100, Math.max(0, 100 - (Math.abs(maxDDValue) / (winTotal || 1) * 50))) },
       hierarchical: { yearData, monthData, dayData, dateData },
       activeMonths: activeMonthsArray,
@@ -305,6 +361,7 @@ export const useTradeData = ({
       outcomeDist: [{ name: 'Wins', value: winCount, color: COLORS.emerald, pl: winTotal }, { name: 'Losses', value: tradeTotalCount - winCount, color: COLORS.rose, pl: -lossTotal }],
       equity: equityArr.filter((_, i) => i % Math.max(1, Math.floor(equityArr.length / 50)) === 0),
       errors: errorStats,
+      holdTimeAnalysis,
       dynamicAudit: { start: stopDoing.slice(0, 5), continue: keepDoing.slice(0, 5) },
       learnings: learningVault.sort((a, b) => a.pl - b.pl),
       trades: filtered,
