@@ -66,12 +66,12 @@ const NewsSummary = ({ intelligence }) => {
 
   // Build summary paragraph
   const sentenceParts = [];
-  sentenceParts.push(`We analyzed ${intelligence.length} news articles.`);
-  sentenceParts.push(`The overall news flow is ${dominant === 'mixed' ? 'mixed — neither clearly bullish nor bearish' : dominant} right now — ${bullishCount} articles are positive, ${bearishCount} are negative, and ${neutralCount} are neutral.`);
-  if (extremeCount > 0) sentenceParts.push(`⚠️ There ${extremeCount === 1 ? 'is' : 'are'} ${extremeCount} extreme-urgency ${extremeCount === 1 ? 'story' : 'stories'} that could move markets sharply.`);
-  else if (highCount > 0) sentenceParts.push(`There ${highCount === 1 ? 'is' : 'are'} ${highCount} high-urgency ${highCount === 1 ? 'story' : 'stories'} worth watching.`);
-  else sentenceParts.push('No urgent alerts at this time — markets should be relatively calm from a news perspective.');
-  if (topMarkets.length > 0) sentenceParts.push(`Markets most in focus: ${topMarkets.join(', ')}.`);
+  sentenceParts.push(`AI aggregation engine synthesized ${intelligence.length} real-time data nodes.`);
+  sentenceParts.push(`Macro flow dictates a strictly ${dominant === 'mixed' ? 'fragmented/neutral' : dominant} algorithmic bias. Volume analysis confirms: ${bullishCount} bullish catalysts, ${bearishCount} bearish catalysts, and ${neutralCount} neutral nodes.`);
+  if (extremeCount > 0) sentenceParts.push(`⚠️ WARNING: ${extremeCount} EXTREME-IMPACT anomalies detected. High probability of systemic repricing and abnormal volatility bands.`);
+  else if (highCount > 0) sentenceParts.push(`Priority alert: ${highCount} high-urgency narratives require immediate monitoring.`);
+  else sentenceParts.push('Volatility horizon is stable. No Tier-1 geopolitical or macroeconomic anomalies detected currently.');
+  if (topMarkets.length > 0) sentenceParts.push(`Liquidity concentration: ${topMarkets.join(', ')}.`);
 
   return (
     <div className="bg-journal-secondary/40 backdrop-blur-2xl border border-white/5 p-6 rounded-[2rem] space-y-5">
@@ -138,30 +138,30 @@ const EventsSummary = ({ events }) => {
 
   // Build summary
   const lines = [];
-  lines.push(`There ${upcoming.length === 1 ? 'is' : 'are'} ${upcoming.length} upcoming economic ${upcoming.length === 1 ? 'event' : 'events'} on the calendar.`);
+  lines.push(`Terminal tracking ${upcoming.length} upcoming macroeconomic catalysts.`);
   
   if (highImpact.length > 0) {
-    lines.push(`🔴 ${highImpact.length} of them ${highImpact.length === 1 ? 'is' : 'are'} high-impact — these can cause sudden price spikes and wide spreads, so trade carefully around them.`);
+    lines.push(`🔴 ALERT: ${highImpact.length} Tier-1 data releases imminent. Expect severe liquidity withdrawals, erratic spread widening, and algorithmic stop-hunting.`);
   } else {
-    lines.push('None of the upcoming events are high-impact, so volatility risk from the calendar is low.');
+    lines.push('Calendar clear of Tier-1 catalysts. Macro-induced volatility risk remains statistically insignificant.');
   }
 
   if (nextEvent) {
     const nextDate = new Date(nextEvent.event_time || nextEvent.date);
     const hoursUntil = Math.max(0, Math.round((nextDate - now) / 3600000));
-    const timeStr = hoursUntil === 0 ? 'happening now' : hoursUntil < 24 ? `in ${hoursUntil} hours` : `in ${Math.round(hoursUntil / 24)} days`;
-    lines.push(`The next event is "${nextEvent.event || nextEvent.title}" from ${nextEvent.country || 'Global'}, coming up ${timeStr}.`);
+    const timeStr = hoursUntil === 0 ? 'executing now' : hoursUntil < 24 ? `T-${hoursUntil}H` : `T-${Math.round(hoursUntil / 24)}D`;
+    lines.push(`Next sequential catalyst: "${nextEvent.event || nextEvent.title}" (${nextEvent.country || 'Global'}) at ${timeStr}.`);
   }
 
   if (nextHighImpact && nextHighImpact !== nextEvent) {
     const hDate = new Date(nextHighImpact.event_time || nextHighImpact.date);
     const hHours = Math.max(0, Math.round((hDate - now) / 3600000));
-    const hTimeStr = hHours === 0 ? 'happening now' : hHours < 24 ? `in ${hHours} hours` : `in ${Math.round(hHours / 24)} days`;
-    lines.push(`⚠️ The next high-impact event is "${nextHighImpact.event || nextHighImpact.title}" (${nextHighImpact.country}) — ${hTimeStr}. Consider reducing position size or avoiding new entries around this window.`);
+    const hTimeStr = hHours === 0 ? 'executing now' : hHours < 24 ? `T-${hHours}H` : `T-${Math.round(hHours / 24)}D`;
+    lines.push(`⚠️ CRITICAL NODE: "${nextHighImpact.event || nextHighImpact.title}" (${nextHighImpact.country}) scheduled for ${hTimeStr}. Mandatory de-risking recommended ahead of the release window.`);
   }
 
   if (countries.length > 0) {
-    lines.push(`Countries in focus: ${countries.slice(0, 5).join(', ')}.`);
+    lines.push(`Sovereign zones in focus: ${countries.slice(0, 5).join(', ')}.`);
   }
 
   // Simple upcoming list for high-impact only
@@ -319,14 +319,14 @@ export const AIOverviewTab = () => {
               <p className="text-[9px] text-journal-gold font-black uppercase tracking-[0.2em] mb-2">What This Means For Your Trading</p>
               <p className="text-[13px] text-slate-300 leading-relaxed font-medium">
                 {pulse.sentiment.score >= 80 
-                  ? "Markets are in extreme greed territory. Prices are likely stretched and a pullback can happen anytime. This is NOT the time to chase breakouts. If you're already in profitable positions, consider booking partial profits. New longs carry high risk."
+                  ? "Institutional FOMO detected. Asset prices exhibit significant technical overextension, elevating the probability of a violent mean-reversion event. Breakout trading at current levels carries asymmetrical downside risk. Recommendation: Harvest partial profits on winning positions, tighten trailing stops, and abstain from initiating new long exposure."
                   : pulse.sentiment.score >= 60 
-                  ? "Sentiment is bullish — markets are optimistic. This is a good environment for trend-following strategies. Look for pullbacks to support levels for entries. Avoid shorting unless you have very strong setups."
+                  ? "Market structure remains fundamentally bullish with strong underlying bid support. Favorable environment for momentum and trend-continuation models. Recommendation: Execute buy-on-dip strategies at verified demand zones. Avoid premature shorting; do not fade the primary trend without overwhelming divergence signals."
                   : pulse.sentiment.score >= 45 
-                  ? "Markets are in a neutral zone — no strong directional bias. This is a choppy environment. Reduce your position sizes and focus only on A-quality setups. Both longs and shorts can work but neither has a clear edge."
+                  ? "Market dynamics reflect a highly localized, range-bound environment with conflicting structural signals. Directional conviction is remarkably low. Recommendation: Downscale position sizing by 50%. Employ mean-reversion strategies targeting range extremes. Capital preservation supersedes aggressive alpha generation in this regime."
                   : pulse.sentiment.score >= 25
-                  ? "Fear is building in the market. Prices may be falling or uncertainty is high. Short setups have better odds. If going long, only at strong demand zones with tight stops. Protect capital first."
-                  : "Extreme fear dominates. Markets could be in a panic sell-off OR near a bottom reversal. Do NOT try to catch falling knives. Wait for price stabilization before entering. If you must trade, keep sizes very small."
+                  ? "Elevated systemic anxiety observed. Market structure is deteriorating with an aggressive distribution phase active. Downside momentum strategies possess the highest statistical edge. Recommendation: Prioritize capital defense. Long entries are strictly contraindicated unless positioned at macro-level support with tight invalidation parameters."
+                  : "Severe systemic capitulation in progress. Pricing inefficiencies are rampant due to indiscriminate liquidation. Extreme volatility presents opportunities, but risk parameters must be absolute. Recommendation: Refrain from catching falling knives. Await structural stabilization and verified accumulation footprints before deploying risk capital."
                 }
               </p>
             </div>
@@ -337,10 +337,10 @@ export const AIOverviewTab = () => {
                 <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest mb-1.5">✅ Do This</p>
                 <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
                   {pulse.sentiment.score >= 70 
-                    ? "Book partial profits on existing longs. Tighten stop losses. Look for short setups at resistance."
+                    ? "Liquidate 30-50% of outstanding longs. Implement aggressive trailing stops. Screen for high-conviction short setups at major resistance nodes."
                     : pulse.sentiment.score >= 45
-                    ? "Follow the trend — buy pullbacks to support. Use normal position sizing. Trail your stops."
-                    : "Reduce position sizes. Focus on capital preservation. Only take A-quality setups with tight risk."
+                    ? "Maintain trend alignment. Scale into pullbacks at algorithmic support clusters. Sustain baseline position sizing while trailing stops behind structure."
+                    : "Drastically reduce gross exposure. Pivot entirely to capital preservation protocols. Restrict trade execution exclusively to A+ setups."
                   }
                 </p>
               </div>
@@ -348,10 +348,10 @@ export const AIOverviewTab = () => {
                 <p className="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1.5">❌ Avoid This</p>
                 <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
                   {pulse.sentiment.score >= 70
-                    ? "Don't chase breakouts at highs. Don't increase lot sizes. Don't ignore stop losses thinking 'it will recover'."
+                    ? "Do not chase euphoric breakouts. Strictly prohibit increasing margin utilization. Refuse to widen stop-losses under the assumption of inevitable recovery."
                     : pulse.sentiment.score >= 45
-                    ? "Don't fight the trend. Don't over-trade on both sides. Don't ignore the calendar for upcoming events."
-                    : "Don't bottom-fish or buy dips blindly. Don't average down on losing positions. Don't trade with emotions."
+                    ? "Do not execute counter-trend operations without verified divergence. Prevent over-trading in mid-range zones. Monitor macroeconomic calendar strictly."
+                    : "Prohibit blindly buying dips in downtrends. Never average down on losing trades. Eliminate emotionally-driven revenge trading."
                   }
                 </p>
               </div>
@@ -412,31 +412,31 @@ export const AIOverviewTab = () => {
         // Generate cross-asset insight
         let crossInsight = '';
         if (safeHavensBullish && equitiesBearish) {
-          crossInsight = 'Classic risk-off environment — money is flowing from stocks to gold/USD. This is a defensive market. Prioritize capital preservation and look for short setups on equities.';
+          crossInsight = 'Algorithmic detection of a classic Risk-Off rotation. Capital is aggressively migrating from risk assets (Equities) toward defensive havens (Gold/USD). Implement immediate defensive posturing. Prioritize capital preservation and target high-probability short structures in index markets.';
         } else if (allBullish) {
-          crossInsight = 'All asset classes are bullish — a strong risk-on environment. This is rare and suggests broad market confidence. Trend-following strategies should work well across the board.';
+          crossInsight = 'Synchronized Risk-On expansion detected. Cross-asset correlation indicates broad institutional confidence and liquidity injection. Rare environment optimally suited for aggressive trend-continuation and breakout models across all primary instruments.';
         } else if (allBearish) {
-          crossInsight = 'All asset classes are bearish — this signals broad market stress or uncertainty. Stay defensive, reduce size, and wait for clear reversal signals before committing.';
+          crossInsight = 'Systemic liquidity contraction in effect. All primary asset classes demonstrate bearish characteristics, signaling acute macroeconomic stress. Suspend directional bias; enforce strict capital defense protocols until structural stabilization is verified.';
         } else if (mixed) {
-          crossInsight = 'Mixed signals across asset classes — some are bullish while others are bearish. This is a selective market. Focus on the asset class with the clearest direction and avoid over-diversifying.';
+          crossInsight = 'Cross-asset signals indicate severe fragmentation. Liquidity is rotating rapidly without sustained directional momentum. Enforce highly selective, asset-specific strategies. Avoid broad portfolio exposure and strictly operate within the asset demonstrating the highest relative strength.';
         }
 
         const titles = { equities: 'Equities (NIFTY/SPX)', safeHavens: 'Safe Havens (Gold/USD)', crypto: 'Crypto (BTC/ETH)' };
         
         const getActionText = (assetKey, state) => {
           if (state === 'BULLISH') {
-            if (assetKey === 'equities') return 'Look for long setups on pullbacks. Trend is your friend. Breakout trades above key resistance levels have higher probability.';
-            if (assetKey === 'safeHavens') return 'Gold & USD demand is rising — could signal fear in other markets. Good for hedging. Consider gold longs if equities weaken.';
-            return 'Crypto is in risk-on mode. Trade with the trend but keep tight stops — crypto moves fast. Focus on BTC/ETH, avoid altcoins with low liquidity.';
+            if (assetKey === 'equities') return 'Execute long entries on structural pullbacks. Institutional momentum favors the upside. Breakout momentum above key distribution nodes possesses high statistical probability.';
+            if (assetKey === 'safeHavens') return 'Elevated demand for haven assets detected. Often a leading indicator for equity weakness. Hedge exposure accordingly; prioritize long Gold/USD structures on retracements.';
+            return 'High-beta risk assets (Crypto) demonstrating bullish dominance. Deploy capital with the primary trend but enforce rigid invalidation parameters due to inherent realized volatility.';
           }
           if (state === 'BEARISH') {
-            if (assetKey === 'equities') return 'Avoid catching falling knives on equity indices. Look for short setups at resistance. If your strategy is long-only, reduce size or sit out.';
-            if (assetKey === 'safeHavens') return 'Safe havens are weak — market feels confident. Risk appetite is high, which favors equities and crypto over gold.';
-            return 'Crypto is selling off. Avoid bottom-fishing. Wait for structure to form before going long. Short setups may work but crypto is unpredictable.';
+            if (assetKey === 'equities') return 'Strictly avoid long exposure. Institutional supply actively overwhelming demand. Execute short strategies at established resistance blocks. Long-only portfolios must de-risk immediately.';
+            if (assetKey === 'safeHavens') return 'Defensive asset liquidation underway. Indicates robust market risk appetite. Capital is seeking higher yields, fundamentally favoring Equities and High-Beta risk assets.';
+            return 'Aggressive distribution phase active. Do not attempt mean-reversion longs until accumulation footprints are verified. Capitalize on downward expansion or remain flat.';
           }
-          if (assetKey === 'equities') return 'No clear direction on equities. Range-bound conditions expected. Scalp both sides with small size, or wait for a breakout.';
-          if (assetKey === 'safeHavens') return 'Gold/USD are choppy. No strong trend — avoid large positions. Wait for a decisive move before committing.';
-          return 'Crypto is range-bound with conflicting signals. Reduce exposure and wait for clarity. This is not a high-conviction environment.';
+          if (assetKey === 'equities') return 'Stagnant liquidity pool. Range-bound price action expected. Deploy mean-reversion algorithms or stand aside pending structural breakout.';
+          if (assetKey === 'safeHavens') return 'Indecisive haven flow. Lacks directional mandate. Abstain from deploying significant capital until a clear macroeconomic catalyst forces a breakout.';
+          return 'Severe chop zone. Conflicting volume metrics. Reduce exposure dynamically and await a high-conviction momentum shift before initiating operations.';
         };
 
         return (

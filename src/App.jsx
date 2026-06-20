@@ -319,7 +319,7 @@ const App = () => {
     qualityStats = [], setupAnalysis = [], emotionStats = [], errors = [], 
     dynamicAudit = { start: [], continue: [] }, learnings = [], 
     weekdayEdge = [], bestDay, worstDay, aiBrief = {},
-    trades = [], snapshots = [], filteredNotes = [], holdTimeAnalysis = []
+    trades = [], snapshots = [], filteredNotes = [], holdTimeAnalysis = [], pointsAnalysis = [], symbolPnl = []
   } = processedData || {};
 
   // NEW FEATURE START: Time Analysis Calculation
@@ -1078,6 +1078,113 @@ const App = () => {
                         </Card>
                       </Motion.div>
                       {/* HOLD TIME ANALYSIS END */}
+
+                      {/* POINTS ANALYSIS START */}
+                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                        <Card className="p-6 md:p-8 border-t border-white/5 bg-slate-900/50 mt-6 md:mt-12">
+                          <SectionHeader icon={Target} title="Points Analysis" sub="Average, High, and Low points captured by symbol" />
+                          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {pointsAnalysis && pointsAnalysis.length > 0 ? pointsAnalysis.map((item, idx) => (
+                              <div key={idx} className="bg-slate-950/50 rounded-2xl p-5 border border-white/5 shadow-xl">
+                                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-white/10">
+                                  <div className="w-2 h-2 rounded-full bg-journal-gold"></div>
+                                  <h4 className="text-sm font-black uppercase text-white tracking-widest">{item.symbol}</h4>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-3">
+                                    <h5 className="text-[10px] font-bold uppercase text-emerald-400 tracking-widest border-b border-emerald-500/20 pb-1">Target (Wins)</h5>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-slate-500">Avg:</span>
+                                      <span className="text-white font-mono">{item.target.avg} pts</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-slate-500">High:</span>
+                                      <span className="text-emerald-400 font-mono">{item.target.high} pts</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-slate-500">Low:</span>
+                                      <span className="text-white font-mono">{item.target.low} pts</span>
+                                    </div>
+                                    <div className="text-[9px] text-slate-600 mt-1 uppercase text-right">Count: {item.target.count}</div>
+                                  </div>
+                                  <div className="space-y-3">
+                                    <h5 className="text-[10px] font-bold uppercase text-rose-400 tracking-widest border-b border-rose-500/20 pb-1">Stoploss (Losses)</h5>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-slate-500">Avg:</span>
+                                      <span className="text-white font-mono">{item.sl.avg} pts</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-slate-500">High:</span>
+                                      <span className="text-rose-400 font-mono">{item.sl.high} pts</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-slate-500">Low:</span>
+                                      <span className="text-white font-mono">{item.sl.low} pts</span>
+                                    </div>
+                                    <div className="text-[9px] text-slate-600 mt-1 uppercase text-right">Count: {item.sl.count}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            )) : (
+                              <div className="col-span-full text-center text-slate-500 py-8 text-xs font-black uppercase tracking-widest border border-dashed border-white/10 rounded-2xl">
+                                No entry/exit prices recorded for points analysis
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      </Motion.div>
+                      {/* POINTS ANALYSIS END */}
+
+                      {/* P&L BY SYMBOL START */}
+                      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                        <Card className="p-6 md:p-8 border-t border-white/5 bg-slate-900/50 mt-6 md:mt-12">
+                          <SectionHeader icon={Briefcase} title="P&L By Symbol" sub="Net profitability distribution across traded assets" />
+                          <div className="h-72 mt-8">
+                            {symbolPnl && symbolPnl.length > 0 ? (
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={symbolPnl} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                  <XAxis 
+                                    dataKey="name" 
+                                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }} 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                  />
+                                  <YAxis 
+                                    tickFormatter={(v) => `₹${Math.abs(v / 1000)}k`} 
+                                    tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    width={45}
+                                  />
+                                  <Tooltip 
+                                    cursor={{ fill: 'transparent' }}
+                                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }} 
+                                    itemStyle={{ color: '#ffffff', fontWeight: 'bold' }} 
+                                    labelStyle={{ color: '#94a3b8', fontWeight: '900', marginBottom: '8px' }}
+                                    formatter={(value, name, props) => {
+                                      if (name === "pl") return [`${value >= 0 ? '+' : ''}${formatCurrency(value)}`, "Net P&L"];
+                                      if (name === "trades") return [value, "Trades"];
+                                      return [value, name];
+                                    }}
+                                  />
+                                  <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" strokeWidth={2} />
+                                  <Bar dataKey="pl" radius={[4, 4, 4, 4]} maxBarSize={50}>
+                                    {symbolPnl.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={entry.pl >= 0 ? COLORS.emerald : COLORS.rose} />
+                                    ))}
+                                  </Bar>
+                                </BarChart>
+                              </ResponsiveContainer>
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center text-slate-500 text-xs font-black uppercase tracking-widest border border-dashed border-white/10 rounded-2xl">
+                                No symbols recorded for P&L analysis
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      </Motion.div>
+                      {/* P&L BY SYMBOL END */}
 
                        <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                          <Card className="p-8 border-t border-indigo-500/20 shadow-2xl shadow-indigo-500/10">

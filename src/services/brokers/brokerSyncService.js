@@ -174,14 +174,51 @@ export async function approveReconstructedTrade(userId, rTrade) {
     }
   }
 
+  // Accurate Indian Market Fee Calculation (Dhan F&O Options Structure)
+  let calculatedFees = parseFloat(rTrade.total_fees || 0);
+  const indianKeywords = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'SENSEX', 'MIDCPNIFTY'];
+  if (indianKeywords.some(k => rawSymbol.includes(k))) {
+    const fillsCount = parseInt(rTrade.fills_count) || 2; // Default to 2 if unknown (1 buy, 1 sell)
+    const qty = parseFloat(rTrade.quantity) || 0;
+    const entryPrice = parseFloat(rTrade.entry_price_avg) || 0;
+    const exitPrice = parseFloat(rTrade.exit_price_avg) || 0;
+
+    const buyValue = rTrade.direction === 'LONG' ? (qty * entryPrice) : (qty * exitPrice);
+    const sellValue = rTrade.direction === 'LONG' ? (qty * exitPrice) : (qty * entryPrice);
+    const turnover = buyValue + sellValue;
+
+    // 1. Brokerage: ₹20 per executed order
+    const brokerage = fillsCount * 20;
+
+    // 2. STT: 0.1% on sell side premium (Options)
+    const stt = Math.round(sellValue * 0.001); // 0.1% for Options
+
+    // 3. Exchange Transaction Charge: 0.035% on turnover (NSE Options)
+    const exchangeCharge = turnover * 0.00035;
+
+    // 4. SEBI Turnover Fee: 0.0001% on turnover (₹10 per crore)
+    const sebiFee = turnover * 0.000001;
+
+    // 5. Stamp Duty: 0.003% on buy side premium
+    const stampDuty = Math.round(buyValue * 0.00003);
+
+    // 6. GST: 18% on (Brokerage + Exchange Charge + SEBI Fee)
+    const gst = (brokerage + exchangeCharge + sebiFee) * 0.18;
+
+    // Total Fees
+    calculatedFees = brokerage + stt + exchangeCharge + sebiFee + stampDuty + gst;
+    calculatedFees = Math.round(calculatedFees * 100) / 100; // Round to 2 decimals
+  }
+
   // Compile trade schema using literal-notion headers from DB_FIELDS
+  const finalPl = parseFloat(rTrade.gross_pnl || rTrade.net_pnl || 0) - calculatedFees;
   const tradePayload = {
     user_id: userId,
     [DB_FIELDS.date]: new Date(rTrade.entry_time).toISOString(),
     [DB_FIELDS.market]: matchedMarket,
-    [DB_FIELDS.isWin]: isWin ? 'WIN' : 'LOSS',
-    [DB_FIELDS.winFlag]: isWin ? 1 : 0,
-    [DB_FIELDS.pl]: parseFloat(rTrade.net_pnl),
+    [DB_FIELDS.isWin]: finalPl >= 0 ? 'WIN' : 'LOSS',
+    [DB_FIELDS.winFlag]: finalPl >= 0 ? 1 : 0,
+    [DB_FIELDS.pl]: finalPl,
     [DB_FIELDS.rr]: null, // Default to null for manual review grading
     [DB_FIELDS.reason]: null, // Default to null for manual review grading
     [DB_FIELDS.learning]: null, // Default to null for manual review grading
@@ -200,7 +237,7 @@ export async function approveReconstructedTrade(userId, rTrade) {
     linked_reconstructed_trade_id: rTrade.id,
     trade_hash: rTrade.trade_hash,
     import_batch_id: crypto.randomUUID(),
-    fees: parseFloat(rTrade.total_fees || 0),
+    fees: calculatedFees,
     entry_price: parseFloat(rTrade.entry_price_avg || 0),
     exit_price: parseFloat(rTrade.exit_price_avg || 0)
   };

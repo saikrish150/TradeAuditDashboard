@@ -94,7 +94,7 @@ export const useTradeData = ({
     const equityArr = [], errorMap = {}, learningVault = [];
     const yearData = {}, monthData = {}, dayData = {}, dateData = {};
     const activeMonthsSet = new Set();
-    const emotionalPnlMap = {}, qualityPnlMap = {}, statusPnlMap = {}, symbolSizingMap = {}, setupAnalysisMap = {};
+    const emotionalPnlMap = {}, qualityPnlMap = {}, statusPnlMap = {}, symbolSizingMap = {}, setupAnalysisMap = {}, pointsAnalysisMap = {};
 
     const holdTimeBuckets = [
       { label: '< 5m', maxMins: 5 },
@@ -157,8 +157,31 @@ export const useTradeData = ({
       statusPnlMap[sKey].pl += tPL; statusPnlMap[sKey].count += 1;
 
       const symKey = t.market || 'Unknown';
-      if (!symbolSizingMap[symKey]) symbolSizingMap[symKey] = { totalLots: 0, count: 0 };
-      symbolSizingMap[symKey].totalLots += (parseFloat(t.lots || t.positionSize) || 0); symbolSizingMap[symKey].count += 1;
+      if (!symbolSizingMap[symKey]) symbolSizingMap[symKey] = { totalLots: 0, count: 0, pl: 0 };
+      symbolSizingMap[symKey].totalLots += (parseFloat(t.lots || t.positionSize) || 0);
+      symbolSizingMap[symKey].count += 1;
+      symbolSizingMap[symKey].pl += tPL;
+
+      // Points analysis per symbol based on entry and exit price
+      const ep = parseFloat(t.entry_price || t.entryPrice);
+      const exp = parseFloat(t.exit_price || t.exitPrice);
+      if (!isNaN(ep) && !isNaN(exp) && ep > 0 && exp > 0) {
+        const points = Math.abs(exp - ep);
+        if (!pointsAnalysisMap[symKey]) {
+          pointsAnalysisMap[symKey] = {
+            symbol: symKey,
+            target: { totalPoints: 0, count: 0, high: -Infinity, low: Infinity },
+            sl: { totalPoints: 0, count: 0, high: -Infinity, low: Infinity }
+          };
+        }
+        
+        const isTarget = isActuallyWin;
+        const targetObj = isTarget ? pointsAnalysisMap[symKey].target : pointsAnalysisMap[symKey].sl;
+        targetObj.totalPoints += points;
+        targetObj.count += 1;
+        if (points > targetObj.high) targetObj.high = points;
+        if (points < targetObj.low) targetObj.low = points;
+      }
 
       // Brokerage calculation
       totalBrokerage += (parseFloat(t.brokerage) || 0);
@@ -174,6 +197,9 @@ export const useTradeData = ({
         
         const mMatch = timeStr.match(/(\d+(?:\.\d+)?)\s*m/);
         if (mMatch) { mins += parseFloat(mMatch[1]); valid = true; }
+        
+        const sMatch = timeStr.match(/(\d+(?:\.\d+)?)\s*s/);
+        if (sMatch) { mins += parseFloat(sMatch[1]) / 60; valid = true; }
 
         if (valid) {
           totalHoldMinutes += mins;
@@ -333,12 +359,37 @@ export const useTradeData = ({
 
     const avgHoldTimeStr = tradesWithHoldTimeCount > 0 ? (totalHoldMinutes / tradesWithHoldTimeCount) : 0;
     const formatAvgHoldTime = (mins) => {
-        if (!mins) return '0m';
+        if (!mins) return '0s';
+        if (mins < 1) return `${Math.round(mins * 60)}s`;
         if (mins < 60) return `${Math.round(mins)}m`;
         const h = Math.floor(mins / 60);
         const m = Math.round(mins % 60);
         return m > 0 ? `${h}h ${m}m` : `${h}h`;
     };
+
+    const pointsAnalysis = Object.values(pointsAnalysisMap).map(m => {
+      return {
+        symbol: m.symbol,
+        target: {
+          avg: m.target.count > 0 ? parseFloat((m.target.totalPoints / m.target.count).toFixed(2)) : 0,
+          high: m.target.high === -Infinity ? 0 : parseFloat(m.target.high.toFixed(2)),
+          low: m.target.low === Infinity ? 0 : parseFloat(m.target.low.toFixed(2)),
+          count: m.target.count
+        },
+        sl: {
+          avg: m.sl.count > 0 ? parseFloat((m.sl.totalPoints / m.sl.count).toFixed(2)) : 0,
+          high: m.sl.high === -Infinity ? 0 : parseFloat(m.sl.high.toFixed(2)),
+          low: m.sl.low === Infinity ? 0 : parseFloat(m.sl.low.toFixed(2)),
+          count: m.sl.count
+        }
+      };
+    }).filter(m => m.target.count > 0 || m.sl.count > 0);
+
+    const symbolPnl = Object.keys(symbolSizingMap).map(k => ({
+      name: k,
+      pl: symbolSizingMap[k].pl,
+      trades: symbolSizingMap[k].count
+    })).sort((a, b) => b.pl - a.pl);
 
     return {
       metrics: { net: cumulativePL, winRate: winRateValue, total: tradeTotalCount, avgWin, avgLoss, overallRR: overallRRValue, maxProfit: Math.max(...filtered.map(t => t.pl > 0 ? t.pl : 0), 0), maxLoss: Math.max(...filtered.map(t => t.pl < 0 ? Math.abs(t.pl) : 0), 0), pf: (winTotal / (lossTotal || 1)).toFixed(2), expectancy: (cumulativePL / tradeTotalCount).toFixed(0), maxLosingStreak, maxWinningStreak, peakDD: maxDDValue, profitDD: (cumulativePL / (Math.abs(maxDDValue) || 1)).toFixed(2), mindsetEfficiency: Math.round(((winTotal - Math.abs(revengeLoss)) / (winTotal || 1)) * 100), maxTradesInDay: Math.max(...Object.values(dateData).map(d => d.count), 0), avgTradesPerActiveDay: Object.keys(dateData).length > 0 ? (tradeTotalCount / Object.keys(dateData).length).toFixed(1) : 0, avgTimeHolded: formatAvgHoldTime(avgHoldTimeStr), brokeragePaid: totalBrokerage },
@@ -362,6 +413,8 @@ export const useTradeData = ({
       equity: equityArr.filter((_, i) => i % Math.max(1, Math.floor(equityArr.length / 50)) === 0),
       errors: errorStats,
       holdTimeAnalysis,
+      pointsAnalysis,
+      symbolPnl,
       dynamicAudit: { start: stopDoing.slice(0, 5), continue: keepDoing.slice(0, 5) },
       learnings: learningVault.sort((a, b) => a.pl - b.pl),
       trades: filtered,

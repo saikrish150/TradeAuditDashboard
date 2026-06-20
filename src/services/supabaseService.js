@@ -76,6 +76,10 @@ export const normalizeRow = (row) => {
   normalized.tradeTime = row[DB_FIELDS.tradeTime] || '';
   normalized.brokerage = parseFloat(row[DB_FIELDS.fees]) || 0;
   normalized.created_at = row.created_at || '';
+  
+  // Pricing Metrics for Analysis
+  normalized.entry_price = parseFloat(row.entry_price || row.entryPrice || 0);
+  normalized.exit_price = parseFloat(row.exit_price || row.exitPrice || 0);
 
   // Note Specific Normalization: Pure raw data pass-through
   normalized.content = row[DB_FIELDS.noteContent] || row.content || '';
@@ -140,7 +144,7 @@ export const normalizeRow = (row) => {
 // Highly Optimized Column Strings (Based on DB_FIELDS)
 // This ensures we never fetch unnecessary system metadata, saving bandwidth.
 const SRC_COLS = {
-  trades: `id, created_at, user_id, "${DB_FIELDS.date}", "${DB_FIELDS.market}", "${DB_FIELDS.direction}", "${DB_FIELDS.isWin}", "${DB_FIELDS.winFlag}", "${DB_FIELDS.pl}", "${DB_FIELDS.rr}", "${DB_FIELDS.reason}", "${DB_FIELDS.learning}", "${DB_FIELDS.strategy}", "${DB_FIELDS.setups}", "${DB_FIELDS.lossReason}", "${DB_FIELDS.emotions}", "${DB_FIELDS.positionSize}", "${DB_FIELDS.tradeQuality}", "${DB_FIELDS.tradeStatus}", "${DB_FIELDS.positionType}", "${DB_FIELDS.tradeMode}", "${DB_FIELDS.tradeTime}", "${DB_FIELDS.fees}", "${DB_FIELDS.chartScreenshotUrl}"`,
+  trades: `id, created_at, user_id, "${DB_FIELDS.date}", "${DB_FIELDS.market}", "${DB_FIELDS.direction}", "${DB_FIELDS.isWin}", "${DB_FIELDS.winFlag}", "${DB_FIELDS.pl}", "${DB_FIELDS.rr}", "${DB_FIELDS.reason}", "${DB_FIELDS.learning}", "${DB_FIELDS.strategy}", "${DB_FIELDS.setups}", "${DB_FIELDS.lossReason}", "${DB_FIELDS.emotions}", "${DB_FIELDS.positionSize}", "${DB_FIELDS.tradeQuality}", "${DB_FIELDS.tradeStatus}", "${DB_FIELDS.positionType}", "${DB_FIELDS.tradeMode}", "${DB_FIELDS.tradeTime}", "${DB_FIELDS.fees}", "${DB_FIELDS.chartScreenshotUrl}", entry_price, exit_price`,
   snapshots: `id, created_at, user_id, "${DB_FIELDS.dateAdded}", "${DB_FIELDS.snapshotImage}", "${DB_FIELDS.snapshotTags}", "${DB_FIELDS.noOfTrades}", "${DB_FIELDS.rulesFollowed}", "${DB_FIELDS.emotionsInControl}", "${DB_FIELDS.snapshotSetup}", "${DB_FIELDS.progress}"`,
   notes: `id, created_at, user_id, "${DB_FIELDS.noteDate}", "${DB_FIELDS.noteContent}", "${DB_FIELDS.noteCategory}", "${DB_FIELDS.notePinned}", "${DB_FIELDS.noteSource}", "${DB_FIELDS.noteVotes}"`,
   goals: `*` // Goals are usually small, select * is fine here

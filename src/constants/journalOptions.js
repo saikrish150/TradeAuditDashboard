@@ -7,11 +7,11 @@ export const MARKET_CATEGORIES = [
 ];
 
 export const TRADE_STATUS_OPTIONS = [
-  'Target++', 'Target', 'Parctial', 'StopLoss', 'Netural'
+  'Target++', 'Target', 'Partial', 'StopLoss', 'Neutral'
 ];
 
 export const EMOTION_OPTIONS = [
-  'Clam', 'Revenge', 'Frustration', 'Impatient', 'FOMO', 'Greed', 'Fear'
+  'Calm', 'Revenge', 'Frustration', 'Impatient', 'FOMO', 'Greed', 'Fear'
 ];
 
 export const SETUP_OPTIONS = [

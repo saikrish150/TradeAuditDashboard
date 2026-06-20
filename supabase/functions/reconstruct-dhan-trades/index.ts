@@ -165,7 +165,39 @@ serve(async (req) => {
           const grossPnl = contractDirection === "LONG_CONTRACT"
             ? (runningRevenue - runningCost)
             : (runningCost - runningRevenue);
-          const netPnl = grossPnl - totalFees;
+
+          // Indian Market Fee Calculation (Dhan F&O Options Structure)
+          let calculatedFees = totalFees;
+          const indianKeywords = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'SENSEX', 'MIDCPNIFTY'];
+          const rawSymbol = String(displaySymbol).toUpperCase();
+          
+          if (indianKeywords.some(k => rawSymbol.includes(k))) {
+            const fillsCount = currentFillsList.length;
+            const turnover = runningCost + runningRevenue;
+            
+            // 1. Brokerage: ₹20 per executed order
+            const brokerage = fillsCount * 20;
+            
+            // 2. STT: 0.1% on sell side premium (Options)
+            const stt = Math.round(runningRevenue * 0.001); // runningRevenue = total sell value
+            
+            // 3. Exchange Transaction Charge: 0.035% on turnover (NSE Options)
+            const exchangeCharge = turnover * 0.00035;
+            
+            // 4. SEBI Turnover Fee: 0.0001% on turnover (₹10 per crore)
+            const sebiFee = turnover * 0.000001;
+            
+            // 5. Stamp Duty: 0.003% on buy side premium
+            const stampDuty = Math.round(runningCost * 0.00003); // runningCost = total buy value
+            
+            // 6. GST: 18% on (Brokerage + Exchange Charge + SEBI Fee)
+            const gst = (brokerage + exchangeCharge + sebiFee) * 0.18;
+            
+            calculatedFees = brokerage + stt + exchangeCharge + sebiFee + stampDuty + gst;
+            calculatedFees = Math.round(calculatedFees * 100) / 100;
+          }
+
+          const netPnl = grossPnl - calculatedFees;
           const entryPriceAvg = totalPositionVolume > 0 ? runningCost / totalPositionVolume : 0;
           const exitPriceAvg = totalPositionVolume > 0 ? runningRevenue / totalPositionVolume : 0;
 
@@ -199,7 +231,8 @@ serve(async (req) => {
             quantity: totalPositionVolume,
             gross_pnl: grossPnl,
             net_pnl: netPnl,
-            total_fees: totalFees,
+            total_fees: calculatedFees,
+            status: "CLOSED",
             entry_time: firstFillTime,
             exit_time: lastFillTime,
             fills_count: currentFillsList.length,

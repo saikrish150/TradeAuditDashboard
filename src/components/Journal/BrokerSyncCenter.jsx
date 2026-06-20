@@ -105,7 +105,42 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
         filtered = filtered.filter(t => parseEntryTime(t.entry_time) >= cutoff);
       }
     }
-    return filtered;
+
+    // Apply Indian Market fee calculation for UI display
+    return filtered.map(t => {
+      const rawSymbol = String(t.symbol).toUpperCase();
+      const indianKeywords = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'SENSEX', 'MIDCPNIFTY'];
+      
+      if (indianKeywords.some(k => rawSymbol.includes(k))) {
+        const fillsCount = parseInt(t.fills_count) || 2;
+        const qty = parseFloat(t.quantity) || 0;
+        const entryPrice = parseFloat(t.entry_price_avg) || 0;
+        const exitPrice = parseFloat(t.exit_price_avg) || 0;
+
+        const buyValue = t.direction === 'LONG' ? (qty * entryPrice) : (qty * exitPrice);
+        const sellValue = t.direction === 'LONG' ? (qty * exitPrice) : (qty * entryPrice);
+        const turnover = buyValue + sellValue;
+
+        const brokerage = fillsCount * 20;
+        const stt = Math.round(sellValue * 0.001);
+        const exchangeCharge = turnover * 0.00035;
+        const sebiFee = turnover * 0.000001;
+        const stampDuty = Math.round(buyValue * 0.00003);
+        const gst = (brokerage + exchangeCharge + sebiFee) * 0.18;
+
+        let calculatedFees = brokerage + stt + exchangeCharge + sebiFee + stampDuty + gst;
+        calculatedFees = Math.round(calculatedFees * 100) / 100;
+        
+        // Update net PNL based on calculated fees instead of edge function's zero fees
+        const grossPnl = parseFloat(t.gross_pnl || t.net_pnl || 0);
+        return {
+          ...t,
+          total_fees: calculatedFees,
+          net_pnl: grossPnl - calculatedFees
+        };
+      }
+      return t;
+    });
   }, [reconstructed, categoryBrokers, dateFilter]);
 
   const totalPnL = useMemo(() => {
@@ -279,7 +314,10 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
 
   // Helper to format duration
   function formatDuration(ms) {
-    if (!ms || ms < 0) return '0m';
+    if (!ms || ms < 0) return '0s';
+    if (ms < 60000) {
+      return `${Math.floor(ms / 1000)}s`;
+    }
     const totalMins = Math.floor(ms / 60000);
     const h = Math.floor(totalMins / 60);
     const m = totalMins % 60;
