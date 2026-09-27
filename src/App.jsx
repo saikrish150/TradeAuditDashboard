@@ -1261,7 +1261,9 @@ const App = () => {
                   <div className="mb-10">
                     {selectedYear === 'All' && datePreset === 'All' ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        {Object.entries(hierarchical.yearData || {}).map(([year, data]) => (
+                        {Object.entries(hierarchical.yearData || {})
+                          .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+                          .map(([year, data]) => (
                           <Card key={year} className="p-6 cursor-pointer group hover:border-indigo-500" onClick={() => setSelectedYear(year)}>
                             <div className="flex justify-between items-center mb-4"><h4 className="text-2xl font-black text-white">{String(year)}</h4><ArrowRight size={18} className="text-slate-600 group-hover:text-indigo-400 transition-colors" /></div>
                             <p className={`text-xl font-mono font-bold ${data.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(data.pl)}</p>
@@ -1273,7 +1275,15 @@ const App = () => {
                       <div className="space-y-4">
                         <button onClick={() => setSelectedYear('All')} className="flex items-center gap-2 text-[10px] font-black uppercase text-journal-gold hover:text-white mb-2 transition-colors"><ChevronLeft size={14} /> Back to Yearly View</button>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                          {Object.entries(hierarchical.monthData || {}).map(([monthYear, data]) => (
+                          {Object.entries(hierarchical.monthData || {})
+                            .sort((a, b) => {
+                              const [aMonth, aYear] = a[0].split(' ');
+                              const [bMonth, bYear] = b[0].split(' ');
+                              const yDiff = (parseInt(aYear) || 0) - (parseInt(bYear) || 0);
+                              if (yDiff !== 0) return yDiff;
+                              return (MONTH_MAP[aMonth] ?? 0) - (MONTH_MAP[bMonth] ?? 0);
+                            })
+                            .map(([monthYear, data]) => (
                             <Card key={monthYear} className="p-6 cursor-pointer group hover:border-journal-gold/50" onClick={() => setSelectedMonth(monthYear.split(' ')[0])}>
                               <div className="flex justify-between items-center mb-2"><h4 className="text-sm font-black text-slate-400 uppercase">{String(monthYear.split(' ')[0])}</h4><ArrowRight size={14} className="text-slate-600 group-hover:text-journal-gold transition-colors" /></div>
                               <p className={`text-lg font-mono font-bold ${data.pl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(data.pl)}</p>

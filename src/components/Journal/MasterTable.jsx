@@ -441,7 +441,9 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
               <motion.tr
                 key={trade.id}
                 layout
-                className="hover:bg-journal-gold/[0.03] odd:bg-journal-bg even:bg-journal-secondary/30 transition-colors group"
+                onClick={() => onEditTrade && onEditTrade(trade)}
+                className="hover:bg-journal-gold/[0.04] odd:bg-journal-bg even:bg-journal-secondary/30 transition-colors group cursor-pointer"
+                title="Click to view & edit trade"
               >
                 {columns.map(col => {
                   const val = trade[col.key];
@@ -505,7 +507,6 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                   return (
                     <td 
                       key={col.key}
-                      onClick={() => (col.type === 'text' || col.key.includes('Reason') || col.key === 'reason') && setViewingText({ title: col.label, content: val })}
                       // NEW FEATURE START: Hover Tooltip Handlers
                       onMouseEnter={(e) => {
                         const isImage = col.key === 'chartScreenshotUrl' || col.key === 'imageUrl';
@@ -536,7 +537,7 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                       }}
                       onMouseLeave={() => setHoveredCell(null)}
                       // NEW FEATURE END
-                      className={`px-6 py-4 truncate max-w-[200px] ${col.sticky ? 'md:sticky md:left-0 z-10 md:bg-journal-bg/80 md:backdrop-blur-md group-hover:bg-white/[0.05]' : ''} ${(col.type === 'text' || col.key.includes('Reason') || col.key === 'reason') ? 'cursor-pointer hover:text-white' : ''}`}
+                      className={`px-6 py-4 truncate max-w-[200px] ${col.sticky ? 'md:sticky md:left-0 z-10 md:bg-journal-bg/80 md:backdrop-blur-md group-hover:bg-white/[0.05]' : ''}`}
                     >
                       {renderCell()}
                     </td>
@@ -545,13 +546,20 @@ const MasterTable = ({ trades, onEditTrade, onDeleteTrade, onViewImage, onTabCha
                 
                 <td className="px-6 py-4 text-right">
                   <button
-                    onClick={() => onEditTrade(trade)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditTrade && onEditTrade(trade);
+                    }}
                     className="p-2 rounded-lg text-slate-600 hover:text-journal-gold hover:bg-journal-gold/5 transition-all"
+                    title="Edit Trade"
                   >
                     <Edit3 size={14} />
                   </button>
                   <button
-                    onClick={() => onDeleteTrade(trade.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteTrade && onDeleteTrade(trade.id);
+                    }}
                     className="p-2 rounded-lg text-slate-600 hover:text-red-500 hover:bg-red-500/5 transition-all"
                     title="Delete Trade"
                   >

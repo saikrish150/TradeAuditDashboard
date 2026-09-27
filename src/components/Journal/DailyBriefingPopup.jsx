@@ -10,7 +10,8 @@ const DailyBriefingPopup = ({ trades = [], snapshots = [], notes = [], checklist
   const [isOpen, setIsOpen] = useState(false);
   const [apiKey, setApiKey] = useState(geminiService.getApiKey());
   const [briefingMode, setBriefingMode] = useState('neural');
-  const [neuralBriefing, setNeuralBriefing] = useState(geminiService.getCachedAnalysis('daily_briefing'));
+  const dataFingerprint = geminiService.getDataFingerprint(trades, snapshots, notes);
+  const [neuralBriefing, setNeuralBriefing] = useState(() => geminiService.getCachedAnalysis('daily_briefing', dataFingerprint));
   const [loading, setLoading] = useState(false);
 
   // Pure Math briefing
@@ -43,7 +44,7 @@ const DailyBriefingPopup = ({ trades = [], snapshots = [], notes = [], checklist
       const res = await geminiService.dailyBriefing(trades, snapshots, notes, true);
       setNeuralBriefing(res.text);
     } catch (e) {
-      console.error(e);
+      console.error('Neural briefing error:', e);
     } finally {
       setLoading(false);
     }
@@ -61,21 +62,24 @@ const DailyBriefingPopup = ({ trades = [], snapshots = [], notes = [], checklist
 
   if (!isOpen) return null;
 
-  // Custom Markdown parser for simple bullets
+  // Custom Markdown parser for simple bullets (resilient to model heading variations)
   const renderMarkdown = (text) => {
     if (!text) return null;
     return (
       <div className="space-y-4 text-[11px] font-medium leading-relaxed text-slate-300">
         {text.split('\n').map((line, i) => {
-          if (line.startsWith('1. ') || line.startsWith('2. ') || line.startsWith('3. ')) {
+          const trimmed = line.trim();
+          const isSectionHeader = /^(?:#+\s*|\*\*\d+\.|\d+\.\s*\*\*|\d+\.\s+)/i.test(trimmed);
+          if (isSectionHeader) {
+            const cleanTitle = trimmed.replace(/^[#*\d.\s]+|[#*:]+$/g, '').trim();
             return (
               <p key={i} className="text-white font-black uppercase tracking-wider mt-5 first:mt-0 flex items-center gap-2 border-b border-white/5 pb-1">
-                {line.substring(3)}
+                {cleanTitle}
               </p>
             );
           }
-          if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
-            const cleanText = line.replace(/^[\s-*]+/, '');
+          if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || /^•\s*/.test(trimmed)) {
+            const cleanText = trimmed.replace(/^[-*•\s]+/, '').replace(/\*\*/g, '');
             return (
               <div key={i} className="flex gap-2.5 items-start ml-2 pl-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-journal-gold mt-1.5 shrink-0" />
@@ -83,8 +87,8 @@ const DailyBriefingPopup = ({ trades = [], snapshots = [], notes = [], checklist
               </div>
             );
           }
-          if (!line.trim()) return null;
-          return <p key={i} className="pl-1 text-slate-400 italic">{line}</p>;
+          if (!trimmed) return null;
+          return <p key={i} className="pl-1 text-slate-400 italic">{trimmed.replace(/\*\*/g, '')}</p>;
         })}
       </div>
     );

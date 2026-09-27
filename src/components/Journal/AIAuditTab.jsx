@@ -37,11 +37,13 @@ const AIAuditTab = ({ trades = [], snapshots = [], notes = [] }) => {
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [tempKey, setTempKey] = useState('');
   const [loading, setLoading] = useState({});
-  const [analysisResults, setAnalysisResults] = useState({
-    deep: geminiService.getCachedAnalysis('deep'),
-    strategy: geminiService.getCachedAnalysis('strategy'),
-    monthly: geminiService.getCachedAnalysis('monthly')
-  });
+  const dataFingerprint = useMemo(() => geminiService.getDataFingerprint(trades, snapshots, notes), [trades, snapshots, notes]);
+
+  const [analysisResults, setAnalysisResults] = useState(() => ({
+    deep: geminiService.getCachedAnalysis('deep', dataFingerprint),
+    strategy: geminiService.getCachedAnalysis('strategy', dataFingerprint),
+    monthly: geminiService.getCachedAnalysis('monthly', dataFingerprint)
+  }));
   const [selectedScenario, setSelectedScenario] = useState('skip_c_quality');
 
   // New Mode States for Interactive Toggling
@@ -49,10 +51,21 @@ const AIAuditTab = ({ trades = [], snapshots = [], notes = [] }) => {
   const [anomalyMode, setAnomalyMode] = useState('math'); // 'math' | 'neural'
 
   // Neural Briefing & Anomaly Scan Data States
-  const [neuralBriefing, setNeuralBriefing] = useState(geminiService.getCachedAnalysis('daily_briefing'));
-  const [neuralAnomaly, setNeuralAnomaly] = useState(geminiService.getCachedAnalysis('anomaly_scan'));
+  const [neuralBriefing, setNeuralBriefing] = useState(() => geminiService.getCachedAnalysis('daily_briefing', dataFingerprint));
+  const [neuralAnomaly, setNeuralAnomaly] = useState(() => geminiService.getCachedAnalysis('anomaly_scan', dataFingerprint));
   const [loadingNeuralBriefing, setLoadingNeuralBriefing] = useState(false);
   const [loadingNeuralAnomaly, setLoadingNeuralAnomaly] = useState(false);
+
+  // Sync cached analysis when data changes
+  useEffect(() => {
+    setAnalysisResults({
+      deep: geminiService.getCachedAnalysis('deep', dataFingerprint),
+      strategy: geminiService.getCachedAnalysis('strategy', dataFingerprint),
+      monthly: geminiService.getCachedAnalysis('monthly', dataFingerprint)
+    });
+    setNeuralBriefing(geminiService.getCachedAnalysis('daily_briefing', dataFingerprint));
+    setNeuralAnomaly(geminiService.getCachedAnalysis('anomaly_scan', dataFingerprint));
+  }, [dataFingerprint]);
 
   // Clear any legacy/truncated cache items on load to force a clean full fetch
   useEffect(() => {
@@ -157,65 +170,70 @@ const AIAuditTab = ({ trades = [], snapshots = [], notes = [] }) => {
       return;
     }
     
-    // Set all loaders active concurrently
+    // Set all loaders active to indicate queue start
     setLoading({ deep: true, strategy: true, monthly: true });
     setLoadingNeuralBriefing(true);
     setLoadingNeuralAnomaly(true);
     
+    // Sequential execution pipeline specifically tailored for Gemini Free Tier (15 RPM limit)
+    const auditQueue = [
+      {
+        name: 'Daily Briefing',
+        run: async () => {
+          const res = await geminiService.dailyBriefing(trades, snapshots, notes, true);
+          setNeuralBriefing(res.text);
+        },
+        finish: () => setLoadingNeuralBriefing(false)
+      },
+      {
+        name: 'Anomaly Scan',
+        run: async () => {
+          const res = await geminiService.anomalyScan(trades, snapshots, notes, true);
+          setNeuralAnomaly(res.text);
+        },
+        finish: () => setLoadingNeuralAnomaly(false)
+      },
+      {
+        name: 'Deep Diagnostic',
+        run: async () => {
+          const res = await geminiService.deepAnalysis(trades, true);
+          setAnalysisResults(prev => ({ ...prev, deep: res.text }));
+        },
+        finish: () => setLoading(prev => ({ ...prev, deep: false }))
+      },
+      {
+        name: 'Strategy Architect',
+        run: async () => {
+          const res = await geminiService.buildStrategy(trades, true);
+          setAnalysisResults(prev => ({ ...prev, strategy: res.text }));
+        },
+        finish: () => setLoading(prev => ({ ...prev, strategy: false }))
+      },
+      {
+        name: 'Monthly Audit',
+        run: async () => {
+          const res = await geminiService.monthlyReport(trades, true);
+          setAnalysisResults(prev => ({ ...prev, monthly: res.text }));
+        },
+        finish: () => setLoading(prev => ({ ...prev, monthly: false }))
+      }
+    ];
+
     try {
-      // Trigger all five concurrently in parallel
-      await Promise.all([
-        (async () => {
-          try {
-            const res = await geminiService.deepAnalysis(trades, true);
-            setAnalysisResults(prev => ({ ...prev, deep: res.text }));
-          } catch (e) {
-            console.error('Deep Analysis failed:', e);
-          } finally {
-            setLoading(prev => ({ ...prev, deep: false }));
-          }
-        })(),
-        (async () => {
-          try {
-            const res = await geminiService.buildStrategy(trades, true);
-            setAnalysisResults(prev => ({ ...prev, strategy: res.text }));
-          } catch (e) {
-            console.error('Strategy Architect failed:', e);
-          } finally {
-            setLoading(prev => ({ ...prev, strategy: false }));
-          }
-        })(),
-        (async () => {
-          try {
-            const res = await geminiService.monthlyReport(trades, true);
-            setAnalysisResults(prev => ({ ...prev, monthly: res.text }));
-          } catch (e) {
-            console.error('Monthly Audit failed:', e);
-          } finally {
-            setLoading(prev => ({ ...prev, monthly: false }));
-          }
-        })(),
-        (async () => {
-          try {
-            const res = await geminiService.dailyBriefing(trades, snapshots, notes, true);
-            setNeuralBriefing(res.text);
-          } catch (e) {
-            console.error('Neural Briefing failed:', e);
-          } finally {
-            setLoadingNeuralBriefing(false);
-          }
-        })(),
-        (async () => {
-          try {
-            const res = await geminiService.anomalyScan(trades, snapshots, notes, true);
-            setNeuralAnomaly(res.text);
-          } catch (e) {
-            console.error('Neural Anomaly failed:', e);
-          } finally {
-            setLoadingNeuralAnomaly(false);
-          }
-        })()
-      ]);
+      for (let i = 0; i < auditQueue.length; i++) {
+        const item = auditQueue[i];
+        try {
+          await item.run();
+        } catch (itemErr) {
+          console.warn(`[AIAuditTab] ${item.name} failed:`, itemErr.message);
+        } finally {
+          item.finish();
+        }
+        // Pause 1.2s between calls to prevent 429 concurrency and RPM limit on Free Tier
+        if (i < auditQueue.length - 1) {
+          await new Promise(r => setTimeout(r, 1200));
+        }
+      }
     } catch (error) {
       console.error('Complete Neural Audit failed:', error);
     }
@@ -224,15 +242,18 @@ const AIAuditTab = ({ trades = [], snapshots = [], notes = [] }) => {
   const splitMonthlyReport = (text) => {
     if (!text) return { col1: '', col2: '' };
     
-    // Look for unique Section 3 key phrases
-    const splitKeyphrases = ['Execution Loop', 'Revenge-Trading', 'Execution & Revenge'];
-    let splitIdx = -1;
+    // Look for unique Section 3 key phrases (resilient regex matching)
+    const regexMatch = text.search(/(?:###\s*3|3\.\s*\*\*|3\.\s+).*?(?:Execution|Revenge|Intra-day)/i);
+    let splitIdx = regexMatch;
     
-    for (const phrase of splitKeyphrases) {
-      const idx = text.indexOf(phrase);
-      if (idx !== -1) {
-        splitIdx = idx;
-        break;
+    if (splitIdx === -1) {
+      const splitKeyphrases = ['Execution Loop', 'Revenge-Trading', 'Execution & Revenge', '3. **Execution', '3. Execution'];
+      for (const phrase of splitKeyphrases) {
+        const idx = text.indexOf(phrase);
+        if (idx !== -1) {
+          splitIdx = idx;
+          break;
+        }
       }
     }
     
@@ -261,12 +282,23 @@ const AIAuditTab = ({ trades = [], snapshots = [], notes = [] }) => {
     return (
       <div className="space-y-4 text-slate-300 text-xs leading-relaxed font-medium whitespace-pre-wrap">
         {text.split('\n').map((line, i) => {
-          if (line.startsWith('**') || line.startsWith('##')) {
-            return <p key={i} className="text-white font-black uppercase tracking-wider mt-4 first:mt-0">{line.replace(/\*\*|##/g, '')}</p>;
+          const trimmed = line.trim();
+          if (trimmed.startsWith('**') || trimmed.startsWith('##') || /^(?:#+\s*|\d+\.\s*\*\*)/.test(trimmed)) {
+            return (
+              <p key={i} className="text-white font-black uppercase tracking-wider mt-4 first:mt-0">
+                {trimmed.replace(/^#+\s*|\*\*|##/g, '')}
+              </p>
+            );
           }
-          if (line.startsWith('- ')) {
-            return <div key={i} className="flex gap-2 items-start ml-2"><div className="w-1 h-1 rounded-full bg-journal-gold mt-1.5 shrink-0" /><span>{line.substring(2)}</span></div>;
+          if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || /^•\s*/.test(trimmed)) {
+            return (
+              <div key={i} className="flex gap-2 items-start ml-2">
+                <div className="w-1 h-1 rounded-full bg-journal-gold mt-1.5 shrink-0" />
+                <span>{trimmed.replace(/^[-*•\s]+/, '')}</span>
+              </div>
+            );
           }
+          if (!trimmed) return null;
           return <p key={i}>{line}</p>;
         })}
       </div>

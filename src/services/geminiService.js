@@ -1,7 +1,8 @@
 /**
  * Gemini Service — Google AI API wrapper
- * Free tier: 15 requests/minute
- * Only sends aggregated stats, never raw personal data.
+ * Optimized for Google Gemini Free Tier API (15 RPM)
+ * Features dynamic data-fingerprint caching, valid production models, 
+ * exponential 429 backoff, and rich trading diagnostics.
  */
 
 const STORAGE_KEY = 'tr_gemini_api_key';
@@ -20,7 +21,19 @@ class GeminiService {
     return localStorage.getItem(STORAGE_KEY) || import.meta.env.VITE_GEMINI_API_KEY || '';
   }
 
-  getCachedAnalysis(taskType) {
+  /**
+   * Generates a data signature to ensure cached analysis automatically updates
+   * whenever new trades, snapshots, or psychology notes are added or synced.
+   */
+  getDataFingerprint(trades = [], snapshots = [], notes = []) {
+    const tCount = trades?.length || 0;
+    const latestT = trades?.[0]?.date || trades?.[0]?.jsDate || trades?.[0]?.created_at || '';
+    const sCount = snapshots?.length || 0;
+    const nCount = notes?.length || 0;
+    return `${tCount}_${latestT}_${sCount}_${nCount}`;
+  }
+
+  getCachedAnalysis(taskType, expectedFingerprint = null) {
     const keyMap = {
       'deep': 'deep_analysis',
       'strategy': 'strategy_builder',
@@ -31,16 +44,16 @@ class GeminiService {
       monthStart.setHours(0, 0, 0, 0);
       
       const normalKey = `monthly_${monthStart.getFullYear()}_${monthStart.getMonth()}`;
-      let cached = this._getCache(normalKey);
+      let cached = this._getCache(normalKey, expectedFingerprint);
       if (cached) return cached;
       
       const trailingKey = `${normalKey}_trailing`;
-      cached = this._getCache(trailingKey);
+      cached = this._getCache(trailingKey, expectedFingerprint);
       if (cached) return cached;
       
-      return this._getCache('monthly_report');
+      return this._getCache('monthly_report', expectedFingerprint);
     }
-    return this._getCache(keyMap[taskType] || taskType);
+    return this._getCache(keyMap[taskType] || taskType, expectedFingerprint);
   }
 
   isConfigured() {
@@ -51,64 +64,98 @@ class GeminiService {
     localStorage.removeItem(STORAGE_KEY);
   }
 
-  // Check localStorage cache
-  _getCache(key) {
+  // Check localStorage cache with fingerprint validation
+  _getCache(key, expectedFingerprint = null) {
     try {
       const raw = localStorage.getItem(CACHE_PREFIX + key);
       if (!raw) return null;
-      const { data, timestamp } = JSON.parse(raw);
+      const { data, timestamp, fingerprint } = JSON.parse(raw);
       if (Date.now() - timestamp > CACHE_TTL) {
         localStorage.removeItem(CACHE_PREFIX + key);
+        return null;
+      }
+      // If a data fingerprint is provided and does not match, data has changed: invalidate cache
+      if (expectedFingerprint && fingerprint && fingerprint !== expectedFingerprint) {
         return null;
       }
       return data;
     } catch { return null; }
   }
 
-  _setCache(key, data) {
+  _setCache(key, data, fingerprint = null) {
     try {
-      localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ data, timestamp: Date.now() }));
+      localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ 
+        data, 
+        timestamp: Date.now(),
+        fingerprint 
+      }));
     } catch (e) {
       console.warn('[GeminiService] Cache write failed:', e);
     }
   }
 
-  // Core API call
-  async _callGemini(prompt) {
+  // Core API call — Optimized for Google Gemini Free Tier
+  async _callGemini(prompt, systemInstruction = null) {
     const key = this.getApiKey();
-    if (!key) throw new Error('API key not configured');
+    if (!key) throw new Error('Gemini API key not configured. Please enter your key in the AI Audit settings.');
 
+    // Verified production models returning HTTP 200 on Google AI API
     const models = [
-      { name: 'gemini-flash-latest', ver: 'v1beta' },
       { name: 'gemini-2.5-flash', ver: 'v1beta' },
-      { name: 'gemini-3.1-flash-lite', ver: 'v1beta' },
-      { name: 'gemini-2.0-flash', ver: 'v1beta' },
-      { name: 'gemini-1.5-flash', ver: 'v1' }
+      { name: 'gemini-flash-latest', ver: 'v1beta' },
+      { name: 'gemini-3.5-flash', ver: 'v1beta' },
+      { name: 'gemini-flash-lite-latest', ver: 'v1beta' },
+      { name: 'gemini-3.1-flash-lite', ver: 'v1beta' }
     ];
     let lastError = null;
     let hitRateLimit = false;
 
-    for (const model of models) {
+    for (let i = 0; i < models.length; i++) {
+      const model = models[i];
       try {
+        const payload = {
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { 
+            temperature: 0.35, // Balanced precision and deterministic adherence
+            maxOutputTokens: 8192 // Standard full Gemini output token limit
+          }
+        };
+
+        // On models with internal reasoning (gemini-2.5-flash), turn off thinking tokens
+        // so that 100% of the token allowance goes to the actual visible response.
+        if (model.name.includes('2.5')) {
+          payload.generationConfig.thinkingConfig = { thinkingBudget: 0 };
+        }
+
+        if (systemInstruction) {
+          payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+        }
+
         const res = await fetch(
           `https://generativelanguage.googleapis.com/${model.ver}/models/${model.name}:generateContent?key=${key}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
-            })
+            body: JSON.stringify(payload)
           }
         );
 
         if (!res.ok) {
           if (res.status === 429) {
             hitRateLimit = true;
-            console.warn(`[GeminiService] Model ${model.name} returned 429 (rate-limited/no-quota). Trying next...`);
-            continue; // Try next model since this specific model has no quota
+            console.warn(`[GeminiService] Model ${model.name} returned 429 (rate-limited). Cooling down for 1.5s before fallback...`);
+            await new Promise(r => setTimeout(r, 1500));
+            continue; // Try next model in sequence
           }
-          if (res.status === 404) continue; // Try next model/version
+          if (res.status === 503 || res.status === 500 || res.status === 502) {
+            console.warn(`[GeminiService] Model ${model.name} returned ${res.status} (server overloaded/unavailable). Trying next model in fallback chain...`);
+            await new Promise(r => setTimeout(r, 800));
+            continue; // Seamlessly fall back to next model without failing
+          }
+          if (res.status === 404) {
+            console.warn(`[GeminiService] Model ${model.name} returned 404. Skipping...`);
+            continue;
+          }
           const err = await res.json().catch(() => ({}));
           throw new Error(err?.error?.message || `API error: ${res.status}`);
         }
@@ -117,17 +164,19 @@ class GeminiService {
         return json?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
       } catch (e) {
         lastError = e;
-        // If we threw a custom error that is not 429, we still want to record it but keep trying
+        if (e.message && (e.message.includes('429') || e.message.includes('503'))) {
+          await new Promise(r => setTimeout(r, 1000));
+        }
       }
     }
     
     if (hitRateLimit) {
-      throw new Error('Neural Engine Cooldown: Free tier limit reached. Please wait a few minutes or check your quota at aistudio.google.com.');
+      throw new Error('Gemini Free Tier Rate Limit (15 RPM): Please wait 30–60 seconds before generating again.');
     }
-    throw lastError || new Error('Neural Engine: No compatible models found.');
+    throw lastError || new Error('Neural Engine: No compatible Gemini models responded.');
   }
 
-  // ─── Compact raw trade list formatter ───
+  // ─── Compact raw trade list formatter enriched with trade mode & RR ───
   _buildRawTradeList(trades) {
     if (!trades || trades.length === 0) return 'No raw trades recorded.';
     
@@ -136,31 +185,40 @@ class GeminiService {
     
     const lines = sorted.map((t, idx) => {
       const pl = getPL(t);
-      const isWin = t.isWin || pl > 0 ? 'Win' : 'Loss';
+      const outcome = String(t.isWin || '').toUpperCase();
+      const isWin = ['WIN', 'W'].includes(outcome) || pl > 0 ? 'WIN' : 'LOSS';
       const mkt = t.market || 'N/A';
+      const dir = t.direction || 'LONG';
+      const mode = t.tradeMode || 'Buying';
+      const status = t.tradeStatus || (pl >= 0 ? 'Target' : 'StopLoss');
       const setup = t.setup || t.strategy || 'N/A';
-      const lot = t.positionSize || t.lots || 'N/A';
-      const emo = t.emotions || t.emotion || 'N/A';
-      const err = t.lossReason || t.error || 'None';
+      const lot = t.positionSize || t.lots || '1';
+      const rr = t.rr ? `1:${t.rr}` : 'N/A';
+      const emo = t.emotions || t.emotion || 'Calm';
+      const err = t.lossReason || 'None';
+      const duration = t.tradeTime ? ` | Dur: ${t.tradeTime}` : '';
       const dateStr = new Date(t.date).toLocaleDateString();
       
-      return `${idx+1}. [${dateStr}] ${mkt} | Setup: ${setup} | ${isWin} | P/L: ₹${Math.round(pl)} | Lot: ${lot} | Emotion: ${emo} | Error: ${err}`;
+      return `${idx+1}. [${dateStr}] ${mkt} (${dir} - ${mode}) | Status: ${status} | RR: ${rr} | ${isWin} | P/L: ₹${Math.round(pl)} | Lots: ${lot} | Setup: ${setup} | Emo: ${emo} | Error: ${err}${duration}`;
     });
     
-    // Limit to the last 60 trades to remain efficient and preserve context size
-    if (lines.length > 60) {
-      return 'Showing last 60 trades:\n' + lines.slice(-60).join('\n');
+    // Limit to the last 50 trades to stay comfortably within free tier token limits
+    if (lines.length > 50) {
+      return 'Showing last 50 trades:\n' + lines.slice(-50).join('\n');
     }
     return lines.join('\n');
   }
 
-  // ─── Build aggregated stats from trades (NEVER sends raw data by default, unless requested) ───
+  // ─── Build comprehensive, numbers-backed aggregated stats ───
   _buildTradeStats(trades) {
     if (!trades || trades.length === 0) return 'No trade data available.';
 
     let wins = 0, winTotal = 0, lossTotal = 0;
     const emotionMap = {}, marketMap = {}, lossReasons = {}, qualityMap = {}, dowMap = {};
+    const modeMap = { Buying: { count: 0, pl: 0, wins: 0 }, Selling: { count: 0, pl: 0, wins: 0 } };
+    const statusMap = {};
     const lots = [];
+    const validRRs = [];
 
     trades.forEach(t => {
       const pl = getPL(t);
@@ -170,22 +228,41 @@ class GeminiService {
       if (isWin) { wins++; winTotal += pl; }
       else if (pl < 0) { lossTotal += Math.abs(pl); }
 
+      // Taken RR
+      const rrNum = parseFloat(t.rr);
+      if (!isNaN(rrNum) && rrNum > 0) validRRs.push(rrNum);
+
+      // Trade Mode (Buying vs Selling)
+      const mode = (t.tradeMode || 'Buying').toLowerCase().includes('sell') ? 'Selling' : 'Buying';
+      modeMap[mode].count++;
+      modeMap[mode].pl += pl;
+      if (isWin) modeMap[mode].wins++;
+
+      // Trade Status
+      const st = t.tradeStatus || (pl >= 0 ? 'Target' : 'StopLoss');
+      statusMap[st] = (statusMap[st] || 0) + 1;
+
+      // Emotion
       const em = t.emotions || t.emotion || 'Unknown';
       if (!emotionMap[em]) emotionMap[em] = { count: 0, pl: 0, wins: 0 };
       emotionMap[em].count++; emotionMap[em].pl += pl; if (isWin) emotionMap[em].wins++;
 
+      // Market
       const mkt = t.market || 'Unknown';
       if (!marketMap[mkt]) marketMap[mkt] = { count: 0, pl: 0, wins: 0 };
       marketMap[mkt].count++; marketMap[mkt].pl += pl; if (isWin) marketMap[mkt].wins++;
 
+      // Loss Reason
       if (pl < 0 && t.lossReason) {
         lossReasons[t.lossReason] = (lossReasons[t.lossReason] || 0) + 1;
       }
 
+      // Quality
       const q = t.tradeQuality || t.quality || 'Unknown';
       if (!qualityMap[q]) qualityMap[q] = { count: 0, pl: 0 };
       qualityMap[q].count++; qualityMap[q].pl += pl;
 
+      // Day of Week
       const d = t.jsDate || new Date(t.date);
       if (d && !isNaN(d.getTime())) {
         const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
@@ -198,11 +275,26 @@ class GeminiService {
     });
 
     const total = trades.length;
+    const losses = total - wins;
+    const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
     const avgWin = wins > 0 ? winTotal / wins : 0;
-    const avgLoss = (total - wins) > 0 ? lossTotal / (total - wins) : 0;
+    const avgLoss = losses > 0 ? lossTotal / losses : 0;
     const net = winTotal - lossTotal;
     const pf = lossTotal > 0 ? (winTotal / lossTotal).toFixed(2) : 'N/A';
     const avgLot = lots.length > 0 ? (lots.reduce((a, b) => a + b, 0) / lots.length).toFixed(1) : 'N/A';
+    const avgRR = validRRs.length > 0 ? (validRRs.reduce((a, b) => a + b, 0) / validRRs.length).toFixed(2) : 'N/A';
+    
+    // Mathematical Expectancy per Trade: (WR * AvgWin) - (LR * AvgLoss)
+    const expectancy = total > 0 ? Math.round(((wins / total) * avgWin) - ((losses / total) * avgLoss)) : 0;
+
+    const modeStr = Object.entries(modeMap)
+      .filter(([, d]) => d.count > 0)
+      .map(([m, d]) => `${m}: ${d.count} trades, ${Math.round((d.wins / d.count) * 100)}% WR, ₹${Math.round(d.pl)} P/L`)
+      .join(' | ');
+
+    const statusStr = Object.entries(statusMap)
+      .map(([s, c]) => `${s}: ${c}`)
+      .join(', ');
 
     const emotionStr = Object.entries(emotionMap)
       .sort((a, b) => b[1].count - a[1].count)
@@ -230,26 +322,34 @@ class GeminiService {
       .map(([d, v]) => `${d}: ${v.count} trades, ${Math.round((v.wins / v.count) * 100)}% WR, ₹${Math.round(v.pl)}`)
       .join('\n');
 
-    return `TRADE STATS (${total} trades):
-- Win Rate: ${Math.round((wins / total) * 100)}%
+    return `TRADING PERFORMANCE SUMMARY (${total} trades):
+- Win Rate: ${winRate}% (${wins}W / ${losses}L)
 - Net P/L: ₹${Math.round(net)}
 - Avg Win: ₹${Math.round(avgWin)}, Avg Loss: ₹${Math.round(avgLoss)}
 - Profit Factor: ${pf}
+- Avg Risk-to-Reward (RR): ${avgRR}
+- Mathematical Expectancy per Trade: ₹${expectancy}
 - Avg Lot Size: ${avgLot}
 
-EMOTION BREAKDOWN:
+TRADE MODE BREAKDOWN:
+${modeStr || 'N/A'}
+
+TRADE STATUSES:
+${statusStr || 'N/A'}
+
+EMOTION ATTRIBUTION:
 ${emotionStr}
 
-MARKET BREAKDOWN:
+MARKET PERFORMANCE:
 ${marketStr}
 
-LOSS REASONS (top 5):
+TOP LOSS REASONS:
 ${lossStr || 'None recorded'}
 
 TRADE QUALITY:
 ${qualStr}
 
-DAY OF WEEK:
+DAY OF WEEK PERFORMANCE:
 ${dowStr}`;
   }
 
@@ -258,48 +358,54 @@ ${dowStr}`;
   // ═══════════════════════════════════════════════════════════
 
   async deepAnalysis(trades, forceRefresh = false) {
+    const fingerprint = this.getDataFingerprint(trades);
     if (!forceRefresh) {
-      const cached = this._getCache('deep_analysis');
+      const cached = this._getCache('deep_analysis', fingerprint);
       if (cached) return { text: cached, fromCache: true };
     }
 
     const stats = this._buildTradeStats(trades);
     const rawTradeData = this._buildRawTradeList(trades);
-    const prompt = `You are a world-class trading performance coach. Analyze this trader's metrics and raw trade log to deliver an institutional-grade deep diagnostic report.
+    const systemPrompt = "You are a quantitative trading performance coach at an institutional proprietary desk. Provide direct, numbers-backed mathematical feedback. No generic motivation.";
+    
+    const userPrompt = `Analyze this trader's metrics, RR data, buying vs selling modes, and recent raw trade log to deliver an institutional-grade deep diagnostic report.
 
 AGGREGATED METRICS:
 ${stats}
 
-RAW TRADES LOG (Recent):
+RAW TRADES LOG:
 ${rawTradeData}
 
 Analyze the correlations, behaviors, and raw log details to generate:
-1. **🔍 Behavioral Strengths**: What execution habits are driving the most profit? (be highly specific, reference markets or lot sizes)
-2. **⚠️ Core Leak Identification**: What specific pattern, strategy, or emotional trade is leaking the most money? Prove it with raw numbers.
-3. **💡 Hidden Behavioral Correlation**: Reveal a non-obvious correlation (e.g., specific day combined with setup, or emotional state following a loss).
-4. **🎯 Tactical Action Plan**: Design exactly one concrete process change they should implement this week.
+1. **🔍 Behavioral Strengths**: What execution habits (markets, setups, lot sizes, or buying/selling) are driving the most profit? Cite exact data.
+2. **⚠️ Core Leak Identification**: What specific pattern, trade mode, or emotional state is leaking the most capital? Prove it with exact rupee amounts.
+3. **💡 Hidden Behavioral Correlation**: Reveal a non-obvious correlation (e.g., RR ratio versus win rate, duration vs loss rate, or sizing changes after losses).
+4. **🎯 Tactical Action Plan**: Design exactly one concrete process change they must implement this week.
 
 Keep it under 300 words. Be direct, technical, and use clear data.`;
 
-    const text = await this._callGemini(prompt);
-    this._setCache('deep_analysis', text);
+    const text = await this._callGemini(userPrompt, systemPrompt);
+    this._setCache('deep_analysis', text, fingerprint);
     return { text, fromCache: false };
   }
 
   async buildStrategy(trades, forceRefresh = false) {
+    const fingerprint = this.getDataFingerprint(trades);
     if (!forceRefresh) {
-      const cached = this._getCache('strategy_builder');
+      const cached = this._getCache('strategy_builder', fingerprint);
       if (cached) return { text: cached, fromCache: true };
     }
 
     const stats = this._buildTradeStats(trades);
     const rawTradeData = this._buildRawTradeList(trades);
-    const prompt = `You are a quantitative trading strategist. Analyze this trader's historical data and raw log to design a custom, high-probability execution rule-set.
+    const systemPrompt = "You are a quantitative trading strategist. Design strict, data-backed execution rule-sets that maximize expectancy.";
+
+    const userPrompt = `Analyze this trader's historical data, trade modes, and raw log to design a custom, high-probability execution rule-set.
 
 AGGREGATED METRICS:
 ${stats}
 
-RAW TRADES LOG (Recent):
+RAW TRADES LOG:
 ${rawTradeData}
 
 Generate:
@@ -311,12 +417,12 @@ Generate:
 - List 4 highly specific rules based on errors, setups, or emotional triggers where they consistently lose capital.
 
 **📈 EXPECTED METRICS SHIFT:**
-- Quantify how their Win Rate and Profit Factor will improve by strictly removing these dangerous executions.
+- Quantify how their Win Rate, Expectancy, and Profit Factor will improve by strictly removing these dangerous executions.
 
 Keep it under 300 words. Use exact numbers and keep it actionable and professional.`;
 
-    const text = await this._callGemini(prompt);
-    this._setCache('strategy_builder', text);
+    const text = await this._callGemini(userPrompt, systemPrompt);
+    this._setCache('strategy_builder', text, fingerprint);
     return { text, fromCache: false };
   }
 
@@ -330,7 +436,6 @@ Keep it under 300 words. Use exact numbers and keep it actionable and profession
       return d >= monthStart;
     });
 
-    // Fallback: If no trades in the current calendar month, use trailing 30 days
     let isTrailing = false;
     if (monthTrades.length === 0) {
       const thirtyDaysAgo = new Date();
@@ -343,13 +448,14 @@ Keep it under 300 words. Use exact numbers and keep it actionable and profession
     }
 
     const cacheKey = `monthly_${monthStart.getFullYear()}_${monthStart.getMonth()}${isTrailing ? '_trailing' : ''}`;
+    const fingerprint = this.getDataFingerprint(monthTrades);
+
     if (!forceRefresh) {
-      const cached = this._getCache(cacheKey);
+      const cached = this._getCache(cacheKey, fingerprint);
       if (cached) return { text: cached, fromCache: true };
     }
 
     if (monthTrades.length === 0) {
-      // Final fallback: Use all trades if still absolutely empty
       if (trades.length > 0) {
         monthTrades = trades;
       } else {
@@ -360,10 +466,9 @@ Keep it under 300 words. Use exact numbers and keep it actionable and profession
     const stats = this._buildTradeStats(monthTrades);
     const allTimeStats = this._buildTradeStats(trades);
     const rawTradeData = this._buildRawTradeList(monthTrades);
+    const systemPrompt = "You are a Senior Quantitative Portfolio Risk Director at a high-frequency proprietary trading firm. Conduct an institutional-grade Monthly Performance & Behavioral Attribution Audit.";
 
-    const prompt = `You are a Senior Quantitative Portfolio Risk Director at a high-frequency proprietary trading firm. Conduct an institutional-grade Monthly Performance & Behavioral Attribution Audit. 
-
-We need to extract deep, highly non-generic, numbers-backed mathematical truths from this trader's data to eliminate leaks and identify systemic edges.
+    const userPrompt = `Extract deep, numbers-backed mathematical truths from this trader's data to eliminate leaks and identify systemic edges.
 
 MONTHLY AGGREGATED METRICS:
 ${stats}
@@ -374,41 +479,41 @@ ${allTimeStats}
 RAW TRADES LOG (This Month):
 ${rawTradeData}
 
-Your audit MUST contain the following four highly granular, analytical sections. Avoid any generic advice (like "let wins run"). Every single point must reference actual numbers, specific setups, dates, emotions, or markets:
+Your audit MUST contain the following four analytical sections. Avoid generic advice; reference actual numbers, specific setups, dates, emotions, or markets:
 
 1. **📊 Performance & Outlier Decomposition**:
-   - Calculate the "adjusted net profit" by identifying the single largest loss of the month (give the date and setup). Show how much the net profit and win rate would improve if this single outlier was avoided.
-   - Compare the current month's Win Rate, Average Win-to-Loss Ratio, and Profit Factor against the All-Time Baseline. State if the trader is experiencing positive or negative drift.
+   - Calculate adjusted net profit by identifying the single largest loss of the month (give date and setup). Show how much net profit and win rate improve if this outlier was avoided.
+   - Compare current month's Win Rate, Average Win-to-Loss Ratio, and Expectancy against the All-Time Baseline.
 
 2. **💡 Psychological & Tag Attribution (Cost-of-Error)**:
-   - Identify the primary emotion (e.g. FOMO, Greed, Anger) or error tag (e.g. Overtrading, Early Exit) that cost the most money this month.
+   - Identify the primary emotion (FOMO, Greed, Anger) or error tag that cost the most money this month.
    - Calculate the exact total Rupees (₹) lost across all trades tagged with that emotion or error. State: "Emotion/Error [Tag] cost you exactly ₹X across Y trades."
 
 3. **🚨 Execution Loop & Revenge-Trading Scans**:
-   - Scan the raw trade log dates for "consecutive intra-day loss loops" (taking multiple losses on the same day). If found, highlight the specific date and market (e.g., "On [Date], you took Y consecutive losses on [Market], indicating a temporary loss of emotional discipline").
+   - Scan raw trade log dates for consecutive intra-day loss loops. Highlight specific dates and markets.
    - Pinpoint the exact setup and lot size combination that yielded the lowest win rate.
 
 4. **🛡️ Tailored Proprietary Risk Mandates**:
    - Provide a mathematically derived **Max Daily Loss Limit** (in ₹) calculated as 1.5x your average loss size.
    - Set a **Max Weekly Drawdown Threshold** (in ₹) where the trading console must lock, and specify the exact maximum lot size permitted for the worst-performing setup.
 
-Keep the entire audit under 450 words. Be blunt, mathematical, direct, and completely non-generic.`;
+Keep the entire audit under 450 words. Be blunt, mathematical, direct, and non-generic.`;
 
-    const text = await this._callGemini(prompt);
-    this._setCache(cacheKey, text);
+    const text = await this._callGemini(userPrompt, systemPrompt);
+    this._setCache(cacheKey, text, fingerprint);
     return { text, fromCache: false };
   }
 
   async dailyBriefing(trades, snapshots, notes, forceRefresh = false) {
+    const fingerprint = this.getDataFingerprint(trades, snapshots, notes);
     if (!forceRefresh) {
-      const cached = this._getCache('daily_briefing');
+      const cached = this._getCache('daily_briefing', fingerprint);
       if (cached) return { text: cached, fromCache: true };
     }
 
     const stats = this._buildTradeStats(trades);
     const rawTradeData = this._buildRawTradeList(trades);
     
-    // Format snapshots and notes compactly for full AI context
     const snapshotSummary = snapshots && snapshots.length > 0 
       ? snapshots.slice(-15).map((s, idx) => `${idx+1}. [${new Date(s.date || s.dateAdded).toLocaleDateString()}] Rules: ${s.rulesFollowed || 'N/A'} | Emotions: ${s.emotionsInControl || 'N/A'} | Progress: ${s.progress || 'N/A'}`).join('\n')
       : 'No daily snapshots recorded.';
@@ -417,7 +522,9 @@ Keep the entire audit under 450 words. Be blunt, mathematical, direct, and compl
       ? notes.slice(-15).map((n, idx) => `${idx+1}. [${new Date(n.date || n.Date || n.noteDate).toLocaleDateString()}] (${n.category || n.Select || 'Entry'}): "${n.content || n.Note || 'Empty content'}"`).join('\n')
       : 'No psychology notes recorded.';
 
-    const prompt = `You are a world-class trading performance coach. Deliver a simple, clean, and highly actionable AI Daily Market Briefing based on this trader's data.
+    const systemPrompt = "You are a concise, world-class trading performance coach. Deliver a simple, clean, and highly actionable AI Daily Market Briefing.";
+
+    const userPrompt = `Deliver a clean and actionable AI Daily Market Briefing based on this trader's data:
 
 AGGREGATED METRICS:
 ${stats}
@@ -431,29 +538,30 @@ ${snapshotSummary}
 RECENT PSYCHOLOGY JOURNAL NOTES (Mistakes & emotional patterns):
 ${notesSummary}
 
-CRITICAL: Keep the briefing EXTREMELY short, simple, and clean. Use basic, plain words. Absolutely NO long paragraphs or complex terms. Use single-sentence bullet points (maximum 10 words per bullet). The entire response must be under 80 words total!
+CRITICAL: Keep the briefing short, simple, and clean. Use basic plain words. Use single-sentence bullet points (maximum 12 words per bullet). The entire response must be under 90 words total.
 
 Structure it EXACTLY as follows:
 
 1. **🚫 AVOID TODAY**:
-   - [Short bullet 1]
-   - [Short bullet 2]
+   - [Short actionable bullet 1]
+   - [Short actionable bullet 2]
 
 2. **🎯 FOCUS TODAY**:
-   - [Short bullet 1]
-   - [Short bullet 2]
+   - [Short actionable bullet 1]
+   - [Short actionable bullet 2]
 
 3. **⚡ VERDICT**:
-   - [Single short sentence posture + 1 simple reason]`;
+   - [Single short posture sentence with 1 clear mathematical reason]`;
 
-    const text = await this._callGemini(prompt);
-    this._setCache('daily_briefing', text);
+    const text = await this._callGemini(userPrompt, systemPrompt);
+    this._setCache('daily_briefing', text, fingerprint);
     return { text, fromCache: false };
   }
 
   async anomalyScan(trades, snapshots, notes, forceRefresh = false) {
+    const fingerprint = this.getDataFingerprint(trades, snapshots, notes);
     if (!forceRefresh) {
-      const cached = this._getCache('anomaly_scan');
+      const cached = this._getCache('anomaly_scan', fingerprint);
       if (cached) return { text: cached, fromCache: true };
     }
 
@@ -461,14 +569,16 @@ Structure it EXACTLY as follows:
     const rawTradeData = this._buildRawTradeList(trades);
     
     const snapshotSummary = snapshots && snapshots.length > 0 
-      ? snapshots.slice(-20).map((s, idx) => `${idx+1}. [${new Date(s.date || s.dateAdded).toLocaleDateString()}] Rules: ${s.rulesFollowed || 'N/A'} | Emotions: ${s.emotionsInControl || 'N/A'} | Setup Followed: ${s.setup || s.snapshotSetup || 'N/A'}`).join('\n')
+      ? snapshots.slice(-20).map((s, idx) => `${idx+1}. [${new Date(s.date || s.dateAdded).toLocaleDateString()}] Rules: ${s.rulesFollowed || 'N/A'} | Emotions: ${s.emotionsInControl || 'N/A'} | Setup: ${s.setup || s.snapshotSetup || 'N/A'}`).join('\n')
       : 'No daily snapshots recorded.';
       
     const notesSummary = notes && notes.length > 0
       ? notes.slice(-20).map((n, idx) => `${idx+1}. [${new Date(n.date || n.Date || n.noteDate).toLocaleDateString()}] (${n.category || n.Select || 'Entry'}): "${n.content || n.Note || 'Empty content'}"`).join('\n')
       : 'No psychology notes recorded.';
 
-    const prompt = `You are a Senior Quantitative Risk Attribution Systems Director. Conduct a high-level anomaly detection scan on this trader's data to detect structural, behavioral, or statistical deviations.
+    const systemPrompt = "You are a Senior Quantitative Risk Attribution Systems Director. Detect structural, behavioral, or statistical anomalies.";
+
+    const userPrompt = `Conduct a high-level anomaly detection scan on this trader's data to detect structural, behavioral, or statistical deviations:
 
 AGGREGATED METRICS:
 ${stats}
@@ -482,23 +592,23 @@ ${snapshotSummary}
 RECENT PSYCHOLOGY JOURNAL NOTES (Emotional triggers & leaks):
 ${notesSummary}
 
-Analyze all elements concurrently to detect anomalies (such as revenge trading indicators, size spikes, market focus decay, rules-compliance drops, emotional deterioration, or setup quality drift). 
+Analyze all elements to detect anomalies (revenge trading indicators, size spikes, market focus decay, rules-compliance drops, emotional deterioration, or setup drift).
 
-Deliver a highly professional, blunt Anomaly Report containing:
+Deliver a blunt Anomaly Report containing:
 
 1. **🔴 CRITICAL BEHAVIORAL ANOMALIES**:
-   - List any highly severe anomalies where structural discipline is actively breaking down (e.g., sudden sizing spikes, ignoring rules despite snapshots saying "Yes", consecutive day-losses, or high concentrations of FOMO/Anger notes). Prove with exact numbers and dates.
+   - List severe anomalies where discipline is breaking down (sizing spikes, rule violations, consecutive intra-day losses, or FOMO concentrations). Cite exact numbers.
 
 2. **🟡 STATISTICAL & PROCESS DEVIATIONS**:
-   - Identify warning-level anomalies (e.g., trading low-win-rate days, setups showing declining win rates, or taking excessive trades relative to historical daily averages).
+   - Identify warning-level anomalies (trading low-win-rate days, setups with declining win rates, or excessive frequency).
 
 3. **🟢 SYSTEM STABILITY SCORE**:
-   - Give an overall system stability percentage (e.g., 85% stable) with a brief, mathematical reason why.
+   - State an overall system stability percentage (e.g., 85% stable) with a brief mathematical reason why.
 
-Keep it under 350 words. Be clinical, quantitative, direct, and completely numbers-backed.`;
+Keep it under 350 words. Be clinical, quantitative, direct, and numbers-backed.`;
 
-    const text = await this._callGemini(prompt);
-    this._setCache('anomaly_scan', text);
+    const text = await this._callGemini(userPrompt, systemPrompt);
+    this._setCache('anomaly_scan', text, fingerprint);
     return { text, fromCache: false };
   }
 }

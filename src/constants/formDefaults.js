@@ -55,32 +55,67 @@ export const DEFAULT_TRADE_FORM = {
 };
 
 export const mapTradeToForm = (editingTrade) => {
+  if (!editingTrade) return DEFAULT_TRADE_FORM;
+
   const getSmartVal = (key) => {
     const dbKey = DB_FIELDS[key] || key;
-    return editingTrade[dbKey] || editingTrade[key] || '';
+    return editingTrade[dbKey] !== undefined ? editingTrade[dbKey] : (editingTrade[key] !== undefined ? editingTrade[key] : '');
   };
 
+  const rawDate = editingTrade.jsDate || editingTrade[DB_FIELDS.date] || editingTrade.date || editingTrade.entry_time;
+  const parsedDate = rawDate ? new Date(rawDate) : null;
+  const formattedDate = parsedDate && !isNaN(parsedDate.getTime()) ? getLocalDatetime(parsedDate) : getLocalDatetime();
+
+  // Robust P&L extraction across all schema representations
+  const rawPl = editingTrade[DB_FIELDS.pl] ?? editingTrade['P/L'] ?? editingTrade.pl ?? editingTrade.net_pnl ?? editingTrade.gross_pnl ?? '';
+  const pl = (rawPl !== '' && rawPl !== null && rawPl !== undefined) ? String(rawPl) : '';
+
+  // Robust Brokerage / Fees extraction across all schema representations
+  const rawFees = editingTrade[DB_FIELDS.fees] ?? editingTrade['fees'] ?? editingTrade.fees ?? editingTrade.brokerage ?? editingTrade.total_fees ?? '';
+  const brokerage = (rawFees !== '' && rawFees !== null && rawFees !== undefined) ? String(rawFees) : '';
+
+  // Outcome W/L
+  const winRaw = editingTrade.isWin ?? editingTrade[DB_FIELDS.isWin] ?? editingTrade['W/L'];
+  let isWin = 'WIN';
+  if (winRaw !== undefined && winRaw !== null) {
+    isWin = (winRaw === true || String(winRaw).toUpperCase() === 'WIN') ? 'WIN' : 'LOSS';
+  } else if (pl !== '') {
+    isWin = parseFloat(pl) >= 0 ? 'WIN' : 'LOSS';
+  }
+
+  // Direction
+  const dirRaw = String(getSmartVal('direction') || editingTrade.direction || 'LONG').toUpperCase();
+  const direction = dirRaw.includes('LONG') ? 'LONG' : (dirRaw.includes('SHORT') ? 'SHORT' : 'OBSERVE');
+
   return {
-    date: editingTrade.jsDate ? getLocalDatetime(new Date(editingTrade.jsDate)) : getLocalDatetime(),
-    market: getSmartVal('market'),
-    direction: (getSmartVal('direction') || 'LONG').toUpperCase().includes('LONG') ? 'LONG' : (String(getSmartVal('direction')).toUpperCase().includes('SHORT') ? 'SHORT' : 'OBSERVE'),
-    isWin: (editingTrade.isWin === true || String(getSmartVal('isWin')).toUpperCase() === 'WIN') ? 'WIN' : 'LOSS',
-    pl: editingTrade.pl?.toString() || '',
-    rr: getSmartVal('rr'),
+    date: formattedDate,
+    market: getSmartVal('market') || editingTrade.market || editingTrade.symbol || '',
+    direction,
+    isWin,
+    pl,
+    rr: getSmartVal('rr') || editingTrade.rr || '',
     screenshot: null,
-    reason: getSmartVal('reason'),
-    learning: getSmartVal('learning'),
-    setups: Array.isArray(editingTrade.setups) ? editingTrade.setups : (editingTrade[DB_FIELDS.setups] ? String(editingTrade[DB_FIELDS.setups]).split(',').map(s => s.trim()) : []),
-    lossReason: Array.isArray(editingTrade.lossReason) ? editingTrade.lossReason : (editingTrade[DB_FIELDS.lossReason] ? String(editingTrade[DB_FIELDS.lossReason]).split(',').map(s => s.trim()) : []),
-    emotions: getSmartVal('emotion') || 'Calm',
-    positionSize: getSmartVal('lots') || getSmartVal('positionSize') || '',
-    tradeQuality: getSmartVal('quality') || 'A',
-    tradeStatus: getSmartVal('status') || 'Neutral',
-    positionType: getSmartVal('positionType') || 'Intraday',
-    tradeMode: getSmartVal('tradeMode') || 'Buying',
-    tradeTime: getSmartVal('tradeTime') || '',
-    brokerage: getSmartVal('brokerage') || '',
-    chartScreenshotUrl: getSmartVal('chartScreenshotUrl')
+    reason: getSmartVal('reason') || editingTrade.reason || '',
+    learning: getSmartVal('learning') || editingTrade.learning || '',
+    setups: Array.isArray(editingTrade.setups) ? editingTrade.setups : (editingTrade[DB_FIELDS.setups] ? String(editingTrade[DB_FIELDS.setups]).split(',').map(s => s.trim()) : (editingTrade.setups ? String(editingTrade.setups).split(',').map(s => s.trim()) : [])),
+    lossReason: Array.isArray(editingTrade.lossReason) ? editingTrade.lossReason : (editingTrade[DB_FIELDS.lossReason] ? String(editingTrade[DB_FIELDS.lossReason]).split(',').map(s => s.trim()) : (editingTrade.lossReason ? String(editingTrade.lossReason).split(',').map(s => s.trim()) : [])),
+    emotions: getSmartVal('emotions') || getSmartVal('emotion') || editingTrade.emotions || 'Calm',
+    positionSize: getSmartVal('positionSize') || getSmartVal('lots') || (editingTrade.positionSize !== undefined ? String(editingTrade.positionSize) : (editingTrade.quantity !== undefined ? String(editingTrade.quantity) : '')),
+    tradeQuality: getSmartVal('tradeQuality') || getSmartVal('quality') || editingTrade.tradeQuality || 'A',
+    tradeStatus: (() => {
+      const validStatuses = ['Target++', 'Target', 'Partial', 'StopLoss', 'Neutral'];
+      const explicit = getSmartVal('tradeStatus') || editingTrade[DB_FIELDS.tradeStatus] || editingTrade.tradeStatus;
+      if (explicit && validStatuses.includes(explicit)) {
+        return explicit;
+      }
+      const numPl = parseFloat(pl);
+      return (!isNaN(numPl) && numPl >= 0) ? 'Target' : 'StopLoss';
+    })(),
+    positionType: getSmartVal('positionType') || editingTrade.positionType || 'Intraday',
+    tradeMode: getSmartVal('tradeMode') || editingTrade.tradeMode || 'Buying',
+    tradeTime: getSmartVal('tradeTime') || editingTrade.tradeTime || '',
+    brokerage,
+    chartScreenshotUrl: getSmartVal('chartScreenshotUrl') || editingTrade.chartScreenshotUrl || ''
   };
 };
 

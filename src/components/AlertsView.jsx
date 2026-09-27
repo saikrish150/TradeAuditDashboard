@@ -4,13 +4,14 @@ import { binanceService } from '../services/binance';
 import { SUPPORTED_SYMBOLS, SUPPORTED_TIMEFRAMES } from '../types/binance';
 import { Chart } from './Chart';
 import { AlertsPanel } from './AlertsPanel';
-import { TrendingUp, Coins, ChevronRight, LayoutGrid, Clock, Wifi, WifiOff, RefreshCw, Database, Globe, Flag, Volume2 } from 'lucide-react';
+import { Coins, ChevronRight, LayoutGrid, Clock, Wifi, WifiOff, Database } from 'lucide-react';
 
 const GUEST_USER_ID = '00000000-0000-0000-0000-000000000000';
 
 export const AlertsView = () => {
   const [alerts, setAlerts] = useState([]);
   const currentPricesRef = useRef({}); // Optimized: Use ref to prevent re-rendering on every price tick
+  const previousPricesRef = useRef({}); // Track previous price tick for genuine crossing detection
   const audioCtxRef = useRef(null);
   const [selectedSymbol, setSelectedSymbol] = useState(SUPPORTED_SYMBOLS[0]);
   const [selectedInterval, setSelectedInterval] = useState('5m');
@@ -19,14 +20,7 @@ export const AlertsView = () => {
   const [isUSMode, setIsUSMode] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [toast, setToast] = useState(null);
-  const [triggeredModal, setTriggeredModal] = useState(null);
   const [autoLevels, setAutoLevels] = useState({ pdh: null, pdl: null, pwh: null, pwl: null });
-  const triggeredLevelsRef = useRef(new Set());
-  const autoLevelsRef = useRef(autoLevels);
-
-  useEffect(() => {
-    autoLevelsRef.current = autoLevels;
-  }, [autoLevels]);
   
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -125,30 +119,6 @@ export const AlertsView = () => {
     };
   }, [fetchAlerts]);
 
-  // Handled globally by useAutoLevelsSync in App.jsx
-
-  useEffect(() => {
-    const updateLocalAutoLevels = async () => {
-      try {
-        const dailyCandles = await binanceService.getHistoricalData(selectedSymbol, '1d');
-        const weeklyCandles = await binanceService.getHistoricalData(selectedSymbol, '1w');
-        let pdh = null, pdl = null, pwh = null, pwl = null;
-        if (dailyCandles && dailyCandles.length >= 2) {
-          pdh = dailyCandles[dailyCandles.length - 2].high;
-          pdl = dailyCandles[dailyCandles.length - 2].low;
-        }
-        if (weeklyCandles && weeklyCandles.length >= 2) {
-          pwh = weeklyCandles[weeklyCandles.length - 2].high;
-          pwl = weeklyCandles[weeklyCandles.length - 2].low;
-        }
-        setAutoLevels({ pdh, pdl, pwh, pwl });
-      } catch (e) {
-        console.error('[AutoLevels] Failed to update local levels:', e);
-      }
-    };
-    updateLocalAutoLevels();
-  }, [selectedSymbol]);
-
   const playAlertSound = useCallback(() => {
     try {
       // 1. Initialize AudioContext on the fly if needed
@@ -212,18 +182,157 @@ export const AlertsView = () => {
     }
   }, []);
 
+  const handleSetTriggered = useCallback(async (alert, currentPrice) => {
+    // 1. Mark triggered locally
+    setAlerts(prev => prev.map(a => a.id === alert.id ? { ...a, status: 'triggered' } : a));
+
+    // 2. Non-intrusive sound and toast notification (no blocking full-screen modal)
+    playAlertSound();
+    const alertLabelText = alert.label ? `${alert.label} Level ($${alert.target_price})` : `$${alert.target_price}`;
+    showToast(`🔔 ${alert.symbol} crossed ${alertLabelText}!`, 'success');
+
+    if (window.Notification && Notification.permission === "granted") {
+      new Notification(`🔔 ${alert.symbol} ${alert.label ? `${alert.label} Level` : 'Alert'}!`, {
+        body: `${alert.symbol} crossed $${alert.target_price} (Current: $${currentPrice})`
+      });
+    }
+
+    // 3. Send Telegram instantly via Edge Function check-alerts
+    try {
+      await supabase.functions.invoke('check-alerts', {
+        body: { alert, currentPrice }
+      });
+    } catch (e) {
+      console.warn('[AlertsView] Telegram direct alert invocation note:', e);
+    }
+
+    // 4. Update status in database
+    await supabase.from('alerts').update({ status: 'triggered' }).eq('id', alert.id);
+  }, [playAlertSound]);
+
+  const syncSymbolLevelsToDb = useCallback(async (symObj, pdh, pdl, pwh, pwl) => {
+    try {
+      const curPrice = currentPricesRef.current[symObj.id];
+      const currentUserId = GUEST_USER_ID;
+      const calculatedLevels = [];
+
+      if (pdh != null) calculatedLevels.push({ symbol: symObj.id, target_price: Number(pdh), condition: (curPrice && curPrice > pdh) ? 'lt' : 'gt', status: 'active', label: 'PDH', user_id: currentUserId });
+      if (pdl != null) calculatedLevels.push({ symbol: symObj.id, target_price: Number(pdl), condition: (curPrice && curPrice < pdl) ? 'gt' : 'lt', status: 'active', label: 'PDL', user_id: currentUserId });
+      if (pwh != null) calculatedLevels.push({ symbol: symObj.id, target_price: Number(pwh), condition: (curPrice && curPrice > pwh) ? 'lt' : 'gt', status: 'active', label: 'PWH', user_id: currentUserId });
+      if (pwl != null) calculatedLevels.push({ symbol: symObj.id, target_price: Number(pwl), condition: (curPrice && curPrice < pwl) ? 'gt' : 'lt', status: 'active', label: 'PWL', user_id: currentUserId });
+
+      const { data: existingLevels, error: fetchErr } = await supabase
+        .from('alerts')
+        .select('*')
+        .eq('symbol', symObj.id)
+        .in('label', ['PDH', 'PDL', 'PWH', 'PWL']);
+
+      if (!fetchErr && calculatedLevels.length > 0) {
+        const levelsToInsert = [];
+        const idsToDelete = [];
+
+        calculatedLevels.forEach(calcLevel => {
+          const existing = existingLevels?.find(e => e.label === calcLevel.label);
+          if (!existing) {
+            levelsToInsert.push(calcLevel);
+          } else if (Math.abs(Number(existing.target_price) - calcLevel.target_price) > 0.0001) {
+            idsToDelete.push(existing.id);
+            levelsToInsert.push(calcLevel);
+          }
+        });
+
+        if (idsToDelete.length > 0) {
+          await supabase.from('alerts').delete().in('id', idsToDelete);
+        }
+        if (levelsToInsert.length > 0) {
+          await supabase.from('alerts').insert(levelsToInsert);
+          fetchAlerts();
+        }
+      }
+    } catch (err) {
+      console.error('[AutoLevels] Failed to sync auto levels to Supabase:', err);
+    }
+  }, [fetchAlerts]);
+
+  useEffect(() => {
+    const updateLocalAutoLevels = async () => {
+      try {
+        const dailyCandles = await binanceService.getHistoricalData(selectedSymbol, '1d');
+        const weeklyCandles = await binanceService.getHistoricalData(selectedSymbol, '1w');
+        let pdh = null, pdl = null, pwh = null, pwl = null;
+        if (dailyCandles && dailyCandles.length >= 2) {
+          pdh = dailyCandles[dailyCandles.length - 2].high;
+          pdl = dailyCandles[dailyCandles.length - 2].low;
+        }
+        if (weeklyCandles && weeklyCandles.length >= 2) {
+          pwh = weeklyCandles[weeklyCandles.length - 2].high;
+          pwl = weeklyCandles[weeklyCandles.length - 2].low;
+        }
+        setAutoLevels({ pdh, pdl, pwh, pwl });
+        await syncSymbolLevelsToDb(selectedSymbol, pdh, pdl, pwh, pwl);
+      } catch (e) {
+        console.error('[AutoLevels] Failed to update local levels:', e);
+      }
+    };
+    updateLocalAutoLevels();
+  }, [selectedSymbol, syncSymbolLevelsToDb]);
+
+  // Background sync for all supported symbols on mount to ensure database levels remain fresh
+  useEffect(() => {
+    const syncAllSymbols = async () => {
+      for (const sym of SUPPORTED_SYMBOLS) {
+        try {
+          const dailyCandles = await binanceService.getHistoricalData(sym, '1d');
+          const weeklyCandles = await binanceService.getHistoricalData(sym, '1w');
+          let pdh = null, pdl = null, pwh = null, pwl = null;
+          if (dailyCandles && dailyCandles.length >= 2) {
+            pdh = dailyCandles[dailyCandles.length - 2].high;
+            pdl = dailyCandles[dailyCandles.length - 2].low;
+          }
+          if (weeklyCandles && weeklyCandles.length >= 2) {
+            pwh = weeklyCandles[weeklyCandles.length - 2].high;
+            pwl = weeklyCandles[weeklyCandles.length - 2].low;
+          }
+          await syncSymbolLevelsToDb(sym, pdh, pdl, pwh, pwl);
+        } catch (e) {
+          console.warn(`[AutoLevels] Background sync failed for ${sym.id}:`, e);
+        }
+      }
+    };
+    syncAllSymbols();
+  }, [syncSymbolLevelsToDb]);
+
   useEffect(() => {
     binanceService.connectAll(SUPPORTED_SYMBOLS, selectedInterval);
     
     const subscription = binanceService.getPriceStream().subscribe((update) => {
+      const prevPrice = previousPricesRef.current[update.symbol];
+      previousPricesRef.current[update.symbol] = update.price;
       currentPricesRef.current[update.symbol] = update.price;
+
+      // Realtime crossing detection (only on subsequent live ticks, preventing false triggers on mount)
+      if (prevPrice !== undefined && alertsRef.current && alertsRef.current.length > 0) {
+        alertsRef.current.forEach((alert) => {
+          if (alert.status === 'active' && alert.symbol === update.symbol) {
+            const isCrossing =
+              (alert.condition === 'gt' && prevPrice < alert.target_price && update.price >= alert.target_price) ||
+              (alert.condition === 'lt' && prevPrice > alert.target_price && update.price <= alert.target_price);
+
+            if (isCrossing) {
+              if (triggeredCountRef.current.has(alert.id)) return;
+              triggeredCountRef.current.add(alert.id);
+              handleSetTriggered(alert, update.price);
+            }
+          }
+        });
+      }
     });
     
     return () => {
       subscription.unsubscribe();
       binanceService.disconnect();
     };
-  }, [selectedInterval]);
+  }, [selectedInterval, handleSetTriggered]);
 
   const handleAddAlert = useCallback(async (targetPrice) => {
     const curPrice = currentPricesRef.current[selectedSymbol.id] || targetPrice;
@@ -401,33 +510,6 @@ export const AlertsView = () => {
         </div>
       )}
 
-      {/* Alert Triggered Modal */}
-      {triggeredModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-journal-secondary border border-journal-gold/30 rounded-[3rem] shadow-2xl p-10 max-w-sm w-full text-center animate-in zoom-in-95 duration-500 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-journal-red via-journal-gold to-journal-green" />
-            <div className="w-20 h-20 bg-journal-gold/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-journal-gold/20 shadow-xl shadow-journal-gold/10">
-              <TrendingUp className="w-10 h-10 text-journal-gold animate-bounce" />
-            </div>
-            <h2 className="text-2xl font-black text-white mb-3 uppercase tracking-[0.2em] italic">
-              {triggeredModal.isAutoLevel ? `${triggeredModal.levelName} Crossed` : 'Target Reached'}
-            </h2>
-            <div className="text-5xl font-black text-journal-gold mb-8 tracking-tighter drop-shadow-lg gold-glow py-2">
-              {triggeredModal.symbol}
-            </div>
-            <p className="text-journal-text-muted mb-10 font-black uppercase tracking-widest text-[10px]">
-              Hit level at <span className="text-white">${triggeredModal.target_price}</span>
-            </p>
-            <button 
-              onClick={() => setTriggeredModal(null)}
-              className="w-full py-5 bg-journal-gold text-journal-bg hover:bg-white rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] transition-all shadow-xl active:scale-95"
-            >
-              Acknowledge Trade
-            </button>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
-};
+      </div>
+    );
+  };

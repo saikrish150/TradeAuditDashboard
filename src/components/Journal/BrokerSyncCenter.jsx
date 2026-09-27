@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   RefreshCw, Check, X, AlertTriangle, CheckCircle, Settings,
-  Bitcoin, TrendingUp, IndianRupee, Terminal
+  Bitcoin, TrendingUp, IndianRupee, Terminal, Eye
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { 
@@ -29,6 +29,19 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
   const [showPrefillModal, setShowPrefillModal] = useState(false);
   const [prefillTradeData, setPrefillTradeData] = useState(null);
   const [selectedReconstructedTrade, setSelectedReconstructedTrade] = useState(null);
+  const [viewerImage, setViewerImage] = useState(null);
+
+  // Keyboard shortcut to close image viewer on Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (viewerImage && e.key === 'Escape') {
+        e.stopPropagation();
+        setViewerImage(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewerImage]);
   
   const [showSettings, setShowSettings] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -331,23 +344,109 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
     const exitDate = trade.exit_time ? new Date(trade.exit_time) : entryDate;
     const holdDurationMs = exitDate.getTime() - entryDate.getTime();
     
+    const netPnlVal = trade.net_pnl !== undefined && trade.net_pnl !== null 
+      ? (Math.round(parseFloat(trade.net_pnl) * 100) / 100).toString() 
+      : '0';
+    const feesVal = trade.total_fees !== undefined && trade.total_fees !== null 
+      ? (Math.round(Math.abs(parseFloat(trade.total_fees)) * 100) / 100).toString() 
+      : '0';
+
+    const pnlNum = parseFloat(netPnlVal);
+    const statusByPl = (!isNaN(pnlNum) && pnlNum >= 0) ? 'Target' : 'StopLoss';
+
     const prefillObj = {
       jsDate: entryDate,
       market: mappedMarket,
       direction: trade.direction ? trade.direction.toUpperCase() : 'LONG',
-      isWin: trade.net_pnl >= 0 ? 'WIN' : 'LOSS',
-      pl: Math.round(trade.net_pnl).toString(),
-      positionSize: trade.quantity.toString(),
-      tradeStatus: trade.net_pnl >= 0 ? 'Target' : 'StopLoss',
+      isWin: (!isNaN(pnlNum) && pnlNum >= 0) ? 'WIN' : 'LOSS',
+      pl: netPnlVal,
+      [DB_FIELDS.pl]: netPnlVal,
+      positionSize: trade.quantity ? trade.quantity.toString() : '0',
+      tradeStatus: statusByPl,
+      [DB_FIELDS.tradeStatus]: statusByPl,
       positionType: 'Intraday',
       tradeMode: 'Buying',
       tradeTime: formatDuration(holdDurationMs),
-      brokerage: Math.abs(trade.total_fees || 0).toString(),
+      brokerage: feesVal,
+      fees: feesVal,
+      [DB_FIELDS.fees]: feesVal,
       reason: ''
     };
 
     setSelectedReconstructedTrade(trade);
     setPrefillTradeData(prefillObj);
+    setShowPrefillModal(true);
+  }
+
+  // Handle opening existing Add Trade popup with trade details on View click or row click
+  async function handleViewTrade(trade, mappedMarket) {
+    const entryDate = new Date(trade.entry_time);
+    const exitDate = trade.exit_time ? new Date(trade.exit_time) : entryDate;
+    const holdDurationMs = exitDate.getTime() - entryDate.getTime();
+
+    const netPnlVal = trade.net_pnl !== undefined && trade.net_pnl !== null 
+      ? (Math.round(parseFloat(trade.net_pnl) * 100) / 100).toString() 
+      : '0';
+    const feesVal = trade.total_fees !== undefined && trade.total_fees !== null 
+      ? (Math.round(Math.abs(parseFloat(trade.total_fees)) * 100) / 100).toString() 
+      : '0';
+
+    // Check if the trade record already exists in the master trades table
+    let masterTrade = null;
+    try {
+      const { data } = await supabase
+        .from('trades')
+        .select('*')
+        .eq('user_id', user.id)
+        .or(`linked_reconstructed_trade_id.eq.${trade.id},trade_hash.eq.${trade.trade_hash}`)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) masterTrade = data;
+    } catch (err) {
+      console.warn('Could not query linked master trade:', err);
+    }
+
+    const effectivePl = masterTrade 
+      ? String(masterTrade[DB_FIELDS.pl] ?? masterTrade['P/L'] ?? masterTrade.pl ?? netPnlVal)
+      : netPnlVal;
+    const pnlNum = parseFloat(effectivePl);
+
+    const savedStatus = masterTrade 
+      ? (masterTrade[DB_FIELDS.tradeStatus] || masterTrade.tradeStatus)
+      : null;
+
+    const tradeToView = masterTrade 
+      ? {
+          ...masterTrade,
+          pl: effectivePl,
+          brokerage: String(masterTrade[DB_FIELDS.fees] ?? masterTrade['fees'] ?? masterTrade.fees ?? masterTrade.brokerage ?? feesVal),
+          fees: String(masterTrade[DB_FIELDS.fees] ?? masterTrade['fees'] ?? masterTrade.fees ?? feesVal),
+          jsDate: masterTrade[DB_FIELDS.date] ? new Date(masterTrade[DB_FIELDS.date]) : entryDate,
+          tradeStatus: savedStatus || 'Neutral',
+          [DB_FIELDS.tradeStatus]: savedStatus || 'Neutral',
+        }
+      : {
+          jsDate: entryDate,
+          market: mappedMarket,
+          direction: trade.direction ? trade.direction.toUpperCase() : 'LONG',
+          isWin: (!isNaN(pnlNum) && pnlNum >= 0) ? 'WIN' : 'LOSS',
+          pl: netPnlVal,
+          [DB_FIELDS.pl]: netPnlVal,
+          positionSize: trade.quantity ? trade.quantity.toString() : '0',
+          tradeStatus: 'Neutral',
+          [DB_FIELDS.tradeStatus]: 'Neutral',
+          positionType: 'Intraday',
+          tradeMode: 'Buying',
+          tradeTime: formatDuration(holdDurationMs),
+          brokerage: feesVal,
+          fees: feesVal,
+          [DB_FIELDS.fees]: feesVal,
+          reason: ''
+        };
+
+    setSelectedReconstructedTrade(trade);
+    setPrefillTradeData(tradeToView);
     setShowPrefillModal(true);
   }
 
@@ -392,11 +491,20 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
         tradeRecord[DB_FIELDS.chartScreenshotUrl] = screenshotUrl;
       }
 
-      const { error: insertError } = await supabase
-        .from('trades')
-        .insert([tradeRecord]);
-
-      if (insertError) throw insertError;
+      if (prefillTradeData?.id) {
+        // Update existing master journal record
+        const { error: updateError } = await supabase
+          .from('trades')
+          .update(tradeRecord)
+          .eq('id', prefillTradeData.id);
+        if (updateError) throw updateError;
+      } else {
+        // Insert new approved trade record
+        const { error: insertError } = await supabase
+          .from('trades')
+          .insert([tradeRecord]);
+        if (insertError) throw insertError;
+      }
 
       const { error: updateError } = await supabase
         .from('reconstructed_trades')
@@ -408,6 +516,8 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
       }
 
       setShowPrefillModal(false);
+      setSelectedReconstructedTrade(null);
+      setPrefillTradeData(null);
       await loadBrokerContext();
       if (onImportSuccess) onImportSuccess();
     } catch (err) {
@@ -668,7 +778,17 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
                       }
                       
                       return (
-                        <tr key={trade.id} className={`transition-all ${isApproved ? 'opacity-50' : 'hover:bg-white/[0.02]'}`}>
+                        <tr 
+                          key={trade.id} 
+                          onClick={() => {
+                            if (isApproved) {
+                              handleViewTrade(trade, mappedMarket);
+                            } else {
+                              handleApproveClick(trade, mappedMarket);
+                            }
+                          }}
+                          className={`transition-all cursor-pointer ${isApproved ? 'opacity-75 hover:bg-white/[0.04]' : 'hover:bg-white/[0.04]'}`}
+                        >
                           <td className="p-4">
                             <p className="text-xs font-black text-white">{new Date(trade.entry_time).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                             <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">{new Date(trade.entry_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
@@ -710,26 +830,41 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
                           </td>
                           <td className="p-4 text-right">
                             <div className="flex gap-2 justify-end">
-                              <button 
-                                onClick={() => !isApproved && handleApproveClick(trade, mappedMarket)}
-                                disabled={isApproved}
-                                className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                                  isApproved 
-                                    ? 'bg-slate-800/50 border border-slate-700/30 text-slate-600' 
-                                    : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white'
-                                }`}
-                                title={isApproved ? 'Already synced to journal' : 'Approve & Move to Journal'}
-                              >
-                                <Check size={14} />
-                              </button>
-                              {!isApproved && (
+                              {isApproved ? (
                                 <button 
-                                  onClick={() => handleRejectTrade(trade.id)}
-                                  className="w-8 h-8 rounded-xl bg-slate-900 border border-white/5 text-slate-500 hover:text-rose-400 hover:border-rose-500/30 flex items-center justify-center transition-all"
-                                  title="Discard Trade"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewTrade(trade, mappedMarket);
+                                  }}
+                                  className="px-3 h-8 rounded-xl bg-journal-gold/10 border border-journal-gold/20 text-journal-gold hover:bg-journal-gold hover:text-black flex items-center gap-1.5 transition-all shadow-sm text-xs font-bold"
+                                  title="View Trade Details"
                                 >
-                                  <X size={14} />
+                                  <Eye size={13} />
+                                  <span>View</span>
                                 </button>
+                              ) : (
+                                <>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleApproveClick(trade, mappedMarket);
+                                    }}
+                                    className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-all"
+                                    title="Approve & Move to Journal"
+                                  >
+                                    <Check size={14} />
+                                  </button>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRejectTrade(trade.id);
+                                    }}
+                                    className="w-8 h-8 rounded-xl bg-slate-900 border border-white/5 text-slate-500 hover:text-rose-400 hover:border-rose-500/30 flex items-center justify-center transition-all"
+                                    title="Discard Trade"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </>
                               )}
                             </div>
                           </td>
@@ -831,8 +966,44 @@ export default function BrokerSyncCenter({ user, liveRate = 83.5, onClose, onImp
           editingTrade={prefillTradeData}
           trades={reconstructed}
           isPrefilled={true}
+          onViewImage={(img) => setViewerImage(img)}
         />
       )}
+
+      {/* Full-screen Image Viewer */}
+      <AnimatePresence>
+        {viewerImage && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            onClick={() => setViewerImage(null)}
+            className="fixed inset-0 z-[10000] bg-journal-bg/95 backdrop-blur-2xl flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 1 }}
+              className="relative max-w-6xl w-full h-full flex items-center justify-center group"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button 
+                onClick={() => setViewerImage(null)}
+                className="absolute top-4 right-4 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all backdrop-blur-md shadow-lg"
+              >
+                <X size={24} />
+              </button>
+
+              <img 
+                src={viewerImage} 
+                alt="Trade Screenshot"
+                className="max-w-full max-h-full rounded-2xl shadow-2xl border border-white/10 object-contain selection:bg-none"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -261,7 +261,29 @@ export const useTradeData = ({
       if (String(t.tradeQuality || t.quality).toLowerCase().includes('a') || String(t.tradeQuality || t.quality).toLowerCase().includes('b')) ruleAlignedCount++;
     });
 
-    const activeMonthsArray = Array.from(activeMonthsSet).sort((a, b) => new Date(Date.parse(`1 ${a}`)) - new Date(Date.parse(`1 ${b}`)));
+    const activeMonthsArray = Array.from(activeMonthsSet).sort((a, b) => {
+      const [aMonth, aYear] = a.split(' ');
+      const [bMonth, bYear] = b.split(' ');
+      const yDiff = (parseInt(aYear) || 0) - (parseInt(bYear) || 0);
+      if (yDiff !== 0) return yDiff;
+      return (MONTH_MAP[aMonth] ?? 0) - (MONTH_MAP[bMonth] ?? 0);
+    });
+
+    const sortedMonthEntries = Object.entries(monthData).sort((a, b) => {
+      const [aMonth, aYear] = a[0].split(' ');
+      const [bMonth, bYear] = b[0].split(' ');
+      const yDiff = (parseInt(aYear) || 0) - (parseInt(bYear) || 0);
+      if (yDiff !== 0) return yDiff;
+      return (MONTH_MAP[aMonth] ?? 0) - (MONTH_MAP[bMonth] ?? 0);
+    });
+    const sortedMonthData = Object.fromEntries(sortedMonthEntries);
+
+    const sortedYearEntries = Object.entries(yearData).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+    const sortedYearData = Object.fromEntries(sortedYearEntries);
+
+    const sortedDayEntries = Object.entries(dayData).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+    const sortedDayData = Object.fromEntries(sortedDayEntries);
+
     const weekdayEdge = [1, 2, 3, 4, 5, 6, 0].map(d => {
       const raw = weekDayStatsRaw[d];
       const wr = raw.total > 0 ? Math.round((raw.wins / raw.total) * 100) : 0;
@@ -273,9 +295,9 @@ export const useTradeData = ({
     const worstDay = activeDays.length > 0 ? activeDays.reduce((a, b) => a.winRate < b.winRate ? a : b) : null;
 
     let highlightSource = [];
-    if (selectedYear === 'All' && datePreset === 'All') highlightSource = Object.entries(yearData);
-    else if (selectedMonth === 'All' && datePreset === 'All') highlightSource = Object.entries(monthData);
-    else highlightSource = Object.entries(dayData).map(([d, v]) => [`Day ${d}`, v]);
+    if (selectedYear === 'All' && datePreset === 'All') highlightSource = sortedYearEntries;
+    else if (selectedMonth === 'All' && datePreset === 'All') highlightSource = sortedMonthEntries;
+    else highlightSource = sortedDayEntries.map(([d, v]) => [`Day ${d}`, v]);
 
     if (highlightSource.length <= 1) {
       highlightSource = filtered.map((t, idx) => [`Trade #${idx + 1}`, { pl: getPL(t) }]);
@@ -394,13 +416,13 @@ export const useTradeData = ({
     return {
       metrics: { net: cumulativePL, winRate: winRateValue, total: tradeTotalCount, avgWin, avgLoss, overallRR: overallRRValue, maxProfit: Math.max(...filtered.map(t => t.pl > 0 ? t.pl : 0), 0), maxLoss: Math.max(...filtered.map(t => t.pl < 0 ? Math.abs(t.pl) : 0), 0), pf: (winTotal / (lossTotal || 1)).toFixed(2), expectancy: (cumulativePL / tradeTotalCount).toFixed(0), maxLosingStreak, maxWinningStreak, peakDD: maxDDValue, profitDD: (cumulativePL / (Math.abs(maxDDValue) || 1)).toFixed(2), mindsetEfficiency: Math.round(((winTotal - Math.abs(revengeLoss)) / (winTotal || 1)) * 100), maxTradesInDay: Math.max(...Object.values(dateData).map(d => d.count), 0), avgTradesPerActiveDay: Object.keys(dateData).length > 0 ? (tradeTotalCount / Object.keys(dateData).length).toFixed(1) : 0, avgTimeHolded: formatAvgHoldTime(avgHoldTimeStr), brokeragePaid: totalBrokerage },
       scores: { risk: Math.min(100, Math.max(0, (winTotal / (lossTotal || 1)) * 40)), discipline: Math.round((ruleAlignedCount / (tradeTotalCount || 1)) * 100), psychology: Math.min(100, Math.max(0, 100 - (Math.abs(revengeLoss) / (winTotal || 1) * 100))), consistency: Math.min(100, Math.max(0, 100 - (Math.abs(maxDDValue) / (winTotal || 1) * 50))) },
-      hierarchical: { yearData, monthData, dayData, dateData },
+      hierarchical: { yearData: sortedYearData, monthData: sortedMonthData, dayData: sortedDayData, dateData },
       activeMonths: activeMonthsArray,
       barData: selectedYear === 'All' && datePreset === 'All'
-        ? Object.entries(yearData).map(([n, d]) => ({ name: String(n), pl: d.pl }))
+        ? sortedYearEntries.map(([n, d]) => ({ name: String(n), pl: d.pl }))
         : (selectedMonth === 'All' && datePreset === 'All')
-          ? Object.entries(monthData).map(([k, d]) => ({ name: String(k.split(' ')[0]), pl: d.pl }))
-          : Object.entries(dayData).map(([d, val]) => ({ name: `D${String(d)}`, pl: val.pl })),
+          ? sortedMonthEntries.map(([k, d]) => ({ name: String(k.split(' ')[0]), pl: d.pl }))
+          : sortedDayEntries.map(([d, val]) => ({ name: `D${String(d)}`, pl: val.pl })),
       maxDayAbsVal: Math.max(...Object.values(dateData).map(d => Math.abs(d.pl)), 1),
       weekdayEdge, bestDay, worstDay, bestPeriod, worstPeriod,
       aiBrief: generateBrief(winRateValue, overallRRValue),
